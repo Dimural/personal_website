@@ -137,7 +137,7 @@ const PI_2 = Math.PI / 2;
 
 // Player settings
 const PLAYER_HEIGHT = 1.7;
-const MOVE_SPEED = 22;
+const MOVE_SPEED = 80;
 const ROOM_HALF = 14;
 
 // Shared materials
@@ -145,7 +145,7 @@ const CHROME = new THREE.MeshStandardMaterial({ color: 0xd0d0d8, metalness: 0.95
 const DARK_METAL = new THREE.MeshStandardMaterial({ color: 0x2c2c3a, metalness: 0.85, roughness: 0.2 });
 const MATTE_BLACK = new THREE.MeshStandardMaterial({ color: 0x1e1e28, roughness: 0.95, metalness: 0.05 });
 const RED_LEATHER = new THREE.MeshStandardMaterial({ color: 0xc0353f, roughness: 0.75, metalness: 0.05 });
-const RUBBER_MAT = new THREE.MeshStandardMaterial({ color: 0x2a2a38, roughness: 0.98, metalness: 0 });
+const RUBBER_MAT = new THREE.MeshStandardMaterial({ color: 0x3a3038, roughness: 0.98, metalness: 0 });
 const NEON_PINK = new THREE.MeshStandardMaterial({ color: 0xe94560, emissive: 0xe94560, emissiveIntensity: 1.5 });
 const NEON_BLUE = new THREE.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x4fc3f7, emissiveIntensity: 1.5 });
 const NEON_YELLOW = new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffd93d, emissiveIntensity: 1.0 });
@@ -155,8 +155,8 @@ const NEON_YELLOW = new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 
 // ============================================================
 function init() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0d0d1a);
-    scene.fog = new THREE.FogExp2(0x0d0d1a, 0.008);
+    scene.background = new THREE.Color(0x1a1525);
+    scene.fog = new THREE.FogExp2(0x1a1525, 0.003);
 
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
     camera.position.set(0, PLAYER_HEIGHT, 10);
@@ -167,7 +167,7 @@ function init() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 2.0;
+    renderer.toneMappingExposure = 3.0;
     document.body.appendChild(renderer.domElement);
 
     setupLighting();
@@ -198,11 +198,16 @@ function init() {
 // LIGHTING — dramatic gym atmosphere
 // ============================================================
 function setupLighting() {
-    // Strong ambient so everything is visible
-    scene.add(new THREE.AmbientLight(0xddddf0, 1.8));
+    // Strong ambient so everything is visible — warm white
+    scene.add(new THREE.AmbientLight(0xfff5e8, 3.5));
 
-    // Hemisphere for fill
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x555566, 1.5));
+    // Hemisphere for fill — warm sky, warm ground
+    scene.add(new THREE.HemisphereLight(0xfff5e8, 0x8b6030, 2.5));
+
+    // Directional fill from above-front to brighten everything uniformly
+    const fillDir = new THREE.DirectionalLight(0xfff0dd, 1.5);
+    fillDir.position.set(0, 8, 10);
+    scene.add(fillDir);
 
     // Overhead rectangular light fixtures (fluorescent tubes)
     const fixturePositions = [
@@ -212,8 +217,8 @@ function setupLighting() {
         [0, 4.9, -3], [0, 4.9, 3]
     ];
     fixturePositions.forEach(pos => {
-        // Light
-        const pl = new THREE.PointLight(0xeeeeff, 2.5, 30, 1.0);
+        // Light — warm bright white
+        const pl = new THREE.PointLight(0xfff5dd, 6.0, 45, 1.0);
         pl.position.set(...pos);
         pl.castShadow = true;
         pl.shadow.mapSize.set(512, 512);
@@ -230,7 +235,7 @@ function setupLighting() {
         // Glowing tube
         const tube = new THREE.Mesh(
             new THREE.BoxGeometry(1.0, 0.03, 0.08),
-            new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xeeeeff, emissiveIntensity: 4 })
+            new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff5dd, emissiveIntensity: 6 })
         );
         tube.position.set(pos[0], pos[1] - 0.04, pos[2]);
         scene.add(tube);
@@ -242,7 +247,7 @@ function setupLighting() {
         const strip = new THREE.Mesh(neonGeo, mat);
         strip.position.set(x, 4.95, 0);
         scene.add(strip);
-        const light = new THREE.PointLight(mat.emissive.getHex(), 0.4, 15);
+        const light = new THREE.PointLight(mat.emissive.getHex(), 1.5, 20);
         light.position.set(x, 4.5, 0);
         scene.add(light);
     });
@@ -263,7 +268,7 @@ function setupLighting() {
         { pos: [0, 4.8, -10], target: [0, 0, -10], color: 0xffffdd },
     ];
     spotTargets.forEach(({ pos, target, color }) => {
-        const spot = new THREE.SpotLight(color, 3.0, 25, Math.PI / 4, 0.5, 1.0);
+        const spot = new THREE.SpotLight(color, 6.0, 35, Math.PI / 4, 0.4, 1.0);
         spot.position.set(...pos);
         spot.target.position.set(...target);
         spot.castShadow = true;
@@ -278,26 +283,26 @@ function setupLighting() {
 function buildRoom() {
     const S = ROOM_HALF * 2;
 
-    // === FLOOR: checkered rubber tiles ===
-    const tileSize = 2;
-    const darkTile = new THREE.MeshStandardMaterial({ color: 0x3a3a50, roughness: 0.85, metalness: 0.02 });
-    const lightTile = new THREE.MeshStandardMaterial({ color: 0x4a4a62, roughness: 0.8, metalness: 0.02 });
-    const tileGeo = new THREE.BoxGeometry(tileSize - 0.02, 0.08, tileSize - 0.02);
-
-    for (let x = -ROOM_HALF; x < ROOM_HALF; x += tileSize) {
-        for (let z = -ROOM_HALF; z < ROOM_HALF; z += tileSize) {
-            const isDark = ((x / tileSize + z / tileSize) % 2 === 0);
-            const tile = new THREE.Mesh(tileGeo, isDark ? darkTile : lightTile);
-            tile.position.set(x + tileSize / 2, 0.04, z + tileSize / 2);
-            tile.receiveShadow = true;
-            scene.add(tile);
-        }
+    // === FLOOR: warm hardwood planks ===
+    const plankW = 0.9;
+    const plankColors = [0xc4956a, 0xb8855d, 0xd4a574, 0xaa7852, 0xc9a070, 0xbe8e62];
+    const plankGeo = new THREE.BoxGeometry(plankW - 0.015, 0.07, ROOM_HALF * 2 - 0.1);
+    let plankIdx = 0;
+    for (let x = -ROOM_HALF + plankW / 2; x < ROOM_HALF; x += plankW) {
+        const col = plankColors[plankIdx % plankColors.length];
+        plankIdx++;
+        const plank = new THREE.Mesh(plankGeo, new THREE.MeshStandardMaterial({
+            color: col, roughness: 0.65, metalness: 0.02
+        }));
+        plank.position.set(x, 0.035, 0);
+        plank.receiveShadow = true;
+        scene.add(plank);
     }
 
     // Sub-floor
     const subFloor = new THREE.Mesh(
         new THREE.PlaneGeometry(S + 2, S + 2),
-        new THREE.MeshStandardMaterial({ color: 0x111118, roughness: 1 })
+        new THREE.MeshStandardMaterial({ color: 0x6b4520, roughness: 1 })
     );
     subFloor.rotation.x = -Math.PI / 2;
     subFloor.position.y = -0.01;
@@ -306,8 +311,8 @@ function buildRoom() {
 
     // === WALLS: paneled with baseboard and accent ===
     const wallH = 5.5;
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x404058, roughness: 0.75, metalness: 0.05 });
-    const baseboardMat = new THREE.MeshStandardMaterial({ color: 0x1a1a28, roughness: 0.7, metalness: 0.1 });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x6a6080, roughness: 0.7, metalness: 0.05 });
+    const baseboardMat = new THREE.MeshStandardMaterial({ color: 0x2a2035, roughness: 0.7, metalness: 0.1 });
     const accentStripMat = NEON_PINK.clone();
     accentStripMat.emissiveIntensity = 0.6;
 
@@ -368,7 +373,7 @@ function buildRoom() {
     // === CEILING ===
     const ceiling = new THREE.Mesh(
         new THREE.PlaneGeometry(S, S),
-        new THREE.MeshStandardMaterial({ color: 0x1a1a28, roughness: 1, metalness: 0 })
+        new THREE.MeshStandardMaterial({ color: 0x2a2238, roughness: 1, metalness: 0 })
     );
     ceiling.rotation.x = Math.PI / 2;
     ceiling.position.y = wallH;
