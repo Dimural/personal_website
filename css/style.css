@@ -170,27 +170,42 @@ canvas {
 /* ===== Interaction Hint ===== */
 #interact-hint {
     position: fixed;
-    top: 60%;
+    top: 58%;
     left: 50%;
     transform: translateX(-50%);
     z-index: 100;
     pointer-events: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(10, 10, 18, 0.7);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    padding: 0.65rem 1.4rem;
+    animation: fade-in-hint 0.2s ease-out;
 }
 
-#interact-hint span {
-    font-family: 'Fredoka', sans-serif;
-    font-size: 1rem;
-    color: #ffd93d;
-    background: rgba(0, 0, 0, 0.6);
-    padding: 0.5rem 1.2rem;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 217, 61, 0.3);
-    animation: pulse-hint 1.5s ease-in-out infinite;
+#interact-hint .hint-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    color: #f0f0f5;
 }
 
-@keyframes pulse-hint {
-    0%, 100% { opacity: 0.8; }
-    50% { opacity: 1; }
+#interact-hint .hint-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes fade-in-hint {
+    from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 /* ===== Info Panel ===== */

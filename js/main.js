@@ -116,6 +116,49 @@ const CONTENT = {
             </ul>
             <p>Feel free to reach out — I'd love to chat!</p>
         `
+    },
+    // Fun fact objects scattered around the gym
+    soccerBall: {
+        icon: '⚽',
+        title: 'Fun Fact',
+        html: `
+            <h3>Soccer is my passion</h3>
+            <p>I'm a huge soccer fan — Real Madrid is my favorite team. ¡Hala Madrid!</p>
+            <p>There's nothing like watching a Champions League night at the Bernabéu.</p>
+        `
+    },
+    trophy: {
+        icon: '🏆',
+        title: 'Fun Fact',
+        html: `
+            <h3>Bench Press Record Holder</h3>
+            <p>I hold my high school's all-time bench press record.</p>
+            <p>Lots of early mornings in the weight room paid off.</p>
+        `
+    },
+    guitar: {
+        icon: '🎸',
+        title: 'Fun Fact',
+        html: `
+            <h3>I play the guitar</h3>
+            <p>Picking up a guitar is one of my favorite ways to unwind. Whether it's jamming to a favorite song or just messing around with chords, it always clears my head.</p>
+        `
+    },
+    movies: {
+        icon: '🎬',
+        title: 'Fun Fact',
+        html: `
+            <h3>Movie Enthusiast</h3>
+            <p>I love watching movies — from classic thrillers to the latest blockbusters. Ask me for a recommendation any time.</p>
+        `
+    },
+    boardGames: {
+        icon: '🎲',
+        title: 'Fun Fact',
+        html: `
+            <h3>Board Game Night</h3>
+            <p>I love a good board game night. Strategy games, party games, anything that gets people around a table — I'm in.</p>
+        `
     }
 };
 
@@ -459,11 +502,6 @@ function buildProps() {
         scene.add(kbGroup);
     });
 
-    // Motivational wall signs (back wall)
-    addWallSign('PUSH YOUR LIMITS', 0, 3.8, -ROOM_HALF + 0.02, 0xe94560);
-    addWallSign('NO EXCUSES', -7, 1.5, -ROOM_HALF + 0.02, 0x4fc3f7);
-    addWallSign('BEAST MODE', 7, 1.5, -ROOM_HALF + 0.02, 0xffd93d);
-
     // Clock on left wall
     const clockGroup = new THREE.Group();
     clockGroup.position.set(-ROOM_HALF + 0.05, 3.5, 0);
@@ -518,6 +556,287 @@ function buildProps() {
         );
         scene.add(band);
     });
+
+    // === FUN FACT OBJECTS (clickable) ===
+    buildSoccerBall(new THREE.Vector3(2, 0, 9));
+    buildTrophy(new THREE.Vector3(-11, 0, -8));
+    buildGuitar(new THREE.Vector3(-11.5, 0, 4));
+    buildMovieReel(new THREE.Vector3(11, 0, 9));
+    buildBoardGameDice(new THREE.Vector3(-2, 0, 11));
+}
+
+// ============================================================
+// FUN FACT OBJECTS
+// ============================================================
+function buildSoccerBall(pos) {
+    const g = new THREE.Group();
+    g.position.copy(pos);
+
+    // White ball base
+    const ball = makeMesh(new THREE.SphereGeometry(0.18, 32, 24),
+        { color: 0xffffff, roughness: 0.55, metalness: 0.05 },
+        [0, 0.18, 0]);
+    g.add(ball);
+
+    // Black pentagon patches using small spheres for simple dappled look
+    const black = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.6 });
+    const patchPositions = [
+        [0, 0.18, 0.18], [0, 0.18, -0.18], [0.18, 0.18, 0], [-0.18, 0.18, 0],
+        [0, 0.36, 0], [0.13, 0.29, 0.13], [-0.13, 0.29, -0.13],
+        [0.13, 0.07, -0.13], [-0.13, 0.07, 0.13]
+    ];
+    patchPositions.forEach(p => {
+        const patch = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), black);
+        patch.position.set(...p);
+        g.add(patch);
+    });
+
+    // Small Real Madrid style pennant on a stick next to ball
+    const stickMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.7 });
+    g.add(makeMesh(new THREE.CylinderGeometry(0.01, 0.01, 0.7, 8), stickMat, [0.35, 0.35, 0]));
+    // Flag
+    const flagCanvas = document.createElement('canvas');
+    flagCanvas.width = 128;
+    flagCanvas.height = 80;
+    const fctx = flagCanvas.getContext('2d');
+    fctx.fillStyle = '#ffffff';
+    fctx.fillRect(0, 0, 128, 80);
+    fctx.fillStyle = '#febe10';
+    fctx.fillRect(0, 0, 128, 12);
+    fctx.fillRect(0, 68, 128, 12);
+    fctx.font = 'bold 26px Arial';
+    fctx.fillStyle = '#00529f';
+    fctx.textAlign = 'center';
+    fctx.fillText('RMA', 64, 52);
+    const flagTex = new THREE.CanvasTexture(flagCanvas);
+    const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.22),
+        new THREE.MeshBasicMaterial({ map: flagTex, side: THREE.DoubleSide }));
+    flag.position.set(0.52, 0.58, 0);
+    g.add(flag);
+
+    scene.add(g);
+    addHitbox([pos.x + 0.2, 0.4, pos.z], [1.0, 0.9, 0.6], 'soccerBall');
+}
+
+function buildTrophy(pos) {
+    const g = new THREE.Group();
+    g.position.copy(pos);
+
+    // Wooden base
+    g.add(makeMesh(new THREE.BoxGeometry(0.45, 0.08, 0.45),
+        { color: 0x5a3220, roughness: 0.6, metalness: 0.1 }, [0, 0.04, 0]));
+    g.add(makeMesh(new THREE.BoxGeometry(0.55, 0.05, 0.55),
+        { color: 0x3e2214, roughness: 0.7, metalness: 0.1 }, [0, 0.09, 0]));
+
+    // Gold stem
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xffc940, metalness: 0.9, roughness: 0.15, emissive: 0xffc940, emissiveIntensity: 0.1 });
+    g.add(makeMesh(new THREE.CylinderGeometry(0.04, 0.06, 0.12, 12), goldMat, [0, 0.17, 0]));
+
+    // Cup body
+    g.add(makeMesh(new THREE.CylinderGeometry(0.14, 0.08, 0.22, 16), goldMat, [0, 0.34, 0]));
+    // Cup rim
+    g.add(makeMesh(new THREE.TorusGeometry(0.14, 0.015, 8, 20), goldMat, [0, 0.45, 0], [Math.PI / 2, 0, 0]));
+
+    // Handles
+    [-1, 1].forEach(side => {
+        const handle = makeMesh(new THREE.TorusGeometry(0.06, 0.012, 8, 16, Math.PI),
+            goldMat, [side * 0.16, 0.35, 0], [0, 0, -side * Math.PI / 2]);
+        g.add(handle);
+    });
+
+    // Plaque on base with text
+    const plaqueCanvas = document.createElement('canvas');
+    plaqueCanvas.width = 256;
+    plaqueCanvas.height = 64;
+    const pctx = plaqueCanvas.getContext('2d');
+    pctx.fillStyle = '#d4a838';
+    pctx.fillRect(0, 0, 256, 64);
+    pctx.font = 'bold 18px serif';
+    pctx.fillStyle = '#2a1a0a';
+    pctx.textAlign = 'center';
+    pctx.fillText('BENCH PRESS', 128, 28);
+    pctx.fillText('RECORD', 128, 48);
+    const plaqueTex = new THREE.CanvasTexture(plaqueCanvas);
+    const plaque = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.1),
+        new THREE.MeshBasicMaterial({ map: plaqueTex }));
+    plaque.position.set(0, 0.09, 0.28);
+    g.add(plaque);
+
+    scene.add(g);
+    addHitbox([pos.x, 0.35, pos.z], [0.9, 0.8, 0.9], 'trophy');
+}
+
+function buildGuitar(pos) {
+    const g = new THREE.Group();
+    g.position.copy(pos);
+    // Lean against the wall
+    g.rotation.z = 0.15;
+
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8b3a1a, roughness: 0.4, metalness: 0.2 });
+    const darkWood = new THREE.MeshStandardMaterial({ color: 0x3a1a08, roughness: 0.5 });
+
+    // Guitar body (lathe for dreadnought shape)
+    const bodyPoints = [
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(0.18, 0.02),
+        new THREE.Vector2(0.26, 0.1),
+        new THREE.Vector2(0.28, 0.22),
+        new THREE.Vector2(0.22, 0.32),
+        new THREE.Vector2(0.18, 0.38),
+        new THREE.Vector2(0.26, 0.48),
+        new THREE.Vector2(0.28, 0.6),
+        new THREE.Vector2(0.2, 0.72),
+        new THREE.Vector2(0.0, 0.75)
+    ];
+    const bodyGeo = new THREE.LatheGeometry(bodyPoints, 24);
+    const body = new THREE.Mesh(bodyGeo, woodMat);
+    body.scale.z = 0.3; // flatten to guitar body shape
+    body.position.set(0, 0.4, 0);
+    g.add(body);
+
+    // Sound hole (dark circle)
+    g.add(makeMesh(new THREE.CircleGeometry(0.06, 20), darkWood,
+        [0, 0.55, 0.086], [0, 0, 0]));
+
+    // Neck
+    g.add(makeMesh(new THREE.BoxGeometry(0.06, 0.8, 0.04), darkWood, [0, 1.25, 0.05]));
+
+    // Headstock
+    g.add(makeMesh(new THREE.BoxGeometry(0.1, 0.15, 0.04), darkWood, [0, 1.73, 0.05]));
+
+    // Tuning pegs
+    for (let i = 0; i < 3; i++) {
+        [-0.05, 0.05].forEach(x => {
+            g.add(makeMesh(new THREE.CylinderGeometry(0.008, 0.008, 0.04, 8),
+                CHROME.clone(), [x, 1.68 + i * 0.03, 0.07], [Math.PI / 2, 0, 0]));
+        });
+    }
+
+    // Strings (6)
+    for (let i = 0; i < 6; i++) {
+        const s = makeMesh(new THREE.CylinderGeometry(0.002, 0.002, 1.25, 4),
+            { color: 0xdddddd, metalness: 0.8 },
+            [-0.025 + i * 0.01, 1.15, 0.09]);
+        g.add(s);
+    }
+
+    scene.add(g);
+    addHitbox([pos.x + 0.1, 0.9, pos.z], [0.9, 2.0, 0.5], 'guitar');
+}
+
+function buildMovieReel(pos) {
+    const g = new THREE.Group();
+    g.position.copy(pos);
+
+    const reelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.6, roughness: 0.4 });
+    const filmMat = new THREE.MeshStandardMaterial({ color: 0x2a2a30, metalness: 0.3, roughness: 0.5 });
+
+    // Two reels stacked at angle
+    for (let r = 0; r < 2; r++) {
+        const reel = new THREE.Group();
+        // Outer ring
+        reel.add(makeMesh(new THREE.TorusGeometry(0.22, 0.02, 8, 32), reelMat, [0, 0, 0]));
+        // Film coil
+        reel.add(makeMesh(new THREE.CylinderGeometry(0.21, 0.21, 0.04, 32), filmMat, [0, 0, 0]));
+        // Inner hub
+        reel.add(makeMesh(new THREE.CylinderGeometry(0.04, 0.04, 0.05, 12), reelMat, [0, 0, 0]));
+        // Spokes
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const spoke = makeMesh(new THREE.BoxGeometry(0.16, 0.01, 0.008), reelMat,
+                [Math.cos(angle) * 0.08, 0, Math.sin(angle) * 0.08]);
+            spoke.rotation.y = -angle;
+            reel.add(spoke);
+        }
+        reel.rotation.x = Math.PI / 2;
+        reel.position.set(r * 0.1 - 0.05, 0.3 + r * 0.3, 0);
+        reel.rotation.z = r * 0.2;
+        g.add(reel);
+    }
+
+    // Clapperboard leaning next to reels
+    const clapGroup = new THREE.Group();
+    clapGroup.position.set(0.35, 0.25, 0);
+    clapGroup.rotation.z = -0.15;
+    // Board
+    clapGroup.add(makeMesh(new THREE.BoxGeometry(0.4, 0.3, 0.025),
+        { color: 0x1a1a1a, roughness: 0.4 }, [0, 0, 0]));
+    // Top stripe with B/W pattern
+    const stripeCanvas = document.createElement('canvas');
+    stripeCanvas.width = 256;
+    stripeCanvas.height = 32;
+    const scctx = stripeCanvas.getContext('2d');
+    for (let i = 0; i < 8; i++) {
+        scctx.fillStyle = i % 2 ? '#ffffff' : '#000000';
+        scctx.fillRect(i * 32, 0, 32, 32);
+    }
+    const stripeTex = new THREE.CanvasTexture(stripeCanvas);
+    const stripe = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.06),
+        new THREE.MeshBasicMaterial({ map: stripeTex }));
+    stripe.position.set(0, 0.17, 0.014);
+    clapGroup.add(stripe);
+    g.add(clapGroup);
+
+    scene.add(g);
+    addHitbox([pos.x, 0.4, pos.z], [1.2, 1.0, 0.8], 'movies');
+}
+
+function buildBoardGameDice(pos) {
+    const g = new THREE.Group();
+    g.position.copy(pos);
+
+    // Stack of 4 dice in different colors with pips
+    const diceColors = [0xe94560, 0xffffff, 0x4fc3f7, 0xffd93d];
+    const pipMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
+
+    diceColors.forEach((c, i) => {
+        const die = new THREE.Group();
+        const size = 0.16;
+        die.add(makeMesh(new THREE.BoxGeometry(size, size, size),
+            { color: c, roughness: 0.55, metalness: 0.1 }, [0, 0, 0]));
+
+        // Pips on top face (showing random number per die)
+        const nPips = i + 2;
+        const pipSize = 0.012;
+        const offset = size / 2 + 0.001;
+        for (let p = 0; p < nPips; p++) {
+            const px = (p % 2 === 0 ? -0.04 : 0.04);
+            const pz = (Math.floor(p / 2) === 0 ? -0.04 : 0.04);
+            die.add(makeMesh(new THREE.SphereGeometry(pipSize, 8, 6), pipMat, [px, offset, pz]));
+        }
+
+        die.position.set((i % 2) * 0.18 - 0.09, size / 2 + Math.floor(i / 2) * size, (i % 2) * 0.05);
+        die.rotation.y = i * 0.15;
+        g.add(die);
+    });
+
+    // A board game box underneath them
+    g.add(makeMesh(new THREE.BoxGeometry(0.7, 0.08, 0.5),
+        { color: 0x2a4a7a, roughness: 0.6 }, [0.05, 0.04, -0.05]));
+    // Box label
+    const boxCanvas = document.createElement('canvas');
+    boxCanvas.width = 256;
+    boxCanvas.height = 180;
+    const bxctx = boxCanvas.getContext('2d');
+    bxctx.fillStyle = '#2a4a7a';
+    bxctx.fillRect(0, 0, 256, 180);
+    bxctx.strokeStyle = '#ffd93d';
+    bxctx.lineWidth = 4;
+    bxctx.strokeRect(10, 10, 236, 160);
+    bxctx.font = 'bold 32px serif';
+    bxctx.fillStyle = '#ffd93d';
+    bxctx.textAlign = 'center';
+    bxctx.fillText('BOARD', 128, 80);
+    bxctx.fillText('GAMES', 128, 125);
+    const boxTex = new THREE.CanvasTexture(boxCanvas);
+    const boxLid = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 0.46),
+        new THREE.MeshBasicMaterial({ map: boxTex }));
+    boxLid.rotation.x = -Math.PI / 2;
+    boxLid.position.set(0.05, 0.081, -0.05);
+    g.add(boxLid);
+
+    scene.add(g);
+    addHitbox([pos.x, 0.3, pos.z], [1.0, 0.8, 0.9], 'boardGames');
 }
 
 function makeMesh(geo, matProps, pos, rot) {
@@ -527,33 +846,6 @@ function makeMesh(geo, matProps, pos, rot) {
     if (rot) mesh.rotation.set(...rot);
     mesh.castShadow = true;
     return mesh;
-}
-
-function addWallSign(text, x, y, z, color) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'rgba(15,15,25,0.85)';
-    roundRect(ctx, 0, 0, 512, 128, 16);
-    ctx.fill();
-    ctx.strokeStyle = `#${color.toString(16).padStart(6, '0')}`;
-    ctx.lineWidth = 3;
-    roundRect(ctx, 2, 2, 508, 124, 14);
-    ctx.stroke();
-    ctx.font = 'bold 44px Fredoka, Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
-    ctx.shadowColor = `#${color.toString(16).padStart(6, '0')}`;
-    ctx.shadowBlur = 20;
-    ctx.fillText(text, 256, 64);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.75), mat);
-    mesh.position.set(x, y, z);
-    scene.add(mesh);
 }
 
 // ============================================================
@@ -645,7 +937,6 @@ function buildBenchPress(pos) {
 
     scene.add(g);
     addHitbox([pos.x, 1, pos.z], [1.5, 2, 2], 'benchPress');
-    addLabel(g, 'Experience', 0, 2.5, 0);
 }
 
 function buildDumbbellRack(pos) {
@@ -702,7 +993,6 @@ function buildDumbbellRack(pos) {
 
     scene.add(g);
     addHitbox([pos.x, 0.8, pos.z], [3, 1.8, 1.2], 'dumbbellRack');
-    addLabel(g, 'Skills', 0, 2, 0);
 }
 
 function buildTreadmill(pos) {
@@ -793,7 +1083,6 @@ function buildTreadmill(pos) {
 
     scene.add(g);
     addHitbox([pos.x, 0.8, pos.z], [1.4, 2, 2.8], 'treadmill');
-    addLabel(g, 'Projects', 0, 2.2, 0);
 }
 
 function buildPullUpBar(pos) {
@@ -865,37 +1154,36 @@ function buildPullUpBar(pos) {
 
     scene.add(g);
     addHitbox([pos.x, 1.6, pos.z], [3, 3.4, 1.5], 'pullUpBar');
-    addLabel(g, 'Education', 0, 3.6, 0);
 }
 
 function buildPunchingBag(pos) {
     const g = new THREE.Group();
     g.position.copy(pos);
 
-    // Ceiling mount bracket
-    g.add(makeMesh(new THREE.BoxGeometry(0.5, 0.06, 0.5), DARK_METAL.clone(), [0, 5.44, 0]));
-    g.add(makeMesh(new THREE.CylinderGeometry(0.06, 0.06, 0.15, 12), DARK_METAL.clone(), [0, 5.35, 0]));
+    // Ceiling mount bracket (lowered to look like proper bag mount, not chandelier)
+    const MOUNT_Y = 3.4;
+    g.add(makeMesh(new THREE.BoxGeometry(0.5, 0.06, 0.5), DARK_METAL.clone(), [0, MOUNT_Y + 0.04, 0]));
+    g.add(makeMesh(new THREE.CylinderGeometry(0.06, 0.06, 0.15, 12), DARK_METAL.clone(), [0, MOUNT_Y - 0.05, 0]));
 
     // Swivel
-    g.add(makeMesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 12), CHROME.clone(), [0, 5.23, 0]));
+    g.add(makeMesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 12), CHROME.clone(), [0, MOUNT_Y - 0.17, 0]));
 
     // Chains (4 chains converging)
     const chainMat = new THREE.MeshStandardMaterial({ color: 0x888899, metalness: 0.9, roughness: 0.2 });
     [[-0.1, 0.1], [0.1, 0.1], [-0.1, -0.1], [0.1, -0.1]].forEach(([x, z]) => {
-        // Chain links approximated as thin cylinders
-        for (let y = 4.6; y < 5.2; y += 0.08) {
+        for (let y = 2.8; y < 3.2; y += 0.08) {
             g.add(makeMesh(new THREE.TorusGeometry(0.02, 0.005, 6, 8), chainMat,
-                [x * (5.2 - y) / 0.6, y, z * (5.2 - y) / 0.6],
+                [x * (3.2 - y) / 0.4, y, z * (3.2 - y) / 0.4],
                 [Math.PI / 2, 0, 0]));
         }
     });
 
-    // Bag — proper heavy bag shape using lathe
+    // Bag — bottom at ~0.8m, top at ~2.75m (standard heavy bag height)
     const bagPoints = [];
     const bagProfile = [
-        [0, 4.55], [0.15, 4.5], [0.25, 4.4], [0.3, 4.2],
-        [0.32, 3.8], [0.32, 3.4], [0.3, 3.1], [0.28, 3.0],
-        [0.22, 2.95], [0.1, 2.92], [0, 2.9]
+        [0, 2.75], [0.15, 2.70], [0.25, 2.60], [0.3, 2.40],
+        [0.32, 2.00], [0.32, 1.55], [0.3, 1.20], [0.28, 1.05],
+        [0.22, 0.95], [0.1, 0.92], [0, 0.9]
     ];
     bagProfile.forEach(([r, y]) => bagPoints.push(new THREE.Vector2(r, y)));
     const bagGeo = new THREE.LatheGeometry(bagPoints, 24);
@@ -909,7 +1197,7 @@ function buildPunchingBag(pos) {
         const angle = (i / 6) * Math.PI * 2;
         const seamGeo = new THREE.CylinderGeometry(0.003, 0.003, 1.5, 4);
         const seam = new THREE.Mesh(seamGeo, new THREE.MeshBasicMaterial({ color: 0x661520 }));
-        seam.position.set(Math.sin(angle) * 0.315, 3.65, Math.cos(angle) * 0.315);
+        seam.position.set(Math.sin(angle) * 0.315, 1.82, Math.cos(angle) * 0.315);
         g.add(seam);
     }
 
@@ -928,15 +1216,14 @@ function buildPunchingBag(pos) {
     lctx.fillText('GYM', 64, 72);
     const logoTex = new THREE.CanvasTexture(logoCanvas);
     const logo = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 0.25), new THREE.MeshBasicMaterial({ map: logoTex, transparent: true }));
-    logo.position.set(0, 3.7, 0.33);
+    logo.position.set(0, 1.9, 0.33);
     g.add(logo);
 
     // Animate gentle swing
     animatedObjects.push({ mesh: g, type: 'swing' });
 
     scene.add(g);
-    addHitbox([pos.x, 3.5, pos.z], [1.2, 2.5, 1.2], 'punchingBag');
-    addLabel(g, 'About Me', 0, 4.8, 0);
+    addHitbox([pos.x, 1.8, pos.z], [1.2, 2.2, 1.2], 'punchingBag');
 }
 
 function buildMirror(pos) {
@@ -1009,67 +1296,8 @@ function buildMirror(pos) {
 
     scene.add(g);
     addHitbox([pos.x - 0.8, 2.5, pos.z], [2, 4, 5.5], 'mirror');
-    addLabel(g, 'Contact', -1, mirrorH + 1.5, 0);
 }
 
-// ============================================================
-// FLOATING LABELS
-// ============================================================
-function addLabel(group, text, x, y, z) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 320;
-    canvas.height = 80;
-    const ctx = canvas.getContext('2d');
-    ctx.font = 'bold 36px Fredoka, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    const metrics = ctx.measureText(text);
-    const pw = metrics.width + 50;
-    const ph = 52;
-    const px = 160 - pw / 2;
-    const py = 14;
-
-    // Rounded bg
-    ctx.fillStyle = 'rgba(10,10,20,0.75)';
-    roundRect(ctx, px, py, pw, ph, 26);
-    ctx.fill();
-
-    // Border
-    ctx.strokeStyle = 'rgba(233,69,96,0.5)';
-    ctx.lineWidth = 2;
-    roundRect(ctx, px, py, pw, ph, 26);
-    ctx.stroke();
-
-    // Text with glow
-    ctx.shadowColor = '#ffd93d';
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = '#ffd93d';
-    ctx.fillText(text, 160, 40);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
-    const sprite = new THREE.Sprite(spriteMat);
-    sprite.position.set(x, y, z);
-    sprite.scale.set(2.5, 0.625, 1);
-    group.add(sprite);
-
-    animatedObjects.push({ mesh: sprite, type: 'float', baseY: y });
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-}
 
 // ============================================================
 // EVENTS
@@ -1184,7 +1412,16 @@ function animate() {
         raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
         const intersects = raycaster.intersectObjects(interactables);
         const hint = document.getElementById('interact-hint');
-        hint.style.display = (intersects.length > 0 && intersects[0].distance < 8) ? 'block' : 'none';
+        if (intersects.length > 0 && intersects[0].distance < 8) {
+            const key = intersects[0].object.userData.contentKey;
+            const data = CONTENT[key];
+            if (data) {
+                hint.querySelector('.hint-title').textContent = data.title.toUpperCase();
+                hint.style.display = 'flex';
+            }
+        } else {
+            hint.style.display = 'none';
+        }
     }
 
     // Animate objects
