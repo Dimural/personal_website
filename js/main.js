@@ -1444,6 +1444,11 @@ function animate() {
 }
 
 // ============================================================
-// START
+// START — triggered from landing page via window.__initGym
 // ============================================================
-init();
+let __gymStarted = false;
+window.__initGym = function () {
+    if (__gymStarted) return;
+    __gymStarted = true;
+    init();
+};

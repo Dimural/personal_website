@@ -3,13 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to My Gym — Personal Portfolio</title>
+    <title>Dimural Murat — Portfolio</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- ==================== LANDING PAGE ==================== -->
+    <div id="landing-page">
+        <canvas id="landing-canvas"></canvas>
+        <div class="landing-grid-overlay"></div>
+        <div class="landing-vignette"></div>
+
+        <nav class="landing-nav">
+            <div class="nav-logo">
+                <span class="logo-mark">DM</span>
+                <span class="logo-dot"></span>
+            </div>
+            <div class="nav-meta">
+                <span class="nav-status"><span class="status-dot"></span>Available for work</span>
+                <span class="nav-location">PORTFOLIO / 2026</span>
+            </div>
+        </nav>
+
+        <main class="landing-main">
+            <div class="landing-eyebrow">
+                <span class="eyebrow-line"></span>
+                <span class="eyebrow-text">INTRODUCING</span>
+            </div>
+
+            <h1 class="landing-name" aria-label="Dimural Murat">
+                <span class="name-row">
+                    <span class="letter">D</span><span class="letter">i</span><span class="letter">m</span><span class="letter">u</span><span class="letter">r</span><span class="letter">a</span><span class="letter">l</span>
+                </span>
+                <span class="name-row">
+                    <span class="letter">M</span><span class="letter">u</span><span class="letter">r</span><span class="letter">a</span><span class="letter">t</span>
+                </span>
+            </h1>
+
+            <div class="landing-tagline">
+                <span class="tagline-bar"></span>
+                <p>Software engineer crafting immersive web experiences at the intersection of <em>design</em>, <em>code</em>, and <em>interaction</em>.</p>
+            </div>
+
+            <div class="landing-actions">
+                <button class="cta cta-primary" id="enter-gym-btn">
+                    <span class="cta-label">
+                        <span class="cta-text">Enter the Gym</span>
+                        <span class="cta-sub">3D walkthrough experience</span>
+                    </span>
+                    <span class="cta-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                    </span>
+                </button>
+                <button class="cta cta-secondary" id="view-portfolio-btn">
+                    <span class="cta-label">
+                        <span class="cta-text">View Portfolio</span>
+                        <span class="cta-sub">Classic showcase</span>
+                    </span>
+                    <span class="cta-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                    </span>
+                </button>
+            </div>
+        </main>
+
+        <footer class="landing-footer">
+            <div class="footer-left">
+                <span class="footer-label">SCROLL / CLICK</span>
+                <div class="footer-line"></div>
+            </div>
+            <div class="footer-socials">
+                <a href="#" class="social-link">GITHUB</a>
+                <span class="social-dot"></span>
+                <a href="#" class="social-link">LINKEDIN</a>
+                <span class="social-dot"></span>
+                <a href="#" class="social-link">EMAIL</a>
+            </div>
+            <div class="footer-right">
+                <span class="footer-label" id="footer-clock">--:--:--</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ==================== PORTFOLIO SHOWCASE ==================== -->
+    <div id="portfolio-page" style="display: none;">
+        <nav class="portfolio-nav">
+            <button class="nav-back" id="portfolio-back">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <span>Back</span>
+            </button>
+            <div class="nav-brand">DIMURAL MURAT</div>
+            <button class="nav-gym-switch" id="portfolio-to-gym">
+                <span>Enter 3D Gym</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </button>
+        </nav>
+
+        <div class="portfolio-scroll">
+            <!-- Hero -->
+            <section class="p-hero">
+                <div class="p-hero-bg"></div>
+                <div class="p-hero-inner">
+                    <span class="p-chip">01 — HELLO</span>
+                    <h1>I build things<br><em>people feel</em>.</h1>
+                    <p>Software engineer, problem solver, and perpetual learner. I love turning ambitious ideas into polished, performant products.</p>
+                    <div class="p-stats">
+                        <div class="p-stat"><span class="p-stat-num">5+</span><span class="p-stat-label">Years Coding</span></div>
+                        <div class="p-stat"><span class="p-stat-num">20+</span><span class="p-stat-label">Projects Shipped</span></div>
+                        <div class="p-stat"><span class="p-stat-num">∞</span><span class="p-stat-label">Cups of Coffee</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- About -->
+            <section class="p-section" id="p-about">
+                <div class="p-section-head">
+                    <span class="p-chip">02 — ABOUT</span>
+                    <h2>A bit about me.</h2>
+                </div>
+                <div class="p-about-grid">
+                    <div class="p-about-text">
+                        <p>I'm Dimural — a software engineer passionate about building products that blend technical depth with thoughtful design. I'm drawn to problems where engineering craft and user experience meet.</p>
+                        <p>Outside of code, you'll find me in the gym, on the pitch watching Real Madrid, playing guitar, or hosting a board-game night.</p>
+                    </div>
+                    <div class="p-about-card">
+                        <div class="about-row"><span>Based in</span><strong>—</strong></div>
+                        <div class="about-row"><span>Focus</span><strong>Full-stack / 3D</strong></div>
+                        <div class="about-row"><span>Stack</span><strong>TS · React · Node</strong></div>
+                        <div class="about-row"><span>Status</span><strong class="accent">Open to work</strong></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Experience -->
+            <section class="p-section">
+                <div class="p-section-head">
+                    <span class="p-chip">03 — EXPERIENCE</span>
+                    <h2>Where I've worked.</h2>
+                </div>
+                <div class="p-timeline">
+                    <div class="p-time-item">
+                        <div class="p-time-year">Now</div>
+                        <div class="p-time-body">
+                            <h3>Software Engineer <span>— Company</span></h3>
+                            <p>Shipping features across the stack. Focused on performance and polish.</p>
+                        </div>
+                    </div>
+                    <div class="p-time-item">
+                        <div class="p-time-year">Prev</div>
+                        <div class="p-time-body">
+                            <h3>Previous Role <span>— Previous Co.</span></h3>
+                            <p>Built and maintained core features used by thousands.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Skills -->
+            <section class="p-section">
+                <div class="p-section-head">
+                    <span class="p-chip">04 — SKILLS</span>
+                    <h2>Tools of the trade.</h2>
+                </div>
+                <div class="p-skills">
+                    <div class="p-skill-col">
+                        <h4>Languages</h4>
+                        <div class="p-tags">
+                            <span class="p-tag">JavaScript</span>
+                            <span class="p-tag">TypeScript</span>
+                            <span class="p-tag">Python</span>
+                            <span class="p-tag">C++</span>
+                            <span class="p-tag">SQL</span>
+                        </div>
+                    </div>
+                    <div class="p-skill-col">
+                        <h4>Frameworks</h4>
+                        <div class="p-tags">
+                            <span class="p-tag">React</span>
+                            <span class="p-tag">Node.js</span>
+                            <span class="p-tag">Three.js</span>
+                            <span class="p-tag">Next.js</span>
+                        </div>
+                    </div>
+                    <div class="p-skill-col">
+                        <h4>Platforms</h4>
+                        <div class="p-tags">
+                            <span class="p-tag">AWS</span>
+                            <span class="p-tag">Docker</span>
+                            <span class="p-tag">Git</span>
+                            <span class="p-tag">Linux</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Projects -->
+            <section class="p-section">
+                <div class="p-section-head">
+                    <span class="p-chip">05 — WORK</span>
+                    <h2>Selected projects.</h2>
+                </div>
+                <div class="p-projects">
+                    <article class="p-project">
+                        <div class="p-project-num">/01</div>
+                        <h3>3D Gym Portfolio</h3>
+                        <p>An interactive, gamified personal site built in Three.js. Walk around a virtual gym and click equipment to explore sections.</p>
+                        <div class="p-tags">
+                            <span class="p-tag">Three.js</span>
+                            <span class="p-tag">WebGL</span>
+                        </div>
+                    </article>
+                    <article class="p-project">
+                        <div class="p-project-num">/02</div>
+                        <h3>Project Two</h3>
+                        <p>A brief description of another project — what it does, what tech, what impact.</p>
+                        <div class="p-tags">
+                            <span class="p-tag">React</span>
+                            <span class="p-tag">Node</span>
+                        </div>
+                    </article>
+                    <article class="p-project">
+                        <div class="p-project-num">/03</div>
+                        <h3>Project Three</h3>
+                        <p>Another project description. Keep it concise and impact-oriented.</p>
+                        <div class="p-tags">
+                            <span class="p-tag">Python</span>
+                            <span class="p-tag">ML</span>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <!-- Contact -->
+            <section class="p-section p-contact">
+                <div class="p-section-head">
+                    <span class="p-chip">06 — CONTACT</span>
+                    <h2>Let's build<br>something great.</h2>
+                </div>
+                <div class="p-contact-actions">
+                    <a href="mailto:your.email@example.com" class="p-contact-btn">
+                        <span>Send me an email</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"/></svg>
+                    </a>
+                    <div class="p-contact-links">
+                        <a href="#">GitHub ↗</a>
+                        <a href="#">LinkedIn ↗</a>
+                        <a href="#">Twitter ↗</a>
+                    </div>
+                </div>
+                <footer class="p-footer">© 2026 Dimural Murat — Built with care.</footer>
+            </section>
+        </div>
+    </div>
+
+    <!-- ==================== GYM 3D EXPERIENCE ==================== -->
     <!-- Loading Screen -->
-    <div id="loading-screen">
+    <div id="loading-screen" style="display: none;">
         <div class="loader-content">
             <div class="dumbbell-loader">
                 <div class="weight left"></div>
@@ -65,6 +314,7 @@
         }
     }
     </script>
+    <script src="js/landing.js"></script>
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
