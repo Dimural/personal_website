@@ -538,123 +538,345 @@ function buildRoom() {
 // PROPS — decorative items to fill the gym
 // ============================================================
 function buildProps() {
-    // Water cooler
+    // === Water cooler — front-left corner ===
     const coolerGroup = new THREE.Group();
-    coolerGroup.position.set(-12, 0, 8);
-    // Body
-    coolerGroup.add(makeMesh(new THREE.CylinderGeometry(0.25, 0.25, 0.9, 12), { color: 0x555577, metalness: 0.3, roughness: 0.5 }, [0, 0.5, 0]));
-    // Water jug
-    coolerGroup.add(makeMesh(new THREE.CylinderGeometry(0.15, 0.2, 0.5, 12), { color: 0x88bbff, transparent: true, opacity: 0.4, roughness: 0.1 }, [0, 1.2, 0]));
-    // Spout
-    coolerGroup.add(makeMesh(new THREE.BoxGeometry(0.06, 0.04, 0.15), { color: 0xcccccc, metalness: 0.9 }, [0, 0.6, 0.28]));
+    coolerGroup.position.set(-9.5, 0, 8);
+    coolerGroup.add(makeMesh(new THREE.CylinderGeometry(0.28, 0.3, 0.9, 16), { color: 0x6c7381, metalness: 0.35, roughness: 0.55 }, [0, 0.45, 0]));
+    coolerGroup.add(makeMesh(new THREE.CylinderGeometry(0.18, 0.22, 0.5, 16), { color: 0xaed8e8, transparent: true, opacity: 0.55, roughness: 0.1, metalness: 0.1 }, [0, 1.15, 0]));
+    coolerGroup.add(makeMesh(new THREE.CylinderGeometry(0.12, 0.18, 0.08, 16), { color: 0x9bc1a6, roughness: 0.6 }, [0, 1.42, 0]));
+    coolerGroup.add(makeMesh(new THREE.BoxGeometry(0.07, 0.05, 0.18), CHROME.clone(), [0, 0.5, 0.33]));
+    coolerGroup.add(makeMesh(new THREE.BoxGeometry(0.04, 0.15, 0.04), { color: 0x7aa8c2, emissive: 0x7aa8c2, emissiveIntensity: 0.6 }, [0.15, 0.8, 0.31]));
     scene.add(coolerGroup);
 
-    // Towel rack with towels
+    // === Towel rack — front-right corner ===
     const rackGroup = new THREE.Group();
-    rackGroup.position.set(-12, 0, -2);
-    rackGroup.add(makeMesh(new THREE.CylinderGeometry(0.03, 0.03, 1.5, 8), CHROME.clone(), [-0.3, 0.75, 0]));
-    rackGroup.add(makeMesh(new THREE.CylinderGeometry(0.03, 0.03, 1.5, 8), CHROME.clone(), [0.3, 0.75, 0]));
-    rackGroup.add(makeMesh(new THREE.CylinderGeometry(0.02, 0.02, 0.6, 8), CHROME.clone(), [0, 1.3, 0], [0, 0, Math.PI / 2]));
-    // Towels draped
-    const towelColors = [0x7aa8c2, 0x9bc1a6, 0xe3cfa0];
+    rackGroup.position.set(8.5, 0, 8);
+    rackGroup.rotation.y = -Math.PI / 6;
+    rackGroup.add(makeMesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 10), CHROME.clone(), [-0.35, 0.8, 0]));
+    rackGroup.add(makeMesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 10), CHROME.clone(), [0.35, 0.8, 0]));
+    rackGroup.add(makeMesh(new THREE.CylinderGeometry(0.025, 0.025, 0.7, 10), CHROME.clone(), [0, 1.4, 0], [0, 0, Math.PI / 2]));
+    rackGroup.add(makeMesh(new THREE.CylinderGeometry(0.025, 0.025, 0.7, 10), CHROME.clone(), [0, 0.9, 0], [0, 0, Math.PI / 2]));
+    const towelColors = [0x7aa8c2, 0x9bc1a6, 0xe3cfa0, 0xfbf7ec];
     towelColors.forEach((c, i) => {
-        const towel = makeMesh(new THREE.BoxGeometry(0.4, 0.03, 0.15),
+        const towel = makeMesh(new THREE.BoxGeometry(0.42, 0.04, 0.18),
             { color: c, roughness: 0.95 },
-            [-0.15 + i * 0.15, 1.25, 0.08], [0.3, 0, 0]);
+            [-0.18 + i * 0.12, 1.35, 0.1], [0.3, 0, 0]);
         rackGroup.add(towel);
     });
+    rackGroup.add(makeMesh(new THREE.CylinderGeometry(0.06, 0.06, 0.35, 12), { color: 0xfbf7ec, roughness: 0.9 }, [0, 0.95, 0.05], [0, 0, Math.PI / 2]));
     scene.add(rackGroup);
 
-    // Weight plates stacked on floor
+    // === Weight plates stacked on floor ===
     const stackGroup = new THREE.Group();
-    stackGroup.position.set(8, 0, -10);
-    const plateColors = [0x7aa8c2, 0x9bc1a6, 0x444466, 0x7aa8c2, 0x333344];
+    stackGroup.position.set(-9.5, 0, -3);
+    const plateColors = [0x7aa8c2, 0x9bc1a6, 0x4a5260, 0x7aa8c2, 0x3a4150];
     plateColors.forEach((c, i) => {
         stackGroup.add(makeMesh(
-            new THREE.CylinderGeometry(0.35 - i * 0.03, 0.35 - i * 0.03, 0.05, 24),
-            { color: c, metalness: 0.4, roughness: 0.5 },
-            [0, 0.025 + i * 0.06, 0]
+            new THREE.CylinderGeometry(0.36 - i * 0.03, 0.36 - i * 0.03, 0.055, 24),
+            { color: c, metalness: 0.45, roughness: 0.5 },
+            [0, 0.03 + i * 0.065, 0]
         ));
     });
+    stackGroup.add(makeMesh(new THREE.CylinderGeometry(0.04, 0.04, 0.9, 12), CHROME.clone(), [0, 0.2, 0], [Math.PI / 2, 0, 0]));
     scene.add(stackGroup);
 
-    // Kettlebells
-    [-4, -3.4, -2.8].forEach((x, i) => {
+    // === Kettlebells — back-left corner ===
+    [[-9, -9.5], [-8.3, -9.2], [-7.6, -9.6]].forEach(([x, z], i) => {
         const kbGroup = new THREE.Group();
-        kbGroup.position.set(x, 0, -11);
+        kbGroup.position.set(x, 0, z);
         const sizes = [0.14, 0.16, 0.18];
         const colors = [0xe3cfa0, 0x7aa8c2, 0x9bc1a6];
-        // Ball
-        kbGroup.add(makeMesh(new THREE.SphereGeometry(sizes[i], 16, 12), { color: colors[i], metalness: 0.4, roughness: 0.5 }, [0, sizes[i], 0]));
-        // Handle
-        const handleCurve = new THREE.TorusGeometry(0.08, 0.02, 8, 16, Math.PI);
-        const handle = new THREE.Mesh(handleCurve, CHROME.clone());
+        kbGroup.add(makeMesh(new THREE.SphereGeometry(sizes[i], 16, 12), { color: colors[i], metalness: 0.35, roughness: 0.55 }, [0, sizes[i], 0]));
+        const handle = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.02, 8, 16, Math.PI), CHROME.clone());
         handle.position.set(0, sizes[i] * 2 + 0.02, 0);
         kbGroup.add(handle);
         scene.add(kbGroup);
     });
 
-    // Clock on left wall
+    // === Clock on left wall ===
     const clockGroup = new THREE.Group();
-    clockGroup.position.set(-ROOM_HALF + 0.05, 3.5, 0);
+    clockGroup.position.set(-ROOM_HALF + 0.06, 3.2, -2);
     clockGroup.rotation.y = Math.PI / 2;
-    // Face
-    clockGroup.add(makeMesh(new THREE.CylinderGeometry(0.5, 0.5, 0.05, 32), { color: 0x222235, roughness: 0.8 }, [0, 0, 0], [Math.PI / 2, 0, 0]));
-    // Rim
-    clockGroup.add(makeMesh(new THREE.TorusGeometry(0.5, 0.03, 8, 32), { color: 0xcccccc, metalness: 0.9, roughness: 0.1 }, [0, 0, 0], [Math.PI / 2, 0, 0]));
-    // Hour marks
+    clockGroup.add(makeMesh(new THREE.CylinderGeometry(0.5, 0.5, 0.06, 32), { color: 0xfbf7ec, roughness: 0.75 }, [0, 0, 0], [Math.PI / 2, 0, 0]));
+    clockGroup.add(makeMesh(new THREE.TorusGeometry(0.5, 0.035, 10, 32), { color: 0xcdb98a, metalness: 0.6, roughness: 0.3 }, [0, 0, 0], [Math.PI / 2, 0, 0]));
     for (let i = 0; i < 12; i++) {
         const angle = (i / 12) * Math.PI * 2;
-        const mark = makeMesh(new THREE.BoxGeometry(0.02, 0.08, 0.01), { color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5 },
-            [Math.sin(angle) * 0.4, Math.cos(angle) * 0.4, 0.03]);
-        clockGroup.add(mark);
+        clockGroup.add(makeMesh(new THREE.BoxGeometry(0.025, 0.09, 0.012), { color: 0x2e3540 },
+            [Math.sin(angle) * 0.4, Math.cos(angle) * 0.4, 0.035]));
     }
+    clockGroup.add(makeMesh(new THREE.BoxGeometry(0.03, 0.26, 0.015), { color: 0x2e3540 }, [0, 0.1, 0.04]));
+    clockGroup.add(makeMesh(new THREE.BoxGeometry(0.02, 0.38, 0.012), { color: 0x2e3540 }, [0.05, 0.16, 0.045]));
+    clockGroup.add(makeMesh(new THREE.CylinderGeometry(0.04, 0.04, 0.02, 12), { color: 0x7aa8c2 }, [0, 0, 0.05], [Math.PI / 2, 0, 0]));
     scene.add(clockGroup);
 
-    // Yoga/exercise balls
-    [{ pos: [10, 0.4, 8], color: 0x7aa8c2, r: 0.4 }, { pos: [11, 0.3, 7], color: 0x9bc1a6, r: 0.3 }].forEach(({ pos, color, r }) => {
-        const ball = makeMesh(new THREE.SphereGeometry(r, 24, 16), { color, roughness: 0.6, metalness: 0.05 }, pos);
+    // === Yoga / exercise balls — back-right corner ===
+    [{ pos: [9, 0.4, -9], color: 0x7aa8c2, r: 0.4 }, { pos: [9.3, 0.32, -8.2], color: 0x9bc1a6, r: 0.32 }, { pos: [8.5, 0.28, -9.4], color: 0xe3cfa0, r: 0.28 }].forEach(({ pos, color, r }) => {
+        const ball = makeMesh(new THREE.SphereGeometry(r, 24, 18), { color, roughness: 0.65, metalness: 0.05 }, pos);
         ball.castShadow = true;
         scene.add(ball);
     });
 
-    // Foam rollers
-    [11, 10.5].forEach((x, i) => {
+    // === Foam rollers — near yoga balls ===
+    [[9.3, -7.2, 0x7aa8c2], [8.7, -7.2, 0x9bc1a6]].forEach(([x, z, col]) => {
         const roller = makeMesh(
-            new THREE.CylinderGeometry(0.08, 0.08, 0.6, 16),
-            { color: i === 0 ? 0x333355 : 0x9bc1a6, roughness: 0.9 },
-            [x, 0.08, -3], [0, 0, Math.PI / 2]
+            new THREE.CylinderGeometry(0.09, 0.09, 0.62, 16),
+            { color: col, roughness: 0.9 },
+            [x, 0.09, z], [0, 0, Math.PI / 2]
         );
         roller.castShadow = true;
         scene.add(roller);
     });
 
-    // Bench along back wall (simple rest bench)
+    // === Rest bench — front-right against wall ===
     const restBench = new THREE.Group();
-    restBench.position.set(-10, 0, -11);
-    restBench.add(makeMesh(new THREE.BoxGeometry(2, 0.08, 0.6), { color: 0x3a2520, roughness: 0.85 }, [0, 0.48, 0]));
-    [[-0.85, 0.24, -0.22], [-0.85, 0.24, 0.22], [0.85, 0.24, -0.22], [0.85, 0.24, 0.22]].forEach(p => {
-        restBench.add(makeMesh(new THREE.BoxGeometry(0.06, 0.48, 0.06), DARK_METAL.clone(), p));
+    restBench.position.set(9.2, 0, 5);
+    restBench.rotation.y = -Math.PI / 2;
+    restBench.add(makeMesh(new THREE.BoxGeometry(2, 0.09, 0.6), { color: 0xcdb98a, roughness: 0.85 }, [0, 0.5, 0]));
+    restBench.add(makeMesh(new THREE.BoxGeometry(2, 0.04, 0.6), SEAT_LEATHER.clone(), [0, 0.56, 0]));
+    [[-0.85, 0.25, -0.22], [-0.85, 0.25, 0.22], [0.85, 0.25, -0.22], [0.85, 0.25, 0.22]].forEach(p => {
+        restBench.add(makeMesh(new THREE.BoxGeometry(0.07, 0.5, 0.07), DARK_METAL.clone(), p));
     });
+    restBench.add(makeMesh(new THREE.BoxGeometry(0.5, 0.06, 0.35), { color: 0xfbf7ec, roughness: 0.95 }, [0.4, 0.6, 0]));
     scene.add(restBench);
 
-    // Resistance bands hanging on right wall
-    const bandColors = [0x7aa8c2, 0xe3cfa0, 0x9bc1a6, 0x9bc1a6, 0xaec2d8];
+    // === Resistance bands hanging on right wall ===
+    const bandColors = [0x7aa8c2, 0xe3cfa0, 0x9bc1a6, 0xaec2d8, 0x9bc1a6];
     bandColors.forEach((c, i) => {
-        const band = makeMesh(
-            new THREE.TorusGeometry(0.2, 0.015, 8, 24),
+        scene.add(makeMesh(
+            new THREE.TorusGeometry(0.22, 0.018, 8, 24),
             { color: c, roughness: 0.9 },
-            [ROOM_HALF - 0.05, 2.2, -6 + i * 0.6], [0, Math.PI / 2, 0]
-        );
-        scene.add(band);
+            [ROOM_HALF - 0.05, 2.1, -6 + i * 0.6], [0, Math.PI / 2, 0]
+        ));
+        scene.add(makeMesh(
+            new THREE.CylinderGeometry(0.012, 0.012, 0.1, 6),
+            CHROME.clone(),
+            [ROOM_HALF - 0.1, 2.35, -6 + i * 0.6]
+        ));
     });
 
+    // === Potted plants in open spots ===
+    const plantSpots = [
+        { pos: [-10.2, 0, 5.5], s: 1 },
+        { pos: [10.2, 0, -5.5], s: 1 },
+        { pos: [-10.3, 0, 10], s: 0.85 },
+        { pos: [10.3, 0, 10], s: 0.85 }
+    ];
+    plantSpots.forEach(({ pos, s }) => {
+        const plant = new THREE.Group();
+        plant.position.set(...pos);
+        plant.add(makeMesh(new THREE.CylinderGeometry(0.3 * s, 0.25 * s, 0.45 * s, 16), { color: 0xcdb98a, roughness: 0.85 }, [0, 0.22 * s, 0]));
+        plant.add(makeMesh(new THREE.CylinderGeometry(0.32 * s, 0.3 * s, 0.05 * s, 16), { color: 0xb8a37a, roughness: 0.8 }, [0, 0.47 * s, 0]));
+        plant.add(makeMesh(new THREE.CylinderGeometry(0.27 * s, 0.27 * s, 0.02 * s, 16), { color: 0x3a2d20, roughness: 1 }, [0, 0.48 * s, 0]));
+        for (let i = 0; i < 9; i++) {
+            const angle = (i / 9) * Math.PI * 2;
+            const leafTilt = Math.PI / 6 + Math.random() * 0.3;
+            const leaf = makeMesh(
+                new THREE.BoxGeometry(0.05 * s, 0.7 * s, 0.14 * s),
+                { color: 0x7a9d7a + Math.floor(Math.random() * 0x101510), roughness: 0.9 },
+                [Math.cos(angle) * 0.12 * s, (0.55 + Math.random() * 0.1) * s, Math.sin(angle) * 0.12 * s]
+            );
+            leaf.rotation.set(Math.cos(angle) * leafTilt, angle, Math.sin(angle) * leafTilt);
+            plant.add(leaf);
+        }
+        plant.add(makeMesh(new THREE.SphereGeometry(0.18 * s, 10, 8), { color: 0x8ab893, roughness: 0.9 }, [0, 0.95 * s, 0]));
+        scene.add(plant);
+    });
+
+    // === Locker bay along front wall (left of center) ===
+    const lockerBay = new THREE.Group();
+    lockerBay.position.set(-7, 0, 10.6);
+    const lockerColors = [0x7aa8c2, 0x9bc1a6, 0x7aa8c2, 0x9bc1a6];
+    lockerColors.forEach((c, i) => {
+        const x = -1.2 + i * 0.8;
+        lockerBay.add(makeMesh(new THREE.BoxGeometry(0.75, 2.0, 0.4),
+            { color: c, roughness: 0.6, metalness: 0.3 }, [x, 1.0, 0]));
+        lockerBay.add(makeMesh(new THREE.BoxGeometry(0.75, 0.05, 0.42),
+            { color: 0xcdb98a, roughness: 0.6 }, [x, 1.4, 0.005]));
+        lockerBay.add(makeMesh(new THREE.BoxGeometry(0.05, 0.08, 0.06),
+            CHROME.clone(), [x + 0.25, 1.05, -0.22]));
+        for (let v = 0; v < 3; v++) {
+            lockerBay.add(makeMesh(new THREE.BoxGeometry(0.4, 0.015, 0.01),
+                { color: 0x2e3540, roughness: 0.8 }, [x, 1.75 + v * 0.04, -0.21]));
+        }
+    });
+    // Top cap
+    lockerBay.add(makeMesh(new THREE.BoxGeometry(3.4, 0.08, 0.5), { color: 0xcdb98a, roughness: 0.7 }, [0, 2.04, 0]));
+    scene.add(lockerBay);
+
+    // === Bookshelf along front wall (right of center) ===
+    const shelf = new THREE.Group();
+    shelf.position.set(7, 0, 10.6);
+    shelf.add(makeMesh(new THREE.BoxGeometry(2.2, 2.1, 0.35), { color: 0xcdb98a, roughness: 0.75 }, [0, 1.05, 0]));
+    shelf.add(makeMesh(new THREE.BoxGeometry(2.05, 1.95, 0.3), { color: 0xf3ead4, roughness: 0.8 }, [0, 1.05, -0.04]));
+    [0.4, 1.0, 1.6].forEach(y => {
+        shelf.add(makeMesh(new THREE.BoxGeometry(2.05, 0.04, 0.3), { color: 0xc0a676, roughness: 0.7 }, [0, y, -0.04]));
+    });
+    const bookCols = [0x7aa8c2, 0x9bc1a6, 0xe3cfa0, 0x4a5260, 0x7aa8c2, 0xaec2d8, 0x9bc1a6, 0xcdb98a];
+    [0.5, 1.1, 1.7].forEach(y => {
+        for (let i = 0; i < 12; i++) {
+            const bw = 0.1 + Math.random() * 0.06;
+            const bh = 0.35 + Math.random() * 0.15;
+            const col = bookCols[Math.floor(Math.random() * bookCols.length)];
+            shelf.add(makeMesh(new THREE.BoxGeometry(bw, bh, 0.22),
+                { color: col, roughness: 0.85 },
+                [-0.95 + i * 0.16, y + bh / 2, -0.06]));
+        }
+    });
+    // Gold trinket on top
+    shelf.add(makeMesh(new THREE.SphereGeometry(0.1, 12, 10), { color: 0xe3cfa0, metalness: 0.6, roughness: 0.3 }, [0.7, 2.2, -0.04]));
+    // Small plant on top
+    shelf.add(makeMesh(new THREE.CylinderGeometry(0.12, 0.1, 0.18, 12), { color: 0xcdb98a, roughness: 0.85 }, [-0.7, 2.2, -0.04]));
+    shelf.add(makeMesh(new THREE.SphereGeometry(0.18, 10, 8), { color: 0x9bc1a6, roughness: 0.9 }, [-0.7, 2.42, -0.04]));
+    scene.add(shelf);
+
+    // === Coffee table off to side of spawn ===
+    const cTable = new THREE.Group();
+    cTable.position.set(-3.5, 0, 8.5);
+    cTable.add(makeMesh(new THREE.BoxGeometry(1.2, 0.06, 0.7), { color: 0xcdb98a, roughness: 0.65 }, [0, 0.42, 0]));
+    [[-0.5, 0.21, -0.28], [0.5, 0.21, -0.28], [-0.5, 0.21, 0.28], [0.5, 0.21, 0.28]].forEach(p => {
+        cTable.add(makeMesh(new THREE.BoxGeometry(0.06, 0.42, 0.06), DARK_METAL.clone(), p));
+    });
+    cTable.add(makeMesh(new THREE.BoxGeometry(0.28, 0.01, 0.36), { color: 0xfbf7ec, roughness: 0.85 }, [-0.2, 0.455, 0]));
+    cTable.add(makeMesh(new THREE.BoxGeometry(0.28, 0.005, 0.36), { color: 0x7aa8c2, roughness: 0.85 }, [-0.2, 0.462, 0]));
+    cTable.add(makeMesh(new THREE.CylinderGeometry(0.045, 0.04, 0.08, 16), { color: 0x9bc1a6, roughness: 0.5 }, [0.25, 0.49, 0.1]));
+    cTable.add(makeMesh(new THREE.TorusGeometry(0.045, 0.008, 6, 12, Math.PI), { color: 0x9bc1a6, roughness: 0.5 }, [0.3, 0.49, 0.1], [0, 0, Math.PI / 2]));
+    scene.add(cTable);
+
+    // === Gym bag on floor near bench press ===
+    const bag = new THREE.Group();
+    bag.position.set(-3.2, 0, -5);
+    bag.add(makeMesh(new THREE.CylinderGeometry(0.18, 0.22, 0.7, 14),
+        { color: 0x4a5260, roughness: 0.9 },
+        [0, 0.18, 0], [0, 0, Math.PI / 2]));
+    bag.add(makeMesh(new THREE.TorusGeometry(0.2, 0.02, 6, 12, Math.PI),
+        { color: 0x2e3540, roughness: 0.8 }, [0, 0.38, 0]));
+    bag.add(makeMesh(new THREE.BoxGeometry(0.18, 0.05, 0.01),
+        { color: 0x7aa8c2, emissive: 0x7aa8c2, emissiveIntensity: 0.3 },
+        [0, 0.2, 0.2]));
+    scene.add(bag);
+
+    // === Spray bottles on a small wall shelf ===
+    const sprayShelf = new THREE.Group();
+    sprayShelf.position.set(-10.85, 0, 2);
+    sprayShelf.rotation.y = Math.PI / 2;
+    sprayShelf.add(makeMesh(new THREE.BoxGeometry(0.6, 0.03, 0.2), { color: 0xc0a676, roughness: 0.7 }, [0, 0.9, 0]));
+    sprayShelf.add(makeMesh(new THREE.BoxGeometry(0.7, 0.015, 0.04), { color: 0xcdb98a, roughness: 0.8 }, [0, 0.88, 0.1]));
+    [[-0.18, 0x9bc1a6], [0, 0x7aa8c2], [0.18, 0xe3cfa0]].forEach(([x, c]) => {
+        sprayShelf.add(makeMesh(new THREE.CylinderGeometry(0.04, 0.05, 0.16, 10), { color: c, roughness: 0.5, transparent: true, opacity: 0.85 }, [x, 0.99, 0]));
+        sprayShelf.add(makeMesh(new THREE.BoxGeometry(0.03, 0.05, 0.03), { color: 0x2e3540 }, [x, 1.09, 0]));
+    });
+    scene.add(sprayShelf);
+
+    // === Small wall-mounted shelf with dumbbells decor ===
+    const smallShelf = new THREE.Group();
+    smallShelf.position.set(ROOM_HALF - 0.15, 0.9, 7.5);
+    smallShelf.rotation.y = -Math.PI / 2;
+    smallShelf.add(makeMesh(new THREE.BoxGeometry(0.9, 0.04, 0.25), { color: 0xcdb98a, roughness: 0.7 }, [0, 0, 0]));
+    smallShelf.add(makeMesh(new THREE.BoxGeometry(0.9, 0.015, 0.04), { color: 0x7aa8c2, emissive: 0x7aa8c2, emissiveIntensity: 0.4 }, [0, 0.015, 0.11]));
+    // mini dumbbells
+    [-0.25, 0.05, 0.3].forEach((x, i) => {
+        const col = [0x7aa8c2, 0x9bc1a6, 0xe3cfa0][i];
+        smallShelf.add(makeMesh(new THREE.CylinderGeometry(0.04, 0.04, 0.18, 10), { color: col, metalness: 0.3, roughness: 0.6 }, [x, 0.09, 0], [0, 0, Math.PI / 2]));
+        smallShelf.add(makeMesh(new THREE.CylinderGeometry(0.025, 0.025, 0.2, 8), CHROME.clone(), [x, 0.09, 0], [0, 0, Math.PI / 2]));
+    });
+    scene.add(smallShelf);
+
+    // === Trash/recycling bin near water cooler ===
+    const bin = new THREE.Group();
+    bin.position.set(-8.2, 0, 9.2);
+    bin.add(makeMesh(new THREE.CylinderGeometry(0.2, 0.18, 0.55, 14), { color: 0x4a5260, metalness: 0.4, roughness: 0.5 }, [0, 0.28, 0]));
+    bin.add(makeMesh(new THREE.CylinderGeometry(0.22, 0.22, 0.05, 14), { color: 0x9bc1a6, roughness: 0.5 }, [0, 0.56, 0]));
+    scene.add(bin);
+
+    // === Wall-mounted polaroid frames ===
+    buildWallPolaroids();
+
     // === FUN FACT OBJECTS (clickable) ===
-    buildSoccerBall(new THREE.Vector3(2, 0, 9));
-    buildTrophy(new THREE.Vector3(-11, 0, -8));
-    buildGuitar(new THREE.Vector3(-11.5, 0, 4));
-    buildMovieReel(new THREE.Vector3(11, 0, 9));
-    buildBoardGameDice(new THREE.Vector3(-2, 0, 11));
+    buildSoccerBall(new THREE.Vector3(3, 0, 8.5));
+    buildTrophy(new THREE.Vector3(-8, 0, 9));
+    buildGuitar(new THREE.Vector3(-9.5, 0, 4));
+    buildMovieReel(new THREE.Vector3(9, 0, 2));
+    buildBoardGameDice(new THREE.Vector3(2, 0, 5.5));
+}
+
+// ============================================================
+// WALL POLAROIDS — user photos from images/gym-1.png..gym-8.png
+// ============================================================
+function buildWallPolaroids() {
+    const loader = new THREE.TextureLoader();
+    const fallbackColors = [0x7aa8c2, 0x9bc1a6, 0xe3cfa0, 0xaec2d8, 0xcdb98a, 0x9bc1a6, 0x7aa8c2, 0xe3cfa0];
+    const paperMat = new THREE.MeshStandardMaterial({ color: 0xfbf7ec, roughness: 0.85, metalness: 0.03 });
+
+    const slots = [
+        { wall: 'back',  u: -3.2, y: 2.6, tilt:  0.08 },
+        { wall: 'back',  u:  3.2, y: 2.6, tilt: -0.08 },
+        { wall: 'left',  u: -8,   y: 2.4, tilt: -0.06 },
+        { wall: 'left',  u:  6.5, y: 2.7, tilt:  0.05 },
+        { wall: 'right', u: -8,   y: 2.5, tilt:  0.07 },
+        { wall: 'right', u:  8,   y: 2.6, tilt: -0.06 },
+        { wall: 'front', u: -3.5, y: 3.1, tilt:  0.05 },
+        { wall: 'front', u:  3.5, y: 3.1, tilt: -0.07 }
+    ];
+
+    slots.forEach((slot, idx) => {
+        const g = new THREE.Group();
+        if (slot.wall === 'back')  { g.position.set(slot.u, slot.y, -ROOM_HALF + 0.06); g.rotation.y = 0; }
+        if (slot.wall === 'front') { g.position.set(slot.u, slot.y,  ROOM_HALF - 0.06); g.rotation.y = Math.PI; }
+        if (slot.wall === 'left')  { g.position.set(-ROOM_HALF + 0.06, slot.y, slot.u); g.rotation.y = Math.PI / 2; }
+        if (slot.wall === 'right') { g.position.set( ROOM_HALF - 0.06, slot.y, slot.u); g.rotation.y = -Math.PI / 2; }
+        g.rotation.z = slot.tilt;
+
+        const frameW = 0.95;
+        const frameH = 1.15;
+
+        // Paper border (the polaroid card)
+        const border = new THREE.Mesh(new THREE.BoxGeometry(frameW, frameH, 0.04), paperMat);
+        g.add(border);
+
+        // Soft drop shadow behind
+        const shadowCard = new THREE.Mesh(
+            new THREE.PlaneGeometry(frameW + 0.06, frameH + 0.06),
+            new THREE.MeshStandardMaterial({ color: 0x2e3540, transparent: true, opacity: 0.18 })
+        );
+        shadowCard.position.z = -0.022;
+        g.add(shadowCard);
+
+        // Photo plane — placeholder color, swapped on texture load
+        const photoW = 0.78;
+        const photoH = 0.78;
+        const fallbackMat = new THREE.MeshStandardMaterial({ color: fallbackColors[idx], roughness: 0.65 });
+        const photo = new THREE.Mesh(new THREE.PlaneGeometry(photoW, photoH), fallbackMat);
+        photo.position.set(0, 0.1, 0.022);
+        g.add(photo);
+
+        loader.load(
+            `images/gym-${idx + 1}.png`,
+            (tex) => {
+                tex.colorSpace = THREE.SRGBColorSpace;
+                photo.material = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 });
+            },
+            undefined,
+            () => { /* keep fallback color */ }
+        );
+
+        // Caption strip (below the photo on the paper)
+        const caption = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.78, 0.12),
+            new THREE.MeshStandardMaterial({ color: 0xf3ead4, roughness: 0.9 })
+        );
+        caption.position.set(0, -0.42, 0.022);
+        g.add(caption);
+
+        // Tiny brass pin at the top
+        const pin = new THREE.Mesh(
+            new THREE.SphereGeometry(0.03, 10, 8),
+            new THREE.MeshStandardMaterial({ color: 0xcdb98a, metalness: 0.7, roughness: 0.3 })
+        );
+        pin.position.set(0, frameH / 2 - 0.08, 0.03);
+        g.add(pin);
+
+        scene.add(g);
+    });
 }
 
 // ============================================================
