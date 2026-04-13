@@ -24,17 +24,29 @@
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
+    // Cool/calm palette — soft blue, sage, warm beige, slate
+    const PALETTE = [
+        { fill: 'rgba(122, 168, 194, 0.95)', glow: 'rgba(122, 168, 194, 0.55)' }, // blue
+        { fill: 'rgba(155, 193, 166, 0.92)', glow: 'rgba(155, 193, 166, 0.5)' },  // sage
+        { fill: 'rgba(227, 207, 160, 0.92)', glow: 'rgba(227, 207, 160, 0.5)' },  // beige
+        { fill: 'rgba(46, 53, 64, 0.35)', glow: 'rgba(46, 53, 64, 0.0)' }          // slate dot
+    ];
+
     function seed() {
-        const density = Math.min(140, Math.floor((w * h) / 14000));
+        const density = Math.min(170, Math.floor((w * h) / 11000));
         particles = [];
         for (let i = 0; i < density; i++) {
+            const palIdx = Math.random() < 0.35
+                ? Math.floor(Math.random() * 3)              // accent-ish
+                : 3;                                         // slate dot
             particles.push({
                 x: Math.random() * w,
                 y: Math.random() * h,
-                vx: (Math.random() - 0.5) * 0.25,
-                vy: (Math.random() - 0.5) * 0.25,
-                r: Math.random() * 1.4 + 0.4,
-                hue: Math.random() < 0.15 ? 'accent' : 'light'
+                vx: (Math.random() - 0.5) * 0.28,
+                vy: (Math.random() - 0.5) * 0.28,
+                r: Math.random() * 1.6 + 0.5,
+                wobble: Math.random() * Math.PI * 2,
+                palIdx
             });
         }
     }
@@ -43,11 +55,13 @@
         if (!running) return;
         ctx.clearRect(0, 0, w, h);
 
+        const t = performance.now() * 0.001;
+
         // Connection lines
         for (let i = 0; i < particles.length; i++) {
             const a = particles[i];
-            a.x += a.vx;
-            a.y += a.vy;
+            a.x += a.vx + Math.sin(t + a.wobble) * 0.06;
+            a.y += a.vy + Math.cos(t * 0.8 + a.wobble) * 0.06;
             if (a.x < 0 || a.x > w) a.vx *= -1;
             if (a.y < 0 || a.y > h) a.vy *= -1;
 
@@ -55,10 +69,10 @@
             const mdx = a.x - mouse.x;
             const mdy = a.y - mouse.y;
             const md2 = mdx * mdx + mdy * mdy;
-            if (md2 < 14000) {
-                const f = (14000 - md2) / 14000;
-                a.x += (mdx / Math.sqrt(md2 + 0.01)) * f * 1.2;
-                a.y += (mdy / Math.sqrt(md2 + 0.01)) * f * 1.2;
+            if (md2 < 18000) {
+                const f = (18000 - md2) / 18000;
+                a.x += (mdx / Math.sqrt(md2 + 0.01)) * f * 1.6;
+                a.y += (mdy / Math.sqrt(md2 + 0.01)) * f * 1.6;
             }
 
             for (let j = i + 1; j < particles.length; j++) {
@@ -66,10 +80,10 @@
                 const dx = a.x - b.x;
                 const dy = a.y - b.y;
                 const d2 = dx * dx + dy * dy;
-                if (d2 < 12000) {
-                    const alpha = (1 - d2 / 12000) * 0.18;
-                    ctx.strokeStyle = `rgba(233, 69, 96, ${alpha})`;
-                    ctx.lineWidth = 0.6;
+                if (d2 < 14000) {
+                    const alpha = (1 - d2 / 14000) * 0.22;
+                    ctx.strokeStyle = `rgba(122, 168, 194, ${alpha})`;
+                    ctx.lineWidth = 0.7;
                     ctx.beginPath();
                     ctx.moveTo(a.x, a.y);
                     ctx.lineTo(b.x, b.y);
@@ -80,14 +94,14 @@
 
         // Particles
         for (const p of particles) {
+            const col = PALETTE[p.palIdx];
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            if (p.hue === 'accent') {
-                ctx.fillStyle = 'rgba(233, 69, 96, 0.9)';
-                ctx.shadowColor = 'rgba(233, 69, 96, 0.7)';
-                ctx.shadowBlur = 10;
+            ctx.fillStyle = col.fill;
+            if (p.palIdx < 3) {
+                ctx.shadowColor = col.glow;
+                ctx.shadowBlur = 12;
             } else {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
                 ctx.shadowBlur = 0;
             }
             ctx.fill();

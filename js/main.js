@@ -180,29 +180,35 @@ const PI_2 = Math.PI / 2;
 
 // Player settings
 const PLAYER_HEIGHT = 1.7;
-const MOVE_SPEED = 80;
-const ROOM_HALF = 14;
+const MOVE_SPEED = 70;
+const ROOM_HALF = 11; // smaller, cozier room (was 14)
 
-// Shared materials
-const CHROME = new THREE.MeshStandardMaterial({ color: 0xd0d0d8, metalness: 0.95, roughness: 0.08 });
-const DARK_METAL = new THREE.MeshStandardMaterial({ color: 0x2c2c3a, metalness: 0.85, roughness: 0.2 });
-const MATTE_BLACK = new THREE.MeshStandardMaterial({ color: 0x1e1e28, roughness: 0.95, metalness: 0.05 });
-const RED_LEATHER = new THREE.MeshStandardMaterial({ color: 0xc0353f, roughness: 0.75, metalness: 0.05 });
-const RUBBER_MAT = new THREE.MeshStandardMaterial({ color: 0x3a3038, roughness: 0.98, metalness: 0 });
-const NEON_PINK = new THREE.MeshStandardMaterial({ color: 0xe94560, emissive: 0xe94560, emissiveIntensity: 1.5 });
-const NEON_BLUE = new THREE.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x4fc3f7, emissiveIntensity: 1.5 });
-const NEON_YELLOW = new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffd93d, emissiveIntensity: 1.0 });
+// Shared materials — cool calm palette
+const CHROME = new THREE.MeshStandardMaterial({ color: 0xd8dce0, metalness: 0.95, roughness: 0.08 });
+const DARK_METAL = new THREE.MeshStandardMaterial({ color: 0x4a5260, metalness: 0.8, roughness: 0.25 });
+const MATTE_SLATE = new THREE.MeshStandardMaterial({ color: 0x3a4150, roughness: 0.9, metalness: 0.08 });
+const SEAT_LEATHER = new THREE.MeshStandardMaterial({ color: 0x7aa8c2, roughness: 0.75, metalness: 0.05 });
+const RUBBER_MAT = new THREE.MeshStandardMaterial({ color: 0x5a5f6a, roughness: 0.98, metalness: 0 });
+const SOFT_BLUE = new THREE.MeshStandardMaterial({ color: 0x7aa8c2, emissive: 0x7aa8c2, emissiveIntensity: 0.9 });
+const SAGE = new THREE.MeshStandardMaterial({ color: 0x9bc1a6, emissive: 0x9bc1a6, emissiveIntensity: 0.9 });
+const CREAM_GLOW = new THREE.MeshStandardMaterial({ color: 0xf5ecd3, emissive: 0xe3cfa0, emissiveIntensity: 0.8 });
+// Backwards-compat aliases for legacy variable names used lower in this file
+const MATTE_BLACK = MATTE_SLATE;
+const RED_LEATHER = SEAT_LEATHER;
+const NEON_PINK = SOFT_BLUE;
+const NEON_BLUE = SAGE;
+const NEON_YELLOW = CREAM_GLOW;
 
 // ============================================================
 // INIT
 // ============================================================
 function init() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1525);
-    scene.fog = new THREE.FogExp2(0x1a1525, 0.003);
+    scene.background = new THREE.Color(0xf2ead7);
+    scene.fog = new THREE.FogExp2(0xf2ead7, 0.018);
 
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.set(0, PLAYER_HEIGHT, 10);
+    camera.position.set(0, PLAYER_HEIGHT, ROOM_HALF - 1.5);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -210,7 +216,7 @@ function init() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 3.0;
+    renderer.toneMappingExposure = 1.4;
     document.body.appendChild(renderer.domElement);
 
     setupLighting();
@@ -288,80 +294,101 @@ function setupPauseMenu() {
 // LIGHTING — dramatic gym atmosphere
 // ============================================================
 function setupLighting() {
-    // Strong ambient so everything is visible — warm white
-    scene.add(new THREE.AmbientLight(0xfff5e8, 3.5));
+    // Soft cool ambient
+    scene.add(new THREE.AmbientLight(0xf5f0e0, 1.8));
 
-    // Hemisphere for fill — warm sky, warm ground
-    scene.add(new THREE.HemisphereLight(0xfff5e8, 0x8b6030, 2.5));
+    // Hemisphere — cream sky, soft beige floor bounce
+    scene.add(new THREE.HemisphereLight(0xfaf4e3, 0xc7b896, 1.2));
 
-    // Directional fill from above-front to brighten everything uniformly
-    const fillDir = new THREE.DirectionalLight(0xfff0dd, 1.5);
-    fillDir.position.set(0, 8, 10);
+    // Key fill from front
+    const fillDir = new THREE.DirectionalLight(0xfffaea, 0.9);
+    fillDir.position.set(2, 9, 8);
+    fillDir.castShadow = true;
+    fillDir.shadow.mapSize.set(1024, 1024);
+    fillDir.shadow.camera.left = -14;
+    fillDir.shadow.camera.right = 14;
+    fillDir.shadow.camera.top = 14;
+    fillDir.shadow.camera.bottom = -14;
     scene.add(fillDir);
 
-    // Overhead rectangular light fixtures (fluorescent tubes)
+    // Overhead pendant lights — soft cream
     const fixturePositions = [
-        [-5, 4.9, -6], [5, 4.9, -6],
-        [-5, 4.9, 0], [5, 4.9, 0],
-        [-5, 4.9, 6], [5, 4.9, 6],
-        [0, 4.9, -3], [0, 4.9, 3]
+        [-4.5, 4.1, -4.5], [4.5, 4.1, -4.5],
+        [-4.5, 4.1, 4.5], [4.5, 4.1, 4.5],
+        [0, 4.1, 0]
     ];
     fixturePositions.forEach(pos => {
-        // Light — warm bright white
-        const pl = new THREE.PointLight(0xfff5dd, 6.0, 45, 1.0);
-        pl.position.set(...pos);
-        pl.castShadow = true;
-        pl.shadow.mapSize.set(512, 512);
+        const pl = new THREE.PointLight(0xfff2d8, 2.2, 18, 1.4);
+        pl.position.set(pos[0], pos[1] - 0.25, pos[2]);
         scene.add(pl);
 
-        // Fixture housing
-        const housing = new THREE.Mesh(
-            new THREE.BoxGeometry(1.2, 0.06, 0.3),
-            new THREE.MeshStandardMaterial({ color: 0x444455, metalness: 0.7, roughness: 0.3 })
+        // Pendant cord
+        const cord = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.01, 0.01, 0.8, 6),
+            new THREE.MeshStandardMaterial({ color: 0x3a4150 })
         );
-        housing.position.set(...pos);
-        scene.add(housing);
+        cord.position.set(pos[0], pos[1] + 0.4, pos[2]);
+        scene.add(cord);
 
-        // Glowing tube
-        const tube = new THREE.Mesh(
-            new THREE.BoxGeometry(1.0, 0.03, 0.08),
-            new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff5dd, emissiveIntensity: 6 })
+        // Shade — inverted cone, brass/cream
+        const shade = new THREE.Mesh(
+            new THREE.ConeGeometry(0.28, 0.35, 18, 1, true),
+            new THREE.MeshStandardMaterial({ color: 0xe3cfa0, metalness: 0.4, roughness: 0.4, side: THREE.DoubleSide })
         );
-        tube.position.set(pos[0], pos[1] - 0.04, pos[2]);
-        scene.add(tube);
+        shade.position.set(pos[0], pos[1] - 0.05, pos[2]);
+        scene.add(shade);
+
+        // Glowing bulb
+        const bulb = new THREE.Mesh(
+            new THREE.SphereGeometry(0.07, 12, 10),
+            new THREE.MeshStandardMaterial({ color: 0xfff6df, emissive: 0xfff6df, emissiveIntensity: 2.8 })
+        );
+        bulb.position.set(pos[0], pos[1] - 0.24, pos[2]);
+        scene.add(bulb);
     });
 
-    // Neon accent strips along ceiling edges
-    const neonGeo = new THREE.BoxGeometry(0.04, 0.04, ROOM_HALF * 2);
-    [{ x: -ROOM_HALF + 0.1, mat: NEON_PINK }, { x: ROOM_HALF - 0.1, mat: NEON_BLUE }].forEach(({ x, mat }) => {
-        const strip = new THREE.Mesh(neonGeo, mat);
-        strip.position.set(x, 4.95, 0);
-        scene.add(strip);
-        const light = new THREE.PointLight(mat.emissive.getHex(), 1.5, 20);
-        light.position.set(x, 4.5, 0);
-        scene.add(light);
+    // Accent uplights at the four corners — alternating blue / sage / cream
+    const cornerLights = [
+        { pos: [-ROOM_HALF + 0.6, 0.15, -ROOM_HALF + 0.6], color: 0x7aa8c2 },
+        { pos: [ROOM_HALF - 0.6, 0.15, -ROOM_HALF + 0.6], color: 0x9bc1a6 },
+        { pos: [-ROOM_HALF + 0.6, 0.15, ROOM_HALF - 0.6], color: 0xe3cfa0 },
+        { pos: [ROOM_HALF - 0.6, 0.15, ROOM_HALF - 0.6], color: 0x7aa8c2 }
+    ];
+    cornerLights.forEach(({ pos, color }) => {
+        const up = new THREE.PointLight(color, 1.4, 6, 1.5);
+        up.position.set(...pos);
+        scene.add(up);
+
+        // Small floor puck fixture
+        const puck = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.12, 0.14, 0.1, 14),
+            new THREE.MeshStandardMaterial({ color: 0xd8dce0, metalness: 0.6, roughness: 0.3 })
+        );
+        puck.position.set(pos[0], 0.05, pos[2]);
+        scene.add(puck);
+
+        const glow = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.08, 0.08, 0.02, 12),
+            new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 2 })
+        );
+        glow.position.set(pos[0], 0.12, pos[2]);
+        scene.add(glow);
     });
 
-    const neonGeoX = new THREE.BoxGeometry(ROOM_HALF * 2, 0.04, 0.04);
-    [{ z: -ROOM_HALF + 0.1, mat: NEON_YELLOW }, { z: ROOM_HALF - 0.1, mat: NEON_PINK }].forEach(({ z, mat }) => {
-        const strip = new THREE.Mesh(neonGeoX, mat);
-        strip.position.set(0, 4.95, z);
-        scene.add(strip);
-    });
-
-    // Spotlights on equipment areas
+    // Soft key spotlights on equipment — pastel tones
     const spotTargets = [
-        { pos: [-6, 4.8, -6], target: [-6, 0, -6], color: 0xffe0e0 },
-        { pos: [6, 4.8, -6], target: [6, 0, -6], color: 0xffeedd },
-        { pos: [-6, 4.8, 4], target: [-6, 0, 4], color: 0xe0eeff },
-        { pos: [6, 4.8, 4], target: [6, 0, 4], color: 0xffe0e8 },
-        { pos: [0, 4.8, -10], target: [0, 0, -10], color: 0xffffdd },
+        { pos: [-5.5, 4.2, -5.5], target: [-5.5, 0, -5.5], color: 0xd8ecf5 },
+        { pos: [5.5, 4.2, -5.5],  target: [5.5, 0, -5.5],  color: 0xe3f0d8 },
+        { pos: [-5.5, 4.2, 3.5],  target: [-5.5, 0, 3.5],  color: 0xfaf0d8 },
+        { pos: [5.5, 4.2, 3.5],   target: [5.5, 0, 3.5],   color: 0xd8ecf5 },
+        { pos: [0, 4.2, -7.5],    target: [0, 0, -7.5],    color: 0xe3f0d8 }
     ];
     spotTargets.forEach(({ pos, target, color }) => {
-        const spot = new THREE.SpotLight(color, 6.0, 35, Math.PI / 4, 0.4, 1.0);
+        const spot = new THREE.SpotLight(color, 2.6, 14, Math.PI / 4, 0.5, 1.0);
         spot.position.set(...pos);
         spot.target.position.set(...target);
         spot.castShadow = true;
+        spot.shadow.mapSize.set(512, 512);
         scene.add(spot);
         scene.add(spot.target);
     });
@@ -373,16 +400,16 @@ function setupLighting() {
 function buildRoom() {
     const S = ROOM_HALF * 2;
 
-    // === FLOOR: warm hardwood planks ===
-    const plankW = 0.9;
-    const plankColors = [0xc4956a, 0xb8855d, 0xd4a574, 0xaa7852, 0xc9a070, 0xbe8e62];
+    // === FLOOR: light birch / oak plank ===
+    const plankW = 0.85;
+    const plankColors = [0xe8d9b8, 0xd9c8a0, 0xefe1c0, 0xd3c19a, 0xe1d1a8, 0xe7d7b2];
     const plankGeo = new THREE.BoxGeometry(plankW - 0.015, 0.07, ROOM_HALF * 2 - 0.1);
     let plankIdx = 0;
     for (let x = -ROOM_HALF + plankW / 2; x < ROOM_HALF; x += plankW) {
         const col = plankColors[plankIdx % plankColors.length];
         plankIdx++;
         const plank = new THREE.Mesh(plankGeo, new THREE.MeshStandardMaterial({
-            color: col, roughness: 0.65, metalness: 0.02
+            color: col, roughness: 0.55, metalness: 0.04
         }));
         plank.position.set(x, 0.035, 0);
         plank.receiveShadow = true;
@@ -392,19 +419,36 @@ function buildRoom() {
     // Sub-floor
     const subFloor = new THREE.Mesh(
         new THREE.PlaneGeometry(S + 2, S + 2),
-        new THREE.MeshStandardMaterial({ color: 0x6b4520, roughness: 1 })
+        new THREE.MeshStandardMaterial({ color: 0xbfa776, roughness: 1 })
     );
     subFloor.rotation.x = -Math.PI / 2;
     subFloor.position.y = -0.01;
     subFloor.receiveShadow = true;
     scene.add(subFloor);
 
-    // === WALLS: paneled with baseboard and accent ===
-    const wallH = 5.5;
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x6a6080, roughness: 0.7, metalness: 0.05 });
-    const baseboardMat = new THREE.MeshStandardMaterial({ color: 0x2a2035, roughness: 0.7, metalness: 0.1 });
-    const accentStripMat = NEON_PINK.clone();
-    accentStripMat.emissiveIntensity = 0.6;
+    // Area rug in the center — soft sage
+    const rug = new THREE.Mesh(
+        new THREE.PlaneGeometry(5.2, 5.2),
+        new THREE.MeshStandardMaterial({ color: 0x9bc1a6, roughness: 0.95 })
+    );
+    rug.rotation.x = -Math.PI / 2;
+    rug.position.set(0, 0.08, 0);
+    rug.receiveShadow = true;
+    scene.add(rug);
+    // Rug border
+    const rugBorder = new THREE.Mesh(
+        new THREE.PlaneGeometry(5.5, 5.5),
+        new THREE.MeshStandardMaterial({ color: 0x7a9a87, roughness: 0.95 })
+    );
+    rugBorder.rotation.x = -Math.PI / 2;
+    rugBorder.position.set(0, 0.075, 0);
+    scene.add(rugBorder);
+
+    // === WALLS: off-white plaster with warm beige baseboard ===
+    const wallH = 4.5;
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xf3ead4, roughness: 0.85, metalness: 0.02 });
+    const baseboardMat = new THREE.MeshStandardMaterial({ color: 0xcdb98a, roughness: 0.75, metalness: 0.05 });
+    const accentStripMat = new THREE.MeshStandardMaterial({ color: 0x7aa8c2, emissive: 0x7aa8c2, emissiveIntensity: 0.35 });
 
     const walls = [
         { pos: [0, wallH / 2, -ROOM_HALF], rot: [0, 0, 0], size: [S, wallH] },         // back
@@ -437,19 +481,19 @@ function buildRoom() {
         accent.position.addScaledVector(dir, 0.005);
         scene.add(accent);
 
-        // Upper accent
+        // Upper accent — soft sage
         const accent2 = new THREE.Mesh(new THREE.PlaneGeometry(size[0], 0.015),
-            new THREE.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x4fc3f7, emissiveIntensity: 0.5 }));
-        accent2.position.set(pos[0], 4.5, pos[2]);
+            new THREE.MeshStandardMaterial({ color: 0x9bc1a6, emissive: 0x9bc1a6, emissiveIntensity: 0.25 }));
+        accent2.position.set(pos[0], 4.3, pos[2]);
         accent2.rotation.set(...rot);
         accent2.position.addScaledVector(dir, 0.005);
         scene.add(accent2);
 
-        // Wall panels (vertical grooves)
+        // Wall panels (vertical grooves) — soft beige
         for (let i = -ROOM_HALF + 2; i < ROOM_HALF; i += 3) {
             const groove = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.015, wallH - 0.5),
-                new THREE.MeshStandardMaterial({ color: 0x1e1e30, roughness: 0.9 })
+                new THREE.PlaneGeometry(0.012, wallH - 0.5),
+                new THREE.MeshStandardMaterial({ color: 0xcdb98a, roughness: 0.9 })
             );
             // Position groove along the wall face
             if (rot[1] === 0) { groove.position.set(i, wallH / 2, pos[2] + 0.006); groove.rotation.set(...rot); }
@@ -460,28 +504,29 @@ function buildRoom() {
         }
     });
 
-    // === CEILING ===
+    // === CEILING — cream plaster ===
     const ceiling = new THREE.Mesh(
         new THREE.PlaneGeometry(S, S),
-        new THREE.MeshStandardMaterial({ color: 0x2a2238, roughness: 1, metalness: 0 })
+        new THREE.MeshStandardMaterial({ color: 0xf5ecd3, roughness: 1, metalness: 0 })
     );
     ceiling.rotation.x = Math.PI / 2;
     ceiling.position.y = wallH;
     scene.add(ceiling);
 
-    // Ceiling beams
-    for (let x = -ROOM_HALF + 4; x <= ROOM_HALF - 4; x += 8) {
+    // Exposed wood ceiling beams for character
+    for (let x = -ROOM_HALF + 3; x <= ROOM_HALF - 3; x += 3) {
         const beam = new THREE.Mesh(
-            new THREE.BoxGeometry(0.3, 0.25, S),
-            new THREE.MeshStandardMaterial({ color: 0x222235, metalness: 0.5, roughness: 0.4 })
+            new THREE.BoxGeometry(0.22, 0.22, S),
+            new THREE.MeshStandardMaterial({ color: 0xc0a676, roughness: 0.75, metalness: 0.05 })
         );
         beam.position.set(x, wallH - 0.13, 0);
+        beam.castShadow = true;
         scene.add(beam);
     }
 
-    // === RUBBER MATS under equipment areas ===
-    const matGeo = new THREE.BoxGeometry(4, 0.1, 4);
-    [[-6, 0.05, -6], [6, 0.05, -6], [-6, 0.05, 4], [6, 0.05, 4]].forEach(pos => {
+    // === RUBBER MATS under equipment areas (smaller room = tighter layout) ===
+    const matGeo = new THREE.BoxGeometry(3.2, 0.08, 3.2);
+    [[-5.5, 0.05, -5.5], [5.5, 0.05, -5.5], [-5.5, 0.05, 3.5], [5.5, 0.05, 3.5]].forEach(pos => {
         const mat = new THREE.Mesh(matGeo, RUBBER_MAT);
         mat.position.set(...pos);
         mat.receiveShadow = true;
@@ -511,7 +556,7 @@ function buildProps() {
     rackGroup.add(makeMesh(new THREE.CylinderGeometry(0.03, 0.03, 1.5, 8), CHROME.clone(), [0.3, 0.75, 0]));
     rackGroup.add(makeMesh(new THREE.CylinderGeometry(0.02, 0.02, 0.6, 8), CHROME.clone(), [0, 1.3, 0], [0, 0, Math.PI / 2]));
     // Towels draped
-    const towelColors = [0xe94560, 0x4fc3f7, 0xffd93d];
+    const towelColors = [0x7aa8c2, 0x9bc1a6, 0xe3cfa0];
     towelColors.forEach((c, i) => {
         const towel = makeMesh(new THREE.BoxGeometry(0.4, 0.03, 0.15),
             { color: c, roughness: 0.95 },
@@ -523,7 +568,7 @@ function buildProps() {
     // Weight plates stacked on floor
     const stackGroup = new THREE.Group();
     stackGroup.position.set(8, 0, -10);
-    const plateColors = [0xe94560, 0xff6b6b, 0x444466, 0xe94560, 0x333344];
+    const plateColors = [0x7aa8c2, 0x9bc1a6, 0x444466, 0x7aa8c2, 0x333344];
     plateColors.forEach((c, i) => {
         stackGroup.add(makeMesh(
             new THREE.CylinderGeometry(0.35 - i * 0.03, 0.35 - i * 0.03, 0.05, 24),
@@ -538,7 +583,7 @@ function buildProps() {
         const kbGroup = new THREE.Group();
         kbGroup.position.set(x, 0, -11);
         const sizes = [0.14, 0.16, 0.18];
-        const colors = [0xffd93d, 0xe94560, 0x4fc3f7];
+        const colors = [0xe3cfa0, 0x7aa8c2, 0x9bc1a6];
         // Ball
         kbGroup.add(makeMesh(new THREE.SphereGeometry(sizes[i], 16, 12), { color: colors[i], metalness: 0.4, roughness: 0.5 }, [0, sizes[i], 0]));
         // Handle
@@ -567,7 +612,7 @@ function buildProps() {
     scene.add(clockGroup);
 
     // Yoga/exercise balls
-    [{ pos: [10, 0.4, 8], color: 0xe94560, r: 0.4 }, { pos: [11, 0.3, 7], color: 0x4fc3f7, r: 0.3 }].forEach(({ pos, color, r }) => {
+    [{ pos: [10, 0.4, 8], color: 0x7aa8c2, r: 0.4 }, { pos: [11, 0.3, 7], color: 0x9bc1a6, r: 0.3 }].forEach(({ pos, color, r }) => {
         const ball = makeMesh(new THREE.SphereGeometry(r, 24, 16), { color, roughness: 0.6, metalness: 0.05 }, pos);
         ball.castShadow = true;
         scene.add(ball);
@@ -577,7 +622,7 @@ function buildProps() {
     [11, 10.5].forEach((x, i) => {
         const roller = makeMesh(
             new THREE.CylinderGeometry(0.08, 0.08, 0.6, 16),
-            { color: i === 0 ? 0x333355 : 0x4fc3f7, roughness: 0.9 },
+            { color: i === 0 ? 0x333355 : 0x9bc1a6, roughness: 0.9 },
             [x, 0.08, -3], [0, 0, Math.PI / 2]
         );
         roller.castShadow = true;
@@ -594,7 +639,7 @@ function buildProps() {
     scene.add(restBench);
 
     // Resistance bands hanging on right wall
-    const bandColors = [0xe94560, 0xffd93d, 0x4ade80, 0x4fc3f7, 0xc084fc];
+    const bandColors = [0x7aa8c2, 0xe3cfa0, 0x9bc1a6, 0x9bc1a6, 0xaec2d8];
     bandColors.forEach((c, i) => {
         const band = makeMesh(
             new THREE.TorusGeometry(0.2, 0.015, 8, 24),
@@ -833,7 +878,7 @@ function buildBoardGameDice(pos) {
     g.position.copy(pos);
 
     // Stack of 4 dice in different colors with pips
-    const diceColors = [0xe94560, 0xffffff, 0x4fc3f7, 0xffd93d];
+    const diceColors = [0x7aa8c2, 0xffffff, 0x9bc1a6, 0xe3cfa0];
     const pipMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
 
     diceColors.forEach((c, i) => {
@@ -899,11 +944,11 @@ function makeMesh(geo, matProps, pos, rot) {
 // EQUIPMENT BUILDERS — detailed models
 // ============================================================
 function buildEquipment() {
-    buildBenchPress(new THREE.Vector3(-6, 0, -6));
-    buildDumbbellRack(new THREE.Vector3(7, 0, -6));
-    buildTreadmill(new THREE.Vector3(-6, 0, 4));
-    buildPullUpBar(new THREE.Vector3(0, 0, -10));
-    buildPunchingBag(new THREE.Vector3(7, 0, 4));
+    buildBenchPress(new THREE.Vector3(-5.5, 0, -5.5));
+    buildDumbbellRack(new THREE.Vector3(5.5, 0, -5.5));
+    buildTreadmill(new THREE.Vector3(-5.5, 0, 3.5));
+    buildPullUpBar(new THREE.Vector3(0, 0, -8));
+    buildPunchingBag(new THREE.Vector3(5.5, 0, 3.5));
     buildMirror(new THREE.Vector3(ROOM_HALF - 0.1, 0, 0));
 }
 
@@ -967,8 +1012,8 @@ function buildBenchPress(pos) {
     // Weight plates (multiple sizes stacked)
     [-1, 1].forEach(side => {
         const plateConfigs = [
-            { r: 0.22, w: 0.04, offset: 0.62, color: 0xe94560 },
-            { r: 0.22, w: 0.04, offset: 0.67, color: 0xe94560 },
+            { r: 0.22, w: 0.04, offset: 0.62, color: 0x7aa8c2 },
+            { r: 0.22, w: 0.04, offset: 0.67, color: 0x7aa8c2 },
             { r: 0.17, w: 0.03, offset: 0.72, color: 0x333344 },
             { r: 0.13, w: 0.025, offset: 0.76, color: 0x444466 },
         ];
@@ -1006,7 +1051,7 @@ function buildDumbbellRack(pos) {
     });
 
     // Dumbbells — proper shape with hex weights
-    const dbColors = [0xe94560, 0xff6b6b, 0xffd93d, 0x4fc3f7, 0x4ade80, 0xc084fc, 0xff8a65, 0x90caf9, 0xef5350];
+    const dbColors = [0x7aa8c2, 0x9bc1a6, 0xe3cfa0, 0x9bc1a6, 0x9bc1a6, 0xaec2d8, 0xcdb98a, 0xaec8d8, 0x7a9db8];
     let idx = 0;
     [0.4, 0.8, 1.2].forEach(y => {
         for (let x = -1.0; x <= 1.0; x += 0.5) {
@@ -1234,7 +1279,7 @@ function buildPunchingBag(pos) {
     ];
     bagProfile.forEach(([r, y]) => bagPoints.push(new THREE.Vector2(r, y)));
     const bagGeo = new THREE.LatheGeometry(bagPoints, 24);
-    const bagMat = new THREE.MeshStandardMaterial({ color: 0xb52030, roughness: 0.82, metalness: 0.05 });
+    const bagMat = new THREE.MeshStandardMaterial({ color: 0x7aa8c2, roughness: 0.82, metalness: 0.05 });
     const bag = new THREE.Mesh(bagGeo, bagMat);
     bag.castShadow = true;
     g.add(bag);
@@ -1243,7 +1288,7 @@ function buildPunchingBag(pos) {
     for (let i = 0; i < 6; i++) {
         const angle = (i / 6) * Math.PI * 2;
         const seamGeo = new THREE.CylinderGeometry(0.003, 0.003, 1.5, 4);
-        const seam = new THREE.Mesh(seamGeo, new THREE.MeshBasicMaterial({ color: 0x661520 }));
+        const seam = new THREE.Mesh(seamGeo, new THREE.MeshBasicMaterial({ color: 0x486b84 }));
         seam.position.set(Math.sin(angle) * 0.315, 1.82, Math.cos(angle) * 0.315);
         g.add(seam);
     }
@@ -1300,7 +1345,7 @@ function buildMirror(pos) {
     // LED strip around mirror edge (glowing frame)
     const stripW = mirrorW + 0.1;
     const stripH = mirrorH + 0.1;
-    const ledMat = new THREE.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x4fc3f7, emissiveIntensity: 1.2 });
+    const ledMat = new THREE.MeshStandardMaterial({ color: 0x9bc1a6, emissive: 0x9bc1a6, emissiveIntensity: 1.2 });
     // Top
     g.add(makeMesh(new THREE.BoxGeometry(0.03, 0.03, stripW), ledMat, [-0.06, mirrorH / 2 + 0.5 + stripH / 2, 0]));
     // Bottom
@@ -1311,7 +1356,7 @@ function buildMirror(pos) {
     g.add(makeMesh(new THREE.BoxGeometry(0.03, stripH, 0.03), ledMat, [-0.06, mirrorH / 2 + 0.5, stripW / 2]));
 
     // Light from the LED strip
-    const mLight = new THREE.PointLight(0x4fc3f7, 0.8, 8);
+    const mLight = new THREE.PointLight(0x9bc1a6, 0.8, 8);
     mLight.position.set(-0.5, 2.5, 0);
     g.add(mLight);
 
@@ -1336,7 +1381,7 @@ function buildMirror(pos) {
     g.add(neonSign);
 
     // Glow light from neon sign
-    const neonLight = new THREE.PointLight(0xe94560, 0.6, 6);
+    const neonLight = new THREE.PointLight(0x7aa8c2, 0.6, 6);
     neonLight.position.set(-0.5, mirrorH + 0.9, 0);
     g.add(neonLight);
     animatedObjects.push({ mesh: neonSign, type: 'neonFlicker', light: neonLight });
