@@ -405,7 +405,50 @@
 
     <!-- Mini instructions -->
     <div id="controls-reminder">
-        <span>WASD — Move &nbsp; | &nbsp; Mouse — Look &nbsp; | &nbsp; ESC — Release cursor</span>
+        <span>WASD — Move &nbsp; | &nbsp; Mouse — Look &nbsp; | &nbsp; ESC — Release cursor &nbsp; | &nbsp; M — Menu</span>
+    </div>
+
+    <!-- Pause / Menu button (top-right HUD) -->
+    <button id="gym-menu-btn" style="display: none;" aria-label="Open menu">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <span>Menu</span>
+        <kbd>M</kbd>
+    </button>
+
+    <!-- Pause menu overlay -->
+    <div id="pause-menu" style="display: none;">
+        <div class="pause-backdrop"></div>
+        <div class="pause-card">
+            <div class="pause-corner tl"></div>
+            <div class="pause-corner tr"></div>
+            <div class="pause-corner bl"></div>
+            <div class="pause-corner br"></div>
+
+            <span class="pause-chip">PAUSED</span>
+            <h1>Take a<br><em>breather</em>.</h1>
+            <p>The gym is still here when you're ready.</p>
+
+            <div class="pause-actions">
+                <button class="pause-btn pause-resume" id="pause-resume">
+                    <span class="pause-btn-label">
+                        <span class="pause-btn-text">Resume</span>
+                        <span class="pause-btn-sub">Back into the gym</span>
+                    </span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                </button>
+                <button class="pause-btn pause-exit" id="pause-exit">
+                    <span class="pause-btn-label">
+                        <span class="pause-btn-text">Return to Home</span>
+                        <span class="pause-btn-sub">Back to the landing page</span>
+                    </span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+            </div>
+
+            <footer class="pause-footer">
+                <span>PRESS <kbd>M</kbd> OR <kbd>ESC</kbd> TO RESUME</span>
+            </footer>
+        </div>
     </div>
 
     <script type="importmap">

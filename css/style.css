@@ -2010,3 +2010,283 @@ canvas {
     pointer-events: none;
     white-space: nowrap;
 }
+
+/* ============================================================
+   GYM MENU BUTTON (HUD)
+   ============================================================ */
+#gym-menu-btn {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem 0.6rem 0.9rem;
+    background: rgba(10, 10, 18, 0.65);
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.25s;
+}
+
+#gym-menu-btn:hover {
+    background: rgba(233, 69, 96, 0.15);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+#gym-menu-btn svg {
+    color: var(--accent);
+}
+
+#gym-menu-btn kbd {
+    display: inline-block;
+    min-width: 18px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    padding: 0.1rem 0.35rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--ink-dim);
+}
+
+/* ============================================================
+   PAUSE MENU
+   ============================================================ */
+#pause-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 950;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.pause-backdrop {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 50%, rgba(15, 12, 22, 0.85), rgba(5, 5, 10, 0.96));
+    backdrop-filter: blur(16px) saturate(120%);
+    -webkit-backdrop-filter: blur(16px) saturate(120%);
+    animation: fade-in-page 0.45s ease-out;
+}
+
+.pause-card {
+    position: relative;
+    z-index: 1;
+    max-width: 540px;
+    width: 100%;
+    padding: 3rem 3rem 2rem;
+    background: linear-gradient(155deg, rgba(22, 18, 30, 0.96), rgba(12, 10, 18, 0.98));
+    border: 1px solid var(--line-strong);
+    border-radius: 18px;
+    text-align: center;
+    box-shadow:
+        0 50px 120px -25px rgba(0, 0, 0, 0.85),
+        0 0 80px -20px rgba(233, 69, 96, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    animation: pause-card-in 0.6s cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+@keyframes pause-card-in {
+    0% { opacity: 0; transform: translateY(20px) scale(0.94); filter: blur(8px); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+.pause-corner {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--accent);
+    opacity: 0;
+    animation: corner-in 0.5s ease-out 0.35s forwards;
+}
+.pause-corner.tl { top: 10px; left: 10px; border-right: none; border-bottom: none; border-top-left-radius: 4px; }
+.pause-corner.tr { top: 10px; right: 10px; border-left: none; border-bottom: none; border-top-right-radius: 4px; }
+.pause-corner.bl { bottom: 10px; left: 10px; border-right: none; border-top: none; border-bottom-left-radius: 4px; }
+.pause-corner.br { bottom: 10px; right: 10px; border-left: none; border-top: none; border-bottom-right-radius: 4px; }
+
+.pause-chip {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.26em;
+    color: var(--accent);
+    padding: 0.4rem 0.85rem;
+    border: 1px solid rgba(233, 69, 96, 0.35);
+    background: rgba(233, 69, 96, 0.06);
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+    animation: fade-up 0.55s ease-out 0.2s both;
+    position: relative;
+}
+
+.pause-chip::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+    box-shadow: 0 0 8px var(--accent-glow);
+    animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+.pause-card h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+    font-size: clamp(2.2rem, 4.6vw, 3.2rem);
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    color: var(--ink);
+    margin-bottom: 1rem;
+    animation: fade-up 0.6s ease-out 0.3s both;
+}
+
+.pause-card h1 em {
+    font-style: italic;
+    font-weight: 400;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2), #ffd93d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.pause-card > p {
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: var(--ink-dim);
+    font-weight: 300;
+    margin-bottom: 2rem;
+    animation: fade-up 0.6s ease-out 0.4s both;
+}
+
+.pause-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+}
+
+.pause-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.35rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.015);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    text-align: left;
+    animation: fade-up 0.55s ease-out both;
+}
+
+.pause-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    transform: translateX(-100%);
+    transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+    z-index: 0;
+}
+
+.pause-btn:hover::before {
+    transform: translateX(0);
+}
+
+.pause-btn > * {
+    position: relative;
+    z-index: 1;
+}
+
+.pause-btn:hover {
+    border-color: transparent;
+    transform: translateY(-2px);
+    box-shadow: 0 14px 38px -14px var(--accent-glow);
+}
+
+.pause-btn-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.pause-btn-text {
+    font-size: 0.98rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.pause-btn-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.64rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    transition: color 0.3s;
+}
+
+.pause-btn:hover .pause-btn-sub {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.pause-btn svg {
+    flex-shrink: 0;
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.pause-resume { animation-delay: 0.5s; }
+.pause-exit { animation-delay: 0.58s; }
+
+.pause-resume:hover svg { transform: translateX(5px); }
+.pause-exit:hover svg { transform: translateX(-5px); }
+
+.pause-footer {
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    animation: fade-up 0.55s ease-out 0.7s both;
+}
+
+.pause-footer kbd {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--line-strong);
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--ink);
+    margin: 0 0.15rem;
+}
+
+#pause-menu.fade-out {
+    animation: pause-fade-out 0.3s ease-in forwards;
+}
+
+@keyframes pause-fade-out {
+    to { opacity: 0; }
+}

@@ -230,11 +230,58 @@ function init() {
         document.getElementById('welcome-overlay').style.display = 'none';
         document.getElementById('crosshair').style.display = 'block';
         document.getElementById('controls-reminder').style.display = 'block';
+        document.getElementById('gym-menu-btn').style.display = 'flex';
         renderer.domElement.requestPointerLock();
     });
 
     document.getElementById('close-panel').addEventListener('click', closePanel);
+    setupPauseMenu();
     animate();
+}
+
+// ============================================================
+// PAUSE MENU
+// ============================================================
+let pauseOpen = false;
+
+function openPauseMenu() {
+    if (pauseOpen || panelOpen) return;
+    pauseOpen = true;
+    document.exitPointerLock();
+    const pm = document.getElementById('pause-menu');
+    pm.classList.remove('fade-out');
+    pm.style.display = 'flex';
+    const card = pm.querySelector('.pause-card');
+    if (card) {
+        card.style.animation = 'none';
+        void card.offsetWidth;
+        card.style.animation = '';
+    }
+}
+
+function closePauseMenu() {
+    if (!pauseOpen) return;
+    pauseOpen = false;
+    const pm = document.getElementById('pause-menu');
+    pm.classList.add('fade-out');
+    setTimeout(() => {
+        pm.style.display = 'none';
+        pm.classList.remove('fade-out');
+        if (renderer && renderer.domElement) {
+            renderer.domElement.requestPointerLock();
+        }
+    }, 280);
+}
+
+function exitGymToLanding() {
+    // Simplest, most reliable path: reload. Landing page is the default entry.
+    window.location.reload();
+}
+
+function setupPauseMenu() {
+    document.getElementById('gym-menu-btn').addEventListener('click', openPauseMenu);
+    document.getElementById('pause-resume').addEventListener('click', closePauseMenu);
+    document.getElementById('pause-exit').addEventListener('click', exitGymToLanding);
 }
 
 // ============================================================
@@ -1318,11 +1365,21 @@ function setupEvents() {
     });
 
     document.addEventListener('keydown', (e) => {
+        if (pauseOpen) {
+            if (e.code === 'KeyM' || e.code === 'Escape') {
+                closePauseMenu();
+                e.preventDefault();
+            }
+            return;
+        }
         switch (e.code) {
             case 'KeyW': case 'ArrowUp': moveForward = true; break;
             case 'KeyS': case 'ArrowDown': moveBackward = true; break;
             case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
             case 'KeyD': case 'ArrowRight': moveRight = true; break;
+            case 'KeyM':
+                if (!panelOpen) { openPauseMenu(); e.preventDefault(); }
+                break;
             case 'Escape':
                 if (panelOpen) { closePanel(); e.preventDefault(); }
                 break;
