@@ -224,7 +224,7 @@ function init() {
         setTimeout(() => {
             document.getElementById('welcome-overlay').style.display = 'flex';
         }, 800);
-    }, 1500);
+    }, 2300);
 
     document.getElementById('start-btn').addEventListener('click', () => {
         document.getElementById('welcome-overlay').style.display = 'none';
@@ -1365,7 +1365,15 @@ function openPanel(contentKey) {
     document.getElementById('panel-icon').textContent = data.icon;
     document.getElementById('panel-title').textContent = data.title;
     document.getElementById('panel-content').innerHTML = data.html;
-    document.getElementById('info-panel').style.display = 'block';
+    const panelEl = document.getElementById('info-panel');
+    panelEl.style.display = 'flex';
+    // Restart entrance animations each open
+    const card = panelEl.querySelector('.panel-card');
+    if (card) {
+        card.style.animation = 'none';
+        void card.offsetWidth;
+        card.style.animation = '';
+    }
     document.getElementById('interact-hint').style.display = 'none';
 }
 

@@ -152,11 +152,29 @@
 
     function enterGym() {
         hideLanding();
-        // Show gym loading screen then init three.js (exposed by main.js)
         const loading = document.getElementById('loading-screen');
         loading.style.display = 'flex';
         loading.classList.remove('fade-out');
-        // main.js registers window.__initGym when module loads
+
+        // Resolution readout
+        const resEl = document.getElementById('load-res');
+        if (resEl) resEl.textContent = `${window.innerWidth}×${window.innerHeight}`;
+
+        // Animate percentage counter from 0 → 100 in sync with CSS bar (1.4s, 0.3s delay)
+        const pctEl = loading.querySelector('.load-pct');
+        if (pctEl) {
+            pctEl.textContent = '0';
+            const DURATION = 1400;
+            const DELAY = 300;
+            const startAt = performance.now() + DELAY;
+            const tick = (now) => {
+                const t = Math.max(0, Math.min(1, (now - startAt) / DURATION));
+                pctEl.textContent = Math.round(t * 100);
+                if (t < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+        }
+
         const tryInit = () => {
             if (typeof window.__initGym === 'function') {
                 window.__initGym();
