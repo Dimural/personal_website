@@ -26,25 +26,25 @@
 
     // Cool/calm palette — soft blue, sage, warm beige, slate
     const PALETTE = [
-        { fill: 'rgba(122, 168, 194, 0.95)', glow: 'rgba(122, 168, 194, 0.55)' }, // blue
-        { fill: 'rgba(155, 193, 166, 0.92)', glow: 'rgba(155, 193, 166, 0.5)' },  // sage
-        { fill: 'rgba(227, 207, 160, 0.92)', glow: 'rgba(227, 207, 160, 0.5)' },  // beige
+        { fill: 'rgba(110, 154, 209, 0.95)', glow: 'rgba(110, 154, 209, 0.55)' }, // blue
+        { fill: 'rgba(184, 164, 212, 0.92)', glow: 'rgba(184, 164, 212, 0.5)' },  // sage
+        { fill: 'rgba(232, 193, 154, 0.92)', glow: 'rgba(232, 193, 154, 0.5)' },  // beige
         { fill: 'rgba(46, 53, 64, 0.35)', glow: 'rgba(46, 53, 64, 0.0)' }          // slate dot
     ];
 
     function seed() {
-        const density = Math.min(170, Math.floor((w * h) / 11000));
+        const density = Math.min(280, Math.floor((w * h) / 7000));
         particles = [];
         for (let i = 0; i < density; i++) {
-            const palIdx = Math.random() < 0.35
-                ? Math.floor(Math.random() * 3)              // accent-ish
+            const palIdx = Math.random() < 0.6
+                ? Math.floor(Math.random() * 3)              // bright accent
                 : 3;                                         // slate dot
             particles.push({
                 x: Math.random() * w,
                 y: Math.random() * h,
-                vx: (Math.random() - 0.5) * 0.28,
-                vy: (Math.random() - 0.5) * 0.28,
-                r: Math.random() * 1.6 + 0.5,
+                vx: (Math.random() - 0.5) * 0.42,
+                vy: (Math.random() - 0.5) * 0.42,
+                r: Math.random() * 2.2 + 0.6,
                 wobble: Math.random() * Math.PI * 2,
                 palIdx
             });
@@ -80,10 +80,14 @@
                 const dx = a.x - b.x;
                 const dy = a.y - b.y;
                 const d2 = dx * dx + dy * dy;
-                if (d2 < 14000) {
-                    const alpha = (1 - d2 / 14000) * 0.22;
-                    ctx.strokeStyle = `rgba(122, 168, 194, ${alpha})`;
-                    ctx.lineWidth = 0.7;
+                if (d2 < 16000) {
+                    const alpha = (1 - d2 / 16000) * 0.32;
+                    // alternate line tint based on particles' palette
+                    const tint = (a.palIdx + b.palIdx) % 2 === 0
+                        ? `rgba(110, 154, 209, ${alpha})`
+                        : `rgba(184, 164, 212, ${alpha})`;
+                    ctx.strokeStyle = tint;
+                    ctx.lineWidth = 0.8;
                     ctx.beginPath();
                     ctx.moveTo(a.x, a.y);
                     ctx.lineTo(b.x, b.y);
@@ -92,15 +96,18 @@
             }
         }
 
-        // Particles
+        // Particles — pulsing radius
         for (const p of particles) {
             const col = PALETTE[p.palIdx];
+            const pulse = p.palIdx < 3
+                ? 1 + Math.sin(t * 1.4 + p.wobble) * 0.18
+                : 1;
             ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, p.r * pulse, 0, Math.PI * 2);
             ctx.fillStyle = col.fill;
             if (p.palIdx < 3) {
                 ctx.shadowColor = col.glow;
-                ctx.shadowBlur = 12;
+                ctx.shadowBlur = 18;
             } else {
                 ctx.shadowBlur = 0;
             }
