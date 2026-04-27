@@ -26,9 +26,9 @@
 
     // Cool/calm palette — soft blue, sage, warm beige, slate
     const PALETTE = [
-        { fill: 'rgba(46, 68, 196, 0.95)', glow: 'rgba(46, 68, 196, 0.55)' }, // blue
-        { fill: 'rgba(226, 84, 125, 0.92)', glow: 'rgba(226, 84, 125, 0.5)' },  // sage
-        { fill: 'rgba(245, 196, 64, 0.92)', glow: 'rgba(245, 196, 64, 0.5)' },  // beige
+        { fill: 'rgba(29, 57, 212, 0.95)', glow: 'rgba(29, 57, 212, 0.55)' }, // blue
+        { fill: 'rgba(180, 180, 180, 0.92)', glow: 'rgba(180, 180, 180, 0.5)' },  // sage
+        { fill: 'rgba(240, 192, 64, 0.92)', glow: 'rgba(240, 192, 64, 0.5)' },  // beige
         { fill: 'rgba(46, 53, 64, 0.35)', glow: 'rgba(46, 53, 64, 0.0)' }          // slate dot
     ];
 
@@ -84,8 +84,8 @@
                     const alpha = (1 - d2 / 16000) * 0.32;
                     // alternate line tint based on particles' palette
                     const tint = (a.palIdx + b.palIdx) % 2 === 0
-                        ? `rgba(46, 68, 196, ${alpha})`
-                        : `rgba(226, 84, 125, ${alpha})`;
+                        ? `rgba(29, 57, 212, ${alpha})`
+                        : `rgba(180, 180, 180, ${alpha})`;
                     ctx.strokeStyle = tint;
                     ctx.lineWidth = 0.8;
                     ctx.beginPath();
