@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { motion, useScroll, useTransform } from 'framer-motion'
 // @ts-ignore
 import { ShaderGradient, ShaderGradientCanvas } from '@shadergradient/react'
 
@@ -8,34 +8,29 @@ interface Props {
   onEnterGym: () => void
 }
 
+const ease = [0.16, 1, 0.3, 1] as const
+
 const stagger = {
   container: {
-    animate: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
+    animate: { transition: { staggerChildren: 0.12, delayChildren: 0.15 } },
   },
   item: {
     initial: { opacity: 0, y: 22 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.85, ease } },
   },
 }
 
 export function LandingPage({ onEnterPortfolio, onEnterGym }: Props) {
-  const [time, setTime] = useState('')
-  const logoRef = useRef<HTMLDivElement>(null)
+  const { scrollY } = useScroll()
 
-  useEffect(() => {
-    const tick = () => {
-      const d = new Date()
-      const p = (n: number) => String(n).padStart(2, '0')
-      setTime(`${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`)
-    }
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [])
+  // Parallax: content drifts up and fades as you scroll into portfolio
+  const contentY = useTransform(scrollY, [0, 500], [0, -72])
+  const contentOpacity = useTransform(scrollY, [0, 380], [1, 0])
+  const scrollCueOpacity = useTransform(scrollY, [0, 160], [1, 0])
 
   return (
     <div className="landing">
-      {/* Shader gradient — living background */}
+      {/* Living gradient background */}
       <div className="landing-gradient-wrap" aria-hidden>
         <ShaderGradientCanvas
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
@@ -68,32 +63,30 @@ export function LandingPage({ onEnterPortfolio, onEnterGym }: Props) {
         </ShaderGradientCanvas>
       </div>
 
-      {/* Nav */}
-      <motion.nav
+      {/* Minimal floating nav */}
+      <motion.div
         className="l-nav"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, delay: 0.2 }}
       >
-        <div className="l-nav-logo">
-          <span className="l-nav-mark">DM</span>
+        <span className="l-nav-mark">D · M</span>
+        <div className="l-nav-links">
+          <button className="l-nav-link" onClick={onEnterPortfolio}>Portfolio</button>
+          <button className="l-nav-link" onClick={onEnterGym}>Gym ↗</button>
         </div>
-        <div className="l-nav-status">
-          <span className="l-status-dot" />
-          <span className="l-status-text">Available for work</span>
-        </div>
-        <div className="l-nav-meta">PORTFOLIO / 2026</div>
-      </motion.nav>
+      </motion.div>
 
-      {/* Main content */}
-      <main className="l-main">
-        {/* Liquid logo mark */}
+      {/* Main — parallax wrapper */}
+      <motion.main
+        className="l-main"
+        style={{ y: contentY, opacity: contentOpacity }}
+      >
         <motion.div
-          ref={logoRef}
           className="l-logo-wrap"
-          initial={{ opacity: 0, scale: 0.85 }}
+          initial={{ opacity: 0, scale: 0.88 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 1.1, ease }}
         >
           <LiquidLogoMark />
         </motion.div>
@@ -120,7 +113,7 @@ export function LandingPage({ onEnterPortfolio, onEnterGym }: Props) {
           className="l-actions"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, delay: 0.55, ease }}
         >
           <button className="l-cta-primary" onClick={onEnterPortfolio}>
             View Portfolio
@@ -130,29 +123,24 @@ export function LandingPage({ onEnterPortfolio, onEnterGym }: Props) {
             <ArrowRight />
           </button>
         </motion.div>
-      </main>
+      </motion.main>
 
-      {/* Footer */}
-      <motion.footer
-        className="l-footer"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.7 }}
-      >
-        <div className="l-socials">
-          <a href="https://github.com" target="_blank" rel="noopener" className="l-social">GitHub</a>
-          <span className="l-social-dot" />
-          <a href="https://linkedin.com" target="_blank" rel="noopener" className="l-social">LinkedIn</a>
-          <span className="l-social-dot" />
-          <a href="mailto:dimural722@gmail.com" className="l-social">Email</a>
-        </div>
-        <div className="l-clock">{time}</div>
-      </motion.footer>
+      {/* Scroll cue */}
+      <motion.div className="l-scroll-cue" style={{ opacity: scrollCueOpacity }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.4, duration: 0.8 }}
+        >
+          <div className="l-scroll-line">
+            <div className="l-scroll-dot" />
+          </div>
+        </motion.div>
+      </motion.div>
     </div>
   )
 }
 
-// Liquid morphing logo — CSS-animated SVG blob with "DM" inside
 function LiquidLogoMark() {
   return (
     <div className="liquid-mark">
@@ -163,9 +151,6 @@ function LiquidLogoMark() {
             <stop offset="60%" stopColor="#d4e4f0" />
             <stop offset="100%" stopColor="#c8d8e8" />
           </radialGradient>
-          <filter id="blob-blur">
-            <feGaussianBlur stdDeviation="0" />
-          </filter>
         </defs>
         <path
           className="blob-path"
