@@ -1,0 +1,91 @@
+<h2>Which palette combination feels right?</h2>
+<p class="subtitle">All drawn from your colors — beige, black, white, light blue, dark green, grey, maroon. Click the one that resonates.</p>
+
+<style>
+  .pal-card { border-radius:12px; overflow:hidden; border:1px solid rgba(0,0,0,0.08); cursor:pointer; transition:transform 0.15s,box-shadow 0.15s; margin-bottom:0; }
+  .pal-card:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(0,0,0,0.1); }
+  .pal-card.selected { outline:2px solid #333; outline-offset:2px; }
+  .pal-preview { height:200px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12px; padding:28px; position:relative; overflow:hidden; }
+  .pal-name-tag { font-size:9px; letter-spacing:3px; margin-bottom:4px; }
+  .pal-headline { font-size:26px; font-weight:700; letter-spacing:-1.5px; line-height:1.1; text-align:center; }
+  .pal-sub { font-size:11px; letter-spacing:1px; margin-top:2px; text-align:center; }
+  .pal-btn { padding:9px 20px; border-radius:6px; font-size:10px; letter-spacing:2px; border:none; cursor:pointer; margin-top:6px; }
+  .pal-swatches { display:flex; gap:6px; margin-top:8px; }
+  .swatch { width:20px; height:20px; border-radius:50%; }
+  .pal-label { padding:16px 20px; }
+  .pal-label h3 { font-size:15px; font-weight:600; margin-bottom:4px; }
+  .pal-label p { font-size:13px; color:#666; line-height:1.5; }
+</style>
+
+<div class="cards">
+
+  <!-- Option A: Linen & Ink -->
+  <div class="card" data-choice="linen-ink" onclick="toggleSelect(this)" style="overflow:hidden;">
+    <div class="card-image pal-preview" style="background:#f5f0ea; height:210px;">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%, rgba(200,215,230,0.45) 0%, transparent 60%);"></div>
+      <div style="position:relative;z-index:1;text-align:center;">
+        <div class="pal-name-tag" style="color:#9a8f84;">PORTFOLIO / 2026</div>
+        <div class="pal-headline" style="color:#1a1a18;">Dimural<br>Murat</div>
+        <div class="pal-sub" style="color:#7a7068;">Software Engineer</div>
+        <button class="pal-btn" style="background:#1a1a18;color:#f5f0ea;margin-top:10px;">VIEW WORK →</button>
+      </div>
+      <div class="pal-swatches" style="position:absolute;bottom:12px;right:16px;">
+        <div class="swatch" style="background:#f5f0ea;border:1px solid #ddd;"></div>
+        <div class="swatch" style="background:#1a1a18;"></div>
+        <div class="swatch" style="background:#a8c4d8;"></div>
+        <div class="swatch" style="background:#9a8f84;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Linen & Ink</h3>
+      <p>Warm beige/off-white base, near-black text, light blue used only for the ShaderGradient sphere glow. Soft, calm, and editorial — like a luxury print magazine.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Chalk & Forest -->
+  <div class="card" data-choice="chalk-forest" onclick="toggleSelect(this)" style="overflow:hidden;">
+    <div class="card-image pal-preview" style="background:#f8f8f6; height:210px;">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 45% 40%, rgba(45,90,65,0.08) 0%, transparent 60%);"></div>
+      <div style="position:relative;z-index:1;text-align:center;">
+        <div class="pal-name-tag" style="color:#8a9e8e;">PORTFOLIO / 2026</div>
+        <div class="pal-headline" style="color:#111;font-weight:800;">Dimural<br>Murat</div>
+        <div class="pal-sub" style="color:#888;">Software Engineer</div>
+        <button class="pal-btn" style="background:#2d5a41;color:#f8f8f6;margin-top:10px;">VIEW WORK →</button>
+      </div>
+      <div class="pal-swatches" style="position:absolute;bottom:12px;right:16px;">
+        <div class="swatch" style="background:#f8f8f6;border:1px solid #e0e0e0;"></div>
+        <div class="swatch" style="background:#111;"></div>
+        <div class="swatch" style="background:#2d5a41;"></div>
+        <div class="swatch" style="background:#c0c8c0;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Chalk & Forest</h3>
+      <p>Pure white base, black type, dark green as the signature accent — buttons, tags, highlights. The shader gradient glows green-tinted. Grounded, confident, and distinctive.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Ash & Maroon -->
+  <div class="card" data-choice="ash-maroon" onclick="toggleSelect(this)" style="overflow:hidden;">
+    <div class="card-image pal-preview" style="background:#f2f2f2; height:210px;">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 55% 35%, rgba(120,30,40,0.1) 0%, transparent 55%);"></div>
+      <div style="position:relative;z-index:1;text-align:center;">
+        <div class="pal-name-tag" style="color:#999;">PORTFOLIO / 2026</div>
+        <div class="pal-headline" style="color:#1a1a1a;">Dimural<br>Murat</div>
+        <div class="pal-sub" style="color:#888;">Software Engineer</div>
+        <button class="pal-btn" style="background:#781e28;color:#fff;margin-top:10px;">VIEW WORK →</button>
+      </div>
+      <div class="pal-swatches" style="position:absolute;bottom:12px;right:16px;">
+        <div class="swatch" style="background:#f2f2f2;border:1px solid #ddd;"></div>
+        <div class="swatch" style="background:#1a1a1a;"></div>
+        <div class="swatch" style="background:#781e28;"></div>
+        <div class="swatch" style="background:#aaa;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Ash & Maroon</h3>
+      <p>Cool light grey background, near-black text, maroon as the single accent. The shader gradient has a deep warm-red glow. Serious, bold, and quietly dramatic.</p>
+    </div>
+  </div>
+
+</div>

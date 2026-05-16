@@ -1,0 +1,67 @@
+<h2>Which aesthetic direction feels right?</h2>
+<p class="subtitle">These are three distinct visual identities for your portfolio. Click the one that resonates most.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="soft-aura" onclick="toggleSelect(this)" style="overflow:hidden;">
+    <div class="card-image" style="height:220px; position:relative; background:#fafafa; border-radius:8px 8px 0 0; overflow:hidden;">
+      <!-- Soft Aura mockup -->
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%, rgba(180,200,255,0.5) 0%, transparent 55%), radial-gradient(ellipse at 70% 60%, rgba(200,180,255,0.4) 0%, transparent 55%), radial-gradient(ellipse at 50% 50%, rgba(255,240,220,0.3) 0%, transparent 60%);"></div>
+      <div style="position:absolute;inset:0;backdrop-filter:blur(0px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;">
+        <div style="font-size:11px;letter-spacing:3px;color:rgba(100,100,130,0.7);font-family:sans-serif;">PORTFOLIO / 2026</div>
+        <div style="font-size:28px;font-weight:700;color:#1a1a2e;font-family:Georgia,serif;letter-spacing:-1px;line-height:1.1;">Dimural<br>Murat</div>
+        <div style="width:200px;height:36px;border-radius:20px;background:rgba(255,255,255,0.65);border:1px solid rgba(180,180,220,0.4);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:11px;color:#555;font-family:sans-serif;letter-spacing:1px;">VIEW PORTFOLIO →</span>
+        </div>
+      </div>
+      <!-- Floating glass card -->
+      <div style="position:absolute;bottom:14px;right:14px;width:80px;height:50px;background:rgba(255,255,255,0.5);border:1px solid rgba(200,200,255,0.5);border-radius:10px;backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;">
+        <div style="font-size:9px;color:#888;font-family:sans-serif;text-align:center;line-height:1.4;">Available<br>for work</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Soft Aura</h3>
+      <p>Light, milky backgrounds with dreamy pastel shader gradients. Liquid glass cards float above the surface. ShaderGradient fills the hero as a living, breathing background. Extremely clean and editorial — like Apple Vision Pro meets a design magazine.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="dark-organic" onclick="toggleSelect(this)" style="overflow:hidden;">
+    <div class="card-image" style="height:220px; position:relative; background:#0a0a0f; border-radius:8px 8px 0 0; overflow:hidden;">
+      <!-- Dark Organic mockup -->
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 25% 35%, rgba(80,40,140,0.7) 0%, transparent 45%), radial-gradient(ellipse at 75% 65%, rgba(20,80,120,0.6) 0%, transparent 45%);"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,transparent 60%,rgba(255,120,80,0.08) 100%);"></div>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;">
+        <div style="font-size:9px;letter-spacing:4px;color:rgba(180,160,220,0.6);font-family:sans-serif;">DIMURAL.DEV</div>
+        <div style="font-size:28px;font-weight:800;color:#f0eeff;font-family:sans-serif;letter-spacing:-2px;line-height:1;">Dimural<br>Murat</div>
+        <div style="width:180px;height:34px;border-radius:6px;background:linear-gradient(135deg,rgba(100,60,200,0.4),rgba(40,100,180,0.4));border:1px solid rgba(150,120,255,0.3);display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:10px;color:rgba(220,200,255,0.9);font-family:sans-serif;letter-spacing:2px;">ENTER →</span>
+        </div>
+      </div>
+      <!-- Floating organic orb -->
+      <div style="position:absolute;top:20px;right:20px;width:50px;height:50px;border-radius:50%;background:radial-gradient(circle,rgba(100,60,200,0.8),rgba(40,100,180,0.4));filter:blur(2px);"></div>
+    </div>
+    <div class="card-body">
+      <h3>Dark Organic</h3>
+      <p>Deep near-black background with flowing purple-to-blue shader gradients. Liquid glass elements glow from within. Bold, moody, premium — the kind of portfolio that stops you mid-scroll. High contrast typography pops against the dark canvas.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="minimal-luminous" onclick="toggleSelect(this)" style="overflow:hidden;">
+    <div class="card-image" style="height:220px; position:relative; background:#ffffff; border-radius:8px 8px 0 0; overflow:hidden;">
+      <!-- Minimal Luminous mockup -->
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%, rgba(230,240,255,0.9) 0%, rgba(255,255,255,1) 70%);"></div>
+      <!-- Single centered gradient sphere -->
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 35% 35%, rgba(160,180,255,0.9), rgba(180,220,255,0.5) 40%, rgba(220,240,255,0.2) 70%, transparent);filter:blur(1px);"></div>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:24px;gap:8px;">
+        <div style="font-size:26px;font-weight:300;color:#111;font-family:sans-serif;letter-spacing:-1px;text-align:center;line-height:1.1;">Dimural Murat</div>
+        <div style="font-size:10px;letter-spacing:2px;color:#aaa;font-family:sans-serif;">SOFTWARE ENGINEER</div>
+        <div style="width:1px;height:30px;background:linear-gradient(to bottom,rgba(0,0,0,0.2),transparent);margin-top:4px;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Minimal Luminous</h3>
+      <p>Pure white canvas with a single luminous ShaderGradient sphere as the hero focal point. Extreme restraint — one animated element per section, nothing competing for attention. The liquid logo becomes the centerpiece, surrounded by generous white space and razor-sharp typography.</p>
+    </div>
+  </div>
+
+</div>
