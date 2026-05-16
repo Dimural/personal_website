@@ -13,7 +13,7 @@ const pageVariants = {
 }
 
 export default function App() {
-  const [page, setPage] = useState<Page>('landing')
+  const [page, setPage] = useState<Page>('portfolio')
 
   const enterPortfolio = () => { resetGlassSnapshot(); setPage('portfolio') }
   const enterGym = () => { window.location.href = '/gym.html' }
