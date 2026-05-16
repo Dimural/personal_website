@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { LiquidGlassCard, LiquidGlassPill, resetGlassSnapshot } from './LiquidGlass'
+import { LiquidGlassCard, LiquidGlassPill } from './LiquidGlass'
 
 interface Props {
   onBack: () => void

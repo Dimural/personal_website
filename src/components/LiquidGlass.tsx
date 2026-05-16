@@ -77,7 +77,7 @@ export function LiquidGlassCard({
   }, [])
 
   return (
-    <div ref={hostRef} className={className} style={{ position: 'relative' }}>
+    <div ref={hostRef} className={className} style={{ position: 'relative', isolation: 'isolate' }}>
       <div style={{ position: 'relative', zIndex: 0, ...innerStyle }}>
         {children}
       </div>
