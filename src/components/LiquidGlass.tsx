@@ -1,15 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { CSSProperties, useEffect, useRef } from 'react'
 
 interface LiquidGlassCardProps {
   children: React.ReactNode
   borderRadius?: number
   type?: 'rounded' | 'circle' | 'pill'
   tintOpacity?: number
+  /** Applied to the outer host div (sets position context, border-radius, overflow) */
   className?: string
+  /** Applied to the inner content div — use for display/flex/grid/padding layout */
+  innerStyle?: CSSProperties
 }
 
-// Reset static snapshot cache so a fresh capture is taken when the portfolio mounts.
 export function resetGlassSnapshot() {
   if (typeof Container !== 'undefined') {
     Container.pageSnapshot = null
@@ -19,54 +20,67 @@ export function resetGlassSnapshot() {
   }
 }
 
+/**
+ * Wraps children with a liquid glass background layer.
+ * Children always render immediately in normal flow.
+ * The WebGL glass canvas loads asynchronously as an absolute underlay (z-index: -1).
+ */
 export function LiquidGlassCard({
   children,
   borderRadius = 14,
   type = 'rounded',
   tintOpacity = 0.15,
   className,
+  innerStyle,
 }: LiquidGlassCardProps) {
   const hostRef = useRef<HTMLDivElement>(null)
-  const [glassEl, setGlassEl] = useState<HTMLElement | null>(null)
   const instanceRef = useRef<Container | null>(null)
 
   useEffect(() => {
     if (!hostRef.current || typeof Container === 'undefined') return
 
-    const c = new Container({ borderRadius, type, tintOpacity })
-    instanceRef.current = c
-
-    // Apply our CSS class to the library element so our layout styles take over.
-    // glass.css and our index.css both use single-class selectors; Vite injects
-    // our CSS after glass.css so our rules win in the cascade.
-    if (className) {
-      className.trim().split(/\s+/).forEach(cls => c.element.classList.add(cls))
+    let c: Container
+    try {
+      c = new Container({ borderRadius, type, tintOpacity })
+    } catch {
+      return
     }
 
-    // Ensure the element fills its parent's width like a normal block
+    instanceRef.current = c
+
+    // Position glass canvas as an absolutely-filled underlay behind the content
+    c.element.style.position = 'absolute'
+    c.element.style.inset = '0'
     c.element.style.width = '100%'
+    c.element.style.height = '100%'
+    c.element.style.padding = '0'
+    c.element.style.gap = '0'
+    c.element.style.zIndex = '-1'
+    c.element.style.pointerEvents = 'none'
 
-    hostRef.current.appendChild(c.element)
+    // Insert before the content div so it's behind it in DOM order too
+    hostRef.current.insertBefore(c.element, hostRef.current.firstChild)
 
-    // Recalculate size after layout settles
-    const raf = requestAnimationFrame(() => c.updateSizeFromDOM())
-    setGlassEl(c.element)
+    const raf = requestAnimationFrame(() => {
+      try { c.updateSizeFromDOM() } catch { /* ignore sizing errors */ }
+    })
 
     return () => {
       cancelAnimationFrame(raf)
-      setGlassEl(null)
       c.element.remove()
-      const idx = Container.instances.indexOf(c)
-      if (idx > -1) Container.instances.splice(idx, 1)
+      if (typeof Container !== 'undefined') {
+        const idx = Container.instances.indexOf(c)
+        if (idx > -1) Container.instances.splice(idx, 1)
+      }
       instanceRef.current = null
     }
   }, [])
 
-  // display: contents removes the host div from the layout flow.
-  // The glass-container child participates directly in the parent's layout context.
   return (
-    <div ref={hostRef} style={{ display: 'contents' }}>
-      {glassEl && createPortal(children, glassEl)}
+    <div ref={hostRef} className={className} style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', zIndex: 0, ...innerStyle }}>
+        {children}
+      </div>
     </div>
   )
 }
@@ -83,15 +97,30 @@ export function LiquidGlassPill({ text, fontSize = 12, tintOpacity = 0.15 }: Liq
   useEffect(() => {
     if (!hostRef.current || typeof Button === 'undefined') return
 
-    const btn = new Button({ text, size: fontSize, type: 'pill', tintOpacity })
+    let btn: Button
+    try {
+      btn = new Button({ text, size: fontSize, type: 'pill', tintOpacity })
+    } catch {
+      return
+    }
+
+    // Replace the fallback text span with the glass button
+    const fallback = hostRef.current.querySelector('.lg-fallback')
+    if (fallback) fallback.remove()
     hostRef.current.appendChild(btn.element)
 
     return () => {
       btn.element.remove()
-      const idx = Container.instances.indexOf(btn)
-      if (idx > -1) Container.instances.splice(idx, 1)
+      if (typeof Container !== 'undefined') {
+        const idx = Container.instances.indexOf(btn)
+        if (idx > -1) Container.instances.splice(idx, 1)
+      }
     }
   }, [text, fontSize])
 
-  return <div ref={hostRef} style={{ display: 'contents' }} />
+  return (
+    <div ref={hostRef} style={{ display: 'inline-block' }}>
+      <span className="p-tag lg-fallback">{text}</span>
+    </div>
+  )
 }

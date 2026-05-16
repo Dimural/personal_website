@@ -173,6 +173,7 @@ export function PortfolioPage({ onBack, onEnterGym }: Props) {
               borderRadius={14}
               type="rounded"
               tintOpacity={0.18}
+              innerStyle={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '28px' }}
             >
               <div className="about-row">
                 <span>Based in</span><strong>—</strong>
@@ -299,7 +300,13 @@ function ProjectCard({ num, title, desc, tags, index }: { num: string; title: st
       transition={{ duration: 0.7, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
       whileHover={{ y: -3, transition: { duration: 0.2 } }}
     >
-      <LiquidGlassCard className="p-project" borderRadius={14} type="rounded" tintOpacity={0.15}>
+      <LiquidGlassCard
+        className="p-project"
+        borderRadius={14}
+        type="rounded"
+        tintOpacity={0.15}
+        innerStyle={{ display: 'grid', gridTemplateColumns: '56px 1fr 40px', gap: '24px', padding: '28px', alignItems: 'center' }}
+      >
         <div className="p-proj-num">{num}</div>
         <div className="p-proj-body">
           <h3>{title}</h3>

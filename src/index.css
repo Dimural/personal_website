@@ -552,12 +552,8 @@ img { display: block; max-width: 100%; }
 }
 
 .p-about-card {
-  padding: 28px;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  justify-content: flex-start !important;
-  gap: 16px !important;
+  border-radius: var(--r);
+  overflow: hidden;
 }
 
 .about-row {
@@ -666,14 +662,9 @@ img { display: block; max-width: 100%; }
 }
 
 .p-project {
-  display: grid !important;
-  grid-template-columns: 56px 1fr 40px;
-  justify-content: initial !important;
-  gap: 24px !important;
-  padding: 28px !important;
-  align-items: center !important;
+  border-radius: var(--r);
+  overflow: hidden;
   cursor: pointer;
-  transition: box-shadow 0.2s, border-color 0.2s;
 }
 
 .p-project:hover {
