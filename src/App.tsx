@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { LandingPage } from './components/LandingPage'
 import { PortfolioPage } from './components/PortfolioPage'
+import { resetGlassSnapshot } from './components/LiquidGlass'
 
 type Page = 'landing' | 'portfolio'
 
@@ -14,7 +15,7 @@ const pageVariants = {
 export default function App() {
   const [page, setPage] = useState<Page>('landing')
 
-  const enterPortfolio = () => setPage('portfolio')
+  const enterPortfolio = () => { resetGlassSnapshot(); setPage('portfolio') }
   const enterGym = () => { window.location.href = '/gym.html' }
   const backToLanding = () => setPage('landing')
 

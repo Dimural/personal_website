@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { LiquidGlassCard, LiquidGlassPill, resetGlassSnapshot } from './LiquidGlass'
 
 interface Props {
   onBack: () => void
@@ -167,7 +168,12 @@ export function PortfolioPage({ onBack, onEnterGym }: Props) {
               <p>I'm Dimural — a software engineer passionate about building products that blend technical depth with thoughtful design. I'm drawn to problems where engineering craft and user experience intersect.</p>
               <p>Outside of code, you'll find me in the gym, watching Real Madrid, playing guitar, or hosting a board-game night.</p>
             </div>
-            <div className="p-about-card glass-card">
+            <LiquidGlassCard
+              className="p-about-card"
+              borderRadius={14}
+              type="rounded"
+              tintOpacity={0.18}
+            >
               <div className="about-row">
                 <span>Based in</span><strong>—</strong>
               </div>
@@ -180,7 +186,7 @@ export function PortfolioPage({ onBack, onEnterGym }: Props) {
               <div className="about-row">
                 <span>Status</span><strong className="p-accent-green">Open to work</strong>
               </div>
-            </div>
+            </LiquidGlassCard>
           </div>
         </Section>
 
@@ -216,7 +222,7 @@ export function PortfolioPage({ onBack, onEnterGym }: Props) {
                 <h4 className="p-skill-cat">{cat}</h4>
                 <div className="p-tags">
                   {tags.map(t => (
-                    <span key={t} className="p-tag">{t}</span>
+                    <LiquidGlassPill key={t} text={t} fontSize={12} tintOpacity={0.15} />
                   ))}
                 </div>
               </div>
@@ -282,31 +288,32 @@ export function PortfolioPage({ onBack, onEnterGym }: Props) {
 }
 
 function ProjectCard({ num, title, desc, tags, index }: { num: string; title: string; desc: string; tags: string[]; index: number }) {
-  const ref = useRef<HTMLElement>(null)
+  const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-5%' })
 
   return (
-    <motion.article
+    <motion.div
       ref={ref}
-      className="p-project glass-card"
       initial={{ opacity: 0, y: 28 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.7, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
       whileHover={{ y: -3, transition: { duration: 0.2 } }}
     >
-      <div className="p-proj-num">{num}</div>
-      <div className="p-proj-body">
-        <h3>{title}</h3>
-        <p>{desc}</p>
-        <div className="p-tags">
-          {tags.map(t => <span key={t} className="p-tag">{t}</span>)}
+      <LiquidGlassCard className="p-project" borderRadius={14} type="rounded" tintOpacity={0.15}>
+        <div className="p-proj-num">{num}</div>
+        <div className="p-proj-body">
+          <h3>{title}</h3>
+          <p>{desc}</p>
+          <div className="p-tags">
+            {tags.map(t => <span key={t} className="p-tag">{t}</span>)}
+          </div>
         </div>
-      </div>
-      <div className="p-proj-arrow">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M7 17L17 7M7 7h10v10" />
-        </svg>
-      </div>
-    </motion.article>
+        <div className="p-proj-arrow">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 17L17 7M7 7h10v10" />
+          </svg>
+        </div>
+      </LiquidGlassCard>
+    </motion.div>
   )
 }
