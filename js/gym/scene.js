@@ -7,6 +7,7 @@ const WALL_H = 3.5;
 
 export function buildScene(threeScene) {
   threeScene.background = new THREE.Color(0xdce8f0);
+  threeScene.fog = new THREE.FogExp2(0xdce8f0, 0.022);
 
   _buildFloor(threeScene);
   _buildWalls(threeScene);
@@ -109,6 +110,12 @@ function _buildWalls(threeScene) {
     w.position.set(HALF + 0.05, WALL_H * 0.65, z - HALF + 0.5);
     threeScene.add(w);
   }
+
+  // Ceiling slab
+  const ceilMat = new THREE.MeshLambertMaterial({ color: 0xf0ebe4 });
+  const ceil = new THREE.Mesh(new THREE.BoxGeometry(ROOM, 0.25, ROOM), ceilMat);
+  ceil.position.set(0, WALL_H + 0.12, 0);
+  threeScene.add(ceil);
 
   // Entrance strip (front edge, z = HALF - 0.15)
   const stripMat = new THREE.MeshLambertMaterial({ color: 0x0071e3, transparent: true, opacity: 0.45 });
