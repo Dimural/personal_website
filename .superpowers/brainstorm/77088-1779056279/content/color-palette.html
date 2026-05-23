@@ -1,0 +1,92 @@
+<h2>Color Direction for the Voxel Gym</h2>
+<p class="subtitle">Your site uses whites, light grays, and blue (#0071e3). How should the gym adapt that into a Crossy Road voxel style?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="light" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f5f5f7; padding:16px; display:flex; flex-direction:column; gap:8px; align-items:center;">
+      <!-- Isometric voxel gym preview - Light -->
+      <div style="position:relative; width:220px; height:140px;">
+        <!-- Floor tiles -->
+        <div style="position:absolute; bottom:10px; left:10px; width:200px; height:90px; background:#e8e4de; transform:skewX(-20deg) skewY(5deg); border-radius:2px;"></div>
+        <!-- Equipment blocks -->
+        <div style="position:absolute; bottom:50px; left:40px; width:32px; height:36px; background:#c2d8e8; border-right:4px solid #a8c4d4; border-bottom:4px solid #b5cedd; border-radius:2px;"></div>
+        <div style="position:absolute; bottom:50px; left:80px; width:24px; height:48px; background:#0071e3; border-right:4px solid #0058b0; border-bottom:4px solid #005fbd; border-radius:2px;"></div>
+        <div style="position:absolute; bottom:50px; left:110px; width:40px; height:30px; background:#ede8df; border-right:5px solid #d4cfc6; border-bottom:5px solid #dad5cc; border-radius:2px;"></div>
+        <div style="position:absolute; bottom:50px; left:155px; width:28px; height:44px; background:#c2d8e8; border-right:4px solid #a8c4d4; border-bottom:4px solid #b5cedd; border-radius:2px;"></div>
+        <!-- Trees/plants -->
+        <div style="position:absolute; bottom:75px; left:20px; width:14px; height:22px; background:#7cb87c; border-radius:1px;"></div>
+        <div style="position:absolute; bottom:75px; left:180px; width:14px; height:22px; background:#7cb87c; border-radius:1px;"></div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:4px;">
+        <div style="width:20px;height:20px;border-radius:4px;background:#ffffff;border:1px solid #ccc;"></div>
+        <div style="width:20px;height:20px;border-radius:4px;background:#e8e4de;"></div>
+        <div style="width:20px;height:20px;border-radius:4px;background:#c2d8e8;"></div>
+        <div style="width:20px;height:20px;border-radius:4px;background:#0071e3;"></div>
+        <div style="width:20px;height:20px;border-radius:4px;background:#7cb87c;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Light & Clean</h3>
+      <p>Light wood floors, soft gray equipment. Blue accent pops on key interactive pieces. Warm/airy. Closest to the main site's whitespace feel.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="dark" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a1f; padding:16px; display:flex; flex-direction:column; gap:8px; align-items:center;">
+      <!-- Isometric voxel gym preview - Dark -->
+      <div style="position:relative; width:220px; height:140px;">
+        <!-- Floor tiles -->
+        <div style="position:absolute; bottom:10px; left:10px; width:200px; height:90px; background:#2a2a35; transform:skewX(-20deg) skewY(5deg); border-radius:2px;"></div>
+        <!-- Equipment blocks -->
+        <div style="position:absolute; bottom:50px; left:40px; width:32px; height:36px; background:#0071e3; border-right:4px solid #0058b0; border-bottom:4px solid #005fbd; border-radius:2px;"></div>
+        <div style="position:absolute; bottom:50px; left:80px; width:24px; height:48px; background:#3a3a4a; border-right:4px solid #282835; border-bottom:4px solid #2f2f3f; border-radius:2px;"></div>
+        <div style="position:absolute; bottom:50px; left:110px; width:40px; height:30px; background:#4a4060; border-right:5px solid #35304a; border-bottom:5px solid #3d3858; border-radius:2px;"></div>
+        <div style="position:absolute; bottom:50px; left:155px; width:28px; height:44px; background:#0071e3; border-right:4px solid #0058b0; border-bottom:4px solid #005fbd; border-radius:2px;"></div>
+        <!-- Glow effect -->
+        <div style="position:absolute; bottom:48px; left:78px; width:28px; height:4px; background:#0071e3; border-radius:2px; box-shadow:0 0 8px #0071e3; opacity:0.6;"></div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:4px;">
+        <div style="width:20px;height:20px;border-radius:4px;background:#1a1a1f;border:1px solid #333;"></div>
+        <div style="width:20px;height:20px;border-radius:4px;background:#2a2a35;"></div>
+        <div style="width:20px;height:20px;border-radius:4px;background:#3a3a4a;"></div>
+        <div style="width:20px;height:20px;border-radius:4px;background:#0071e3;"></div>
+        <div style="width:20px;height:20px;border-radius:4px;background:#4a4060;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Dark & Electric</h3>
+      <p>Dark charcoal floor with blue glow on equipment. High-contrast, moody gym atmosphere. More dramatic and game-like.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="warm" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#faf8f4; padding:16px; display:flex; flex-direction:column; gap:8px; align-items:center;">
+      <!-- Isometric voxel gym preview - Warm -->
+      <div style="position:relative; width:220px; height:140px;">
+        <!-- Floor tiles -->
+        <div style="position:absolute; bottom:10px; left:10px; width:200px; height:90px; background:#d4b896; transform:skewX(-20deg) skewY(5deg); border-radius:2px;"></div>
+        <!-- Equipment blocks -->
+        <div style="position:absolute; bottom:50px; left:40px; width:32px; height:36px; background:#c07850; border-right:4px solid #a06040; border-bottom:4px solid #aa6845; border-radius:2px;"></div>
+        <div style="position:absolute; bottom:50px; left:80px; width:24px; height:48px; background:#0071e3; border-right:4px solid #0058b0; border-bottom:4px solid #005fbd; border-radius:2px;"></div>
+        <div style="position:absolute; bottom:50px; left:110px; width:40px; height:30px; background:#e8d8c0; border-right:5px solid #d0c0a8; border-bottom:5px solid #dac8b0; border-radius:2px;"></div>
+        <div style="position:absolute; bottom:50px; left:155px; width:28px; height:44px; background:#c07850; border-right:4px solid #a06040; border-bottom:4px solid #aa6845; border-radius:2px;"></div>
+        <!-- Rope/accent -->
+        <div style="position:absolute; bottom:95px; left:75px; width:4px; height:28px; background:#8b6540; border-radius:2px;"></div>
+        <div style="position:absolute; bottom:75px; left:170px; width:14px; height:22px; background:#5a8a5a; border-radius:1px;"></div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:4px;">
+        <div style="width:20px;height:20px;border-radius:4px;background:#faf8f4;border:1px solid #ddd;"></div>
+        <div style="width:20px;height:20px;border-radius:4px;background:#d4b896;"></div>
+        <div style="width:20px;height:20px;border-radius:4px;background:#c07850;"></div>
+        <div style="width:20px;height:20px;border-radius:4px;background:#0071e3;"></div>
+        <div style="width:20px;height:20px;border-radius:4px;background:#e8d8c0;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Warm Wood</h3>
+      <p>Warm oak wood floors, terracotta equipment tones, blue accents. Athletic club aesthetic. Rich and earthy, still clean.</p>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,9 @@
+{"type":"server-started","port":49622,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:49622","screen_dir":"/Users/dimural/personal_website/.superpowers/brainstorm/77088-1779056279/content","state_dir":"/Users/dimural/personal_website/.superpowers/brainstorm/77088-1779056279/state"}
+{"type":"screen-added","file":"/Users/dimural/personal_website/.superpowers/brainstorm/77088-1779056279/content/color-palette.html"}
+{"source":"user-event","type":"click","text":"C — Warm Wood\n      Warm oak wood floors, terracotta equipment tones, blue accents. Athletic club aesthetic. Rich and earthy, still clean.","choice":"warm","id":null,"timestamp":1779056465481}
+{"type":"screen-added","file":"/Users/dimural/personal_website/.superpowers/brainstorm/77088-1779056279/content/gym-layout.html"}
+{"source":"user-event","type":"click","text":"EXP\n        SKILLS\n        ME\n        PROJ\n        \n        EDU\n        \n        \n        \n        \n        \n      \n    \n    \n      C — Open Floor\n      Equipment scattered naturally across an open floor. Feels like a boutique gym. Player explores freely, no forced path.","choice":"organic","id":null,"timestamp":1779056535198}
+{"type":"screen-added","file":"/Users/dimural/personal_website/.superpowers/brainstorm/77088-1779056279/content/waiting-1.html"}
+{"type":"screen-added","file":"/Users/dimural/personal_website/.superpowers/brainstorm/77088-1779056279/content/gym-scene.html"}
+{"type":"screen-added","file":"/Users/dimural/personal_website/.superpowers/brainstorm/77088-1779056279/content/isometric-preview.html"}
+{"type":"server-stopped","reason":"idle timeout"}

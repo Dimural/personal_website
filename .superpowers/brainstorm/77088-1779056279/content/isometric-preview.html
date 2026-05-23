@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Isometric Gym Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #faf8f4; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 16px; }
+  canvas { border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.15); }
+  p { color: #6e6e73; font-size: 13px; max-width: 560px; text-align: center; line-height: 1.6; }
+  .label { font-size: 11px; color: #0071e3; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+</style>
+</head>
+<body>
+
+<span class="label">Crossy Road Style — Isometric Preview</span>
+<canvas id="c" width="640" height="440"></canvas>
+<p>Warm wood palette · Voxel equipment · Fixed isometric camera · Player spawns near entrance · Press E to interact</p>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// --- Isometric helpers ---
+// Tile size
+const TW = 48, TH = 24; // tile width/height in screen pixels
+const BLOCK_H = 30;     // height of one block unit
+
+// Convert grid (col, row, z) to screen (x, y)
+function toScreen(col, row, z = 0) {
+  const sx = (col - row) * (TW / 2) + canvas.width / 2;
+  const sy = (col + row) * (TH / 2) - z * BLOCK_H + 80;
+  return { x: sx, y: sy };
+}
+
+// Draw one voxel face: top, left, right
+function drawCube(col, row, z, w, d, h, colors) {
+  // colors: { top, left, right }
+  const topColor = colors.top;
+  const leftColor = colors.left;
+  const rightColor = colors.right;
+
+  // Top face: diamond
+  const tl = toScreen(col,     row,     z + h);
+  const tr = toScreen(col + w, row,     z + h);
+  const br = toScreen(col + w, row + d, z + h);
+  const bl = toScreen(col,     row + d, z + h);
+
+  ctx.beginPath();
+  ctx.moveTo(tl.x, tl.y);
+  ctx.lineTo(tr.x, tr.y);
+  ctx.lineTo(br.x, br.y);
+  ctx.lineTo(bl.x, bl.y);
+  ctx.closePath();
+  ctx.fillStyle = topColor;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 0.5; ctx.stroke();
+
+  // Left face (col side)
+  const lTop1 = toScreen(col, row,     z + h);
+  const lTop2 = toScreen(col, row + d, z + h);
+  const lBot2 = toScreen(col, row + d, z);
+  const lBot1 = toScreen(col, row,     z);
+  ctx.beginPath();
+  ctx.moveTo(lTop1.x, lTop1.y);
+  ctx.lineTo(lTop2.x, lTop2.y);
+  ctx.lineTo(lBot2.x, lBot2.y);
+  ctx.lineTo(lBot1.x, lBot1.y);
+  ctx.closePath();
+  ctx.fillStyle = leftColor;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 0.5; ctx.stroke();
+
+  // Right face (row side)
+  const rTop1 = toScreen(col + w, row,     z + h);
+  const rTop2 = toScreen(col + w, row + d, z + h);
+  const rBot2 = toScreen(col + w, row + d, z);
+  const rBot1 = toScreen(col + w, row,     z);
+  ctx.beginPath();
+  ctx.moveTo(rTop1.x, rTop1.y);
+  ctx.lineTo(rTop2.x, rTop2.y);
+  ctx.lineTo(rBot2.x, rBot2.y);
+  ctx.lineTo(rBot1.x, rBot1.y);
+  ctx.closePath();
+  ctx.fillStyle = rightColor;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 0.5; ctx.stroke();
+}
+
+// Draw label above a position
+function drawLabel(col, row, z, text) {
+  const s = toScreen(col, row, z + 0.3);
+  ctx.save();
+  ctx.font = 'bold 9px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#0071e3';
+  ctx.letterSpacing = '0.5px';
+  ctx.fillText(text, s.x, s.y - 4);
+  ctx.restore();
+}
+
+// Draw "Press E" prompt
+function drawPrompt(col, row, z) {
+  const s = toScreen(col, row, z + 0.5);
+  ctx.save();
+  ctx.fillStyle = '#1d1d1f';
+  const w = 44, h = 16;
+  ctx.beginPath();
+  ctx.roundRect(s.x - w/2, s.y - h - 2, w, h, 3);
+  ctx.fill();
+  ctx.font = 'bold 8px -apple-system, sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.fillText('Press  E', s.x, s.y - 7);
+  ctx.restore();
+}
+
+// ---- PALETTE ----
+const P = {
+  floorA:  '#d4b896',
+  floorB:  '#c8a880',
+  floorDk: '#b89870',
+  wallTop: '#e8ddd0',
+  wallL:   '#ccc0ae',
+  wallR:   '#bdb09e',
+  woodTop: '#c07850',
+  woodL:   '#8a5030',
+  woodR:   '#a06040',
+  metalTop:'#7a8a8a',
+  metalL:  '#556060',
+  metalR:  '#667070',
+  blueTop: '#0071e3',
+  blueL:   '#004fa0',
+  blueR:   '#0058b5',
+  darkTop: '#3a3a4a',
+  darkL:   '#252530',
+  darkR:   '#2e2e3c',
+  greenTop:'#5a8a5a',
+  greenL:  '#3a6a3a',
+  greenR:  '#4a7a4a',
+  skinTop: '#f0c898',
+  skinL:   '#d0a878',
+  skinR:   '#e0b888',
+};
+
+// ---- BACKGROUND ----
+ctx.fillStyle = '#c8d8e8';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Sky gradient
+const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+sky.addColorStop(0, '#dce8f0');
+sky.addColorStop(1, '#ede8df');
+ctx.fillStyle = sky;
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// ---- FLOOR (8x8 grid) ----
+for (let c = 0; c < 8; c++) {
+  for (let r = 0; r < 8; r++) {
+    const alt = (c + r) % 2 === 0;
+    drawCube(c, r, 0, 1, 1, 0.08, {
+      top:  alt ? P.floorA : P.floorB,
+      left: P.floorDk,
+      right: P.floorDk,
+    });
+  }
+}
+
+// ---- WALLS ----
+// Back wall (col=0, varies row) — left wall
+for (let r = 0; r < 8; r++) {
+  drawCube(-1, r, 0, 1, 1, 1.2, { top: P.wallTop, left: '#aaa090', right: P.wallL });
+}
+// Back wall (row=0, varies col) — top wall
+for (let c = 0; c < 8; c++) {
+  drawCube(c, -1, 0, 1, 1, 1.2, { top: P.wallTop, left: P.wallL, right: P.wallR });
+}
+
+// Wall windows (simple blue squares on top of wall)
+drawCube(1, -1, 1.2, 1, 0.15, 0.5, { top: '#c2d8e8', left: '#8ab8d8', right: '#a0c8e4' });
+drawCube(3, -1, 1.2, 1, 0.15, 0.5, { top: '#c2d8e8', left: '#8ab8d8', right: '#a0c8e4' });
+drawCube(5, -1, 1.2, 1, 0.15, 0.5, { top: '#c2d8e8', left: '#8ab8d8', right: '#a0c8e4' });
+drawCube(-1, 2, 1.2, 0.15, 1, 0.5, { top: '#c2d8e8', left: '#8ab8d8', right: '#a0c8e4' });
+drawCube(-1, 5, 1.2, 0.15, 1, 0.5, { top: '#c2d8e8', left: '#8ab8d8', right: '#a0c8e4' });
+
+// ---- BENCH PRESS (top-left area) — Experience ----
+// Legs
+drawCube(0.5, 0.4, 0.08, 0.2, 0.8, 0.4, { top: P.woodTop, left: P.woodL, right: P.woodR });
+drawCube(1.3, 0.4, 0.08, 0.2, 0.8, 0.4, { top: P.woodTop, left: P.woodL, right: P.woodR });
+// Bench pad
+drawCube(0.4, 0.5, 0.5, 1.2, 0.6, 0.15, { top: '#d08860', left: P.woodL, right: P.woodR });
+// Barbell
+drawCube(0.3, 0.65, 0.65, 1.5, 0.1, 0.08, { top: P.metalTop, left: P.metalL, right: P.metalR });
+drawCube(0.2, 0.6, 0.65, 0.15, 0.2, 0.25, { top: '#555', left: '#333', right: '#444' });
+drawCube(1.75, 0.6, 0.65, 0.15, 0.2, 0.25, { top: '#555', left: '#333', right: '#444' });
+drawLabel(1, 0.8, 0.9, 'EXPERIENCE');
+
+// ---- DUMBBELL RACK (top-right area) — Skills ----
+// Rack base
+drawCube(5.5, 0.4, 0.08, 1.5, 0.5, 0.3, { top: P.woodTop, left: P.woodL, right: P.woodR });
+// Dumbbells
+drawCube(5.6, 0.5, 0.38, 0.35, 0.3, 0.28, { top: '#c07850', left: '#905030', right: '#a06040' });
+drawCube(6.1, 0.5, 0.38, 0.35, 0.3, 0.28, { top: '#d08860', left: '#a06040', right: '#b07050' });
+drawCube(6.6, 0.5, 0.38, 0.35, 0.3, 0.28, { top: '#c07850', left: '#905030', right: '#a06040' });
+drawLabel(6.3, 0.7, 0.8, 'SKILLS');
+
+// ---- TREADMILL (bottom-left) — Projects ----
+// Base
+drawCube(0.5, 5.5, 0.08, 1.5, 1, 0.3, { top: P.darkTop, left: P.darkL, right: P.darkR });
+// Belt
+drawCube(0.6, 5.6, 0.38, 1.3, 0.8, 0.08, { top: '#4a4a5a', left: '#333', right: '#3a3a4a' });
+// Console/screen
+drawCube(0.9, 5.5, 0.46, 0.7, 0.15, 0.7, { top: P.blueTop, left: P.blueL, right: P.blueR });
+// Screen glow effect
+drawCube(0.95, 5.48, 1.0, 0.6, 0.05, 0.3, { top: '#60a8ff', left: P.blueL, right: P.blueR });
+drawLabel(1.2, 6.2, 0.5, 'PROJECTS');
+
+// ---- PULL-UP RIG (center-right) — Education ----
+// Vertical posts
+drawCube(5.0, 3.0, 0.08, 0.2, 0.2, 1.8, { top: P.woodTop, left: P.woodL, right: P.woodR });
+drawCube(6.0, 3.0, 0.08, 0.2, 0.2, 1.8, { top: P.woodTop, left: P.woodL, right: P.woodR });
+drawCube(5.0, 4.0, 0.08, 0.2, 0.2, 1.8, { top: P.woodTop, left: P.woodL, right: P.woodR });
+drawCube(6.0, 4.0, 0.08, 0.2, 0.2, 1.8, { top: P.woodTop, left: P.woodL, right: P.woodR });
+// Horizontal bar
+drawCube(4.9, 2.9, 1.9, 1.4, 0.2, 0.15, { top: P.metalTop, left: P.metalL, right: P.metalR });
+drawCube(4.9, 3.9, 1.9, 1.4, 0.2, 0.15, { top: P.metalTop, left: P.metalL, right: P.metalR });
+drawCube(4.9, 2.9, 1.9, 0.15, 1.3, 0.15, { top: P.metalTop, left: P.metalL, right: P.metalR });
+drawCube(6.15, 2.9, 1.9, 0.15, 1.3, 0.15, { top: P.metalTop, left: P.metalL, right: P.metalR });
+// Base feet
+drawCube(4.9, 2.9, 0.08, 1.4, 0.2, 0.15, { top: P.woodTop, left: P.woodL, right: P.woodR });
+drawCube(4.9, 3.9, 0.08, 1.4, 0.2, 0.15, { top: P.woodTop, left: P.woodL, right: P.woodR });
+drawLabel(5.6, 3.8, 2.2, 'EDUCATION');
+
+// ---- PUNCHING BAG (center) — About Me ----
+// Chain (thin tall box)
+drawCube(3.35, 3.35, 0.08, 0.1, 0.1, 2.2, { top: '#888', left: '#555', right: '#666' });
+// Bag body
+drawCube(3.1, 3.1, 1.2, 0.6, 0.6, 0.9, { top: P.woodTop, left: P.woodL, right: P.woodR });
+// Stripe
+drawCube(3.1, 3.1, 1.55, 0.6, 0.6, 0.12, { top: '#a06040', left: '#703020', right: '#904030' });
+drawLabel(3.4, 3.8, 1.2, 'ABOUT ME');
+drawPrompt(3.5, 3.5, 2.3);
+
+// ---- PLANTS ----
+// Plant 1 - front left
+drawCube(0.1, 6.8, 0.08, 0.4, 0.4, 0.3, { top: '#c07850', left: P.woodL, right: P.woodR }); // pot
+drawCube(0.05, 6.75, 0.38, 0.5, 0.5, 0.5, { top: P.greenTop, left: P.greenL, right: P.greenR }); // bush
+// Plant 2 - back right
+drawCube(6.6, 0.2, 0.08, 0.4, 0.4, 0.3, { top: '#c07850', left: P.woodL, right: P.woodR });
+drawCube(6.55, 0.15, 0.38, 0.5, 0.5, 0.5, { top: P.greenTop, left: P.greenL, right: P.greenR });
+// Plant 3 - left side
+drawCube(0.1, 3.5, 0.08, 0.4, 0.4, 0.3, { top: '#c07850', left: P.woodL, right: P.woodR });
+drawCube(0.05, 3.45, 0.38, 0.5, 0.5, 0.5, { top: P.greenTop, left: P.greenL, right: P.greenR });
+
+// ---- PLAYER CHARACTER ----
+const pc = 3.5, pr = 6.0;
+// Legs
+drawCube(pc + 0.05, pr, 0.08, 0.2, 0.3, 0.35, { top: '#1d1d1f', left: '#111', right: '#181818' });
+drawCube(pc + 0.35, pr, 0.08, 0.2, 0.3, 0.35, { top: '#1d1d1f', left: '#111', right: '#181818' });
+// Body (blue shirt)
+drawCube(pc, pr, 0.43, 0.65, 0.35, 0.45, { top: P.blueTop, left: P.blueL, right: P.blueR });
+// Head
+drawCube(pc + 0.1, pr + 0.02, 0.88, 0.45, 0.3, 0.4, { top: P.skinTop, left: P.skinL, right: P.skinR });
+// Hair
+drawCube(pc + 0.1, pr + 0.02, 1.18, 0.45, 0.3, 0.1, { top: '#3a2510', left: '#2a1800', right: '#321f08' });
+
+// ---- ENTRANCE STRIP ----
+drawCube(3.0, 7.5, 0.08, 2, 0.25, 0.02, { top: '#0071e380', left: P.blueL, right: P.blueR });
+
+// ---- LABEL: ENTRANCE ----
+const ent = toScreen(4, 7.9, 0.2);
+ctx.save();
+ctx.font = 'bold 9px -apple-system, sans-serif';
+ctx.fillStyle = '#0071e3';
+ctx.textAlign = 'center';
+ctx.fillText('▼  ENTRANCE', ent.x, ent.y);
+ctx.restore();
+
+</script>
+</body>
+</html>
