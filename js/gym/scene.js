@@ -111,12 +111,6 @@ function _buildWalls(threeScene) {
     threeScene.add(w);
   }
 
-  // Ceiling slab
-  const ceilMat = new THREE.MeshLambertMaterial({ color: 0xf0ebe4 });
-  const ceil = new THREE.Mesh(new THREE.BoxGeometry(ROOM, 0.25, ROOM), ceilMat);
-  ceil.position.set(0, WALL_H + 0.12, 0);
-  threeScene.add(ceil);
-
   // Entrance strip (front edge, z = HALF - 0.15)
   const stripMat = new THREE.MeshLambertMaterial({ color: 0x0071e3, transparent: true, opacity: 0.45 });
   const strip = new THREE.Mesh(new THREE.BoxGeometry(4, 0.05, 0.3), stripMat);
