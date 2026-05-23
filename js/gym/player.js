@@ -10,6 +10,8 @@ const SHOE   = 0x111111;
 
 export const PLAYER_SPEED  = 5.5;  // units per second
 export const PLAYER_RADIUS = 0.35; // collision half-width
+export const JUMP_FORCE    = 8;    // upward velocity on jump (units/s)
+export const GRAVITY       = -20;  // downward acceleration (units/s²)
 
 // Spawn position — near entrance (front of room)
 export const SPAWN = new THREE.Vector3(0, 0, 8);
@@ -62,15 +64,25 @@ export function updateFacing(playerGroup, dx, dz, delta) {
   playerGroup.rotation.y += diff * Math.min(delta * 14, 1);
 }
 
-export function animatePlayer(playerGroup, time, isMoving) {
+export function animatePlayer(playerGroup, time, isMoving, isOnGround = true) {
   const { legL, legR, armL, armR } = playerGroup.userData;
+
+  if (!isOnGround) {
+    // Jump pose — tuck legs up, arms spread
+    legL.rotation.x =  0.5;
+    legR.rotation.x =  0.5;
+    armL.rotation.x = -0.6;
+    armR.rotation.x = -0.6;
+    return;
+  }
+
   if (isMoving) {
-    const swing = Math.sin(time * 8) * 0.35;
+    const swing = Math.sin(time * 9) * 0.75;
     legL.rotation.x =  swing;
     legR.rotation.x = -swing;
-    armL.rotation.x = -swing * 0.6;
-    armR.rotation.x =  swing * 0.6;
-    playerGroup.position.y = playerGroup.userData.bobBase + Math.abs(Math.sin(time * 8)) * 0.04;
+    armL.rotation.x = -swing;
+    armR.rotation.x =  swing;
+    playerGroup.position.y = playerGroup.userData.bobBase + Math.abs(Math.sin(time * 9)) * 0.08;
   } else {
     legL.rotation.x = 0;
     legR.rotation.x = 0;

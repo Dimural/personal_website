@@ -5,9 +5,9 @@ import { getMoveVector, aabbOverlap }      from './gym/math.js';
 import { buildScene, HALF }                from './gym/scene.js';
 import { buildAllEquipment }               from './gym/equipment.js';
 import { buildAllProps }                   from './gym/props.js';
-import { buildPlayer, updateFacing, animatePlayer, PLAYER_SPEED, PLAYER_RADIUS, SPAWN } from './gym/player.js';
+import { buildPlayer, updateFacing, animatePlayer, PLAYER_SPEED, PLAYER_RADIUS, SPAWN, JUMP_FORCE, GRAVITY } from './gym/player.js';
 import { createCamera, updateCamera, resizeCamera } from './gym/camera.js';
-import { initControls, disposeControls, keys, consumeEPress } from './gym/controls.js';
+import { initControls, disposeControls, keys, consumeEPress, consumeSpacePress } from './gym/controls.js';
 import { updateInteraction, openPanel, closePanel, isPanelOpen } from './gym/interaction.js';
 
 // ── Module-level state ────────────────────────────────────────
@@ -15,7 +15,9 @@ let renderer, camera, scene, clock;
 let player;
 let allInteractables = [];
 let allColliders     = [];
-let pauseOpen = false;
+let pauseOpen  = false;
+let velocityY  = 0;
+let isOnGround = true;
 
 // ── Public init hook (called by gym.html inline script) ──────
 window.__initGym = function initGym() {
@@ -63,9 +65,10 @@ function _animate() {
 
   if (!isPanelOpen() && !pauseOpen) {
     _movePlayer(delta);
+    _applyGravity(delta);
   }
 
-  animatePlayer(player, time, _isMoving());
+  animatePlayer(player, time, _isMoving(), isOnGround);
   updateCamera(camera, player.position, delta);
 
   const nearest = updateInteraction(
@@ -110,6 +113,27 @@ function _movePlayer(delta) {
     player.position.x = nx;
     player.position.z = nz;
     updateFacing(player, mv.x, mv.z, delta);
+  }
+}
+
+function _applyGravity(delta) {
+  // Jump trigger
+  if (consumeSpacePress() && isOnGround) {
+    velocityY  = JUMP_FORCE;
+    isOnGround = false;
+  }
+
+  if (!isOnGround) {
+    velocityY += GRAVITY * delta;
+    player.position.y += velocityY * delta;
+
+    // Land on floor
+    if (player.position.y <= 0) {
+      player.position.y = 0;
+      velocityY  = 0;
+      isOnGround = true;
+      player.userData.bobBase = 0;
+    }
   }
 }
 

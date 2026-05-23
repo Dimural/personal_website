@@ -15,6 +15,14 @@ export function buildScene(threeScene) {
 }
 
 function _buildFloor(threeScene) {
+  // Thick solid base slab — prevents "floating gym" look
+  const baseMat = new THREE.MeshLambertMaterial({ color: 0xb8a070 });
+  const base = new THREE.Mesh(new THREE.BoxGeometry(ROOM, 1.2, ROOM), baseMat);
+  base.position.set(0, -0.6, 0);
+  base.receiveShadow = true;
+  threeScene.add(base);
+
+  // Checkerboard tiles on top
   const geo = new THREE.BoxGeometry(0.97, 0.1, 0.97);
   const matA = new THREE.MeshLambertMaterial({ color: 0xd4b896 });
   const matB = new THREE.MeshLambertMaterial({ color: 0xc8a880 });
@@ -84,6 +92,30 @@ function _buildWalls(threeScene) {
     w.position.set(-HALF - 0.05, WALL_H * 0.65, z - HALF + 0.5);
     threeScene.add(w);
   }
+
+  // Right wall (x = +HALF): ROOM tiles deep
+  const rightGeo = new THREE.BoxGeometry(0.3, WALL_H, 1);
+  const rightMesh = new THREE.InstancedMesh(rightGeo, wallMat, ROOM);
+  for (let z = 0; z < ROOM; z++) {
+    dummy.position.set(HALF, WALL_H / 2, z - HALF + 0.5);
+    dummy.updateMatrix();
+    rightMesh.setMatrixAt(z, dummy.matrix);
+  }
+  rightMesh.instanceMatrix.needsUpdate = true;
+  threeScene.add(rightMesh);
+
+  // Windows on right wall — every 4 tiles starting at z=1
+  for (let z = 1; z < ROOM; z += 4) {
+    const w = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.9, 0.65), winMat);
+    w.position.set(HALF + 0.05, WALL_H * 0.65, z - HALF + 0.5);
+    threeScene.add(w);
+  }
+
+  // Ceiling slab
+  const ceilMat = new THREE.MeshLambertMaterial({ color: 0xf0ebe4 });
+  const ceil = new THREE.Mesh(new THREE.BoxGeometry(ROOM, 0.25, ROOM), ceilMat);
+  ceil.position.set(0, WALL_H + 0.12, 0);
+  threeScene.add(ceil);
 
   // Entrance strip (front edge, z = HALF - 0.15)
   const stripMat = new THREE.MeshLambertMaterial({ color: 0x0071e3, transparent: true, opacity: 0.45 });
