@@ -9,6 +9,7 @@ import { buildPlayer, updateFacing, animatePlayer, PLAYER_SPEED, PLAYER_RADIUS, 
 import { createCamera, updateCamera, resizeCamera } from './gym/camera.js';
 import { initControls, disposeControls, keys, consumeEPress, consumeSpacePress } from './gym/controls.js';
 import { updateInteraction, openPanel, closePanel, isPanelOpen } from './gym/interaction.js';
+import { buildDecorations } from './gym/decorations.js';
 
 // ── Module-level state ────────────────────────────────────────
 let renderer, camera, scene, clock;
@@ -33,6 +34,7 @@ window.__initGym = function initGym() {
   clock  = new THREE.Clock();
 
   buildScene(scene);
+  buildDecorations(scene);
 
   const { interactables: eqInter, colliders: eqColl } = buildAllEquipment(scene);
   const { interactables: prInter, colliders: prColl }  = buildAllProps(scene);
