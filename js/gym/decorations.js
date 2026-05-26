@@ -261,36 +261,31 @@ function _buildWaterCooler(scene) {
   const tapH    = new THREE.MeshLambertMaterial({ color: 0xc03020 }); // hot tap
 
   const cx = 4.5, cz = 8.5;
+
   // Base cabinet
-  scene.add(Object.assign(
-    new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.45), baseMat),
-    { position: new THREE.Vector3(cx, 0.35, cz) }
-  ));
+  const wcBase = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.45), baseMat);
+  wcBase.position.set(cx, 0.35, cz);
+  scene.add(wcBase);
   // Body
-  scene.add(Object.assign(
-    new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.6, 0.38), bodyMat),
-    { position: new THREE.Vector3(cx, 1.0, cz) }
-  ));
-  // Water tank (blue rounded box)
-  scene.add(Object.assign(
-    new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.5, 0.32), tankMat),
-    { position: new THREE.Vector3(cx, 1.55, cz) }
-  ));
+  const wcBody = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.6, 0.38), bodyMat);
+  wcBody.position.set(cx, 1.0, cz);
+  scene.add(wcBody);
+  // Water tank
+  const wcTank = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.5, 0.32), tankMat);
+  wcTank.position.set(cx, 1.55, cz);
+  scene.add(wcTank);
   // Cold tap
-  scene.add(Object.assign(
-    new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.12), tapC),
-    { position: new THREE.Vector3(cx - 0.1, 0.88, cz - 0.25) }
-  ));
+  const wcTapC = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.12), tapC);
+  wcTapC.position.set(cx - 0.1, 0.88, cz - 0.25);
+  scene.add(wcTapC);
   // Hot tap
-  scene.add(Object.assign(
-    new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.12), tapH),
-    { position: new THREE.Vector3(cx + 0.1, 0.88, cz - 0.25) }
-  ));
+  const wcTapH = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.12), tapH);
+  wcTapH.position.set(cx + 0.1, 0.88, cz - 0.25);
+  scene.add(wcTapH);
   // Drip tray
-  scene.add(Object.assign(
-    new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.04, 0.14), baseMat),
-    { position: new THREE.Vector3(cx, 0.73, cz - 0.18) }
-  ));
+  const wcTray = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.04, 0.14), baseMat);
+  wcTray.position.set(cx, 0.73, cz - 0.18);
+  scene.add(wcTray);
 }
 
 // ── Foam roller basket — stretching corner (-4, 0, 6.5) ──────
@@ -304,10 +299,9 @@ function _buildFoamRollers(scene) {
 
   const cx = -4, cz = 6.5;
   // Crate floor
-  scene.add(Object.assign(
-    new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.06, 0.88), crateMat),
-    { position: new THREE.Vector3(cx, 0.03, cz) }
-  ));
+  const crateFloor = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.06, 0.88), crateMat);
+  crateFloor.position.set(cx, 0.03, cz);
+  scene.add(crateFloor);
   // Four crate walls
   [
     { pos: [cx,        0.28, cz - 0.43], size: [0.9,  0.5,  0.06] },
