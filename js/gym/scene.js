@@ -117,6 +117,51 @@ function _buildWalls(threeScene) {
   strip.position.set(0, 0.08, HALF - 0.15);
   threeScene.add(strip);
 
+  // ── Ceiling beams ────────────────────────────────────────────
+  const beamMat = new THREE.MeshLambertMaterial({ color: 0x7a5830 });
+
+  // East-west beam at z = -3
+  const beam1 = new THREE.Mesh(new THREE.BoxGeometry(ROOM + 0.2, 0.3, 0.28), beamMat);
+  beam1.position.set(0, 3.25, -3);
+  threeScene.add(beam1);
+
+  // East-west beam at z = 3
+  const beam2 = new THREE.Mesh(new THREE.BoxGeometry(ROOM + 0.2, 0.3, 0.28), beamMat);
+  beam2.position.set(0, 3.25, 3);
+  threeScene.add(beam2);
+
+  // North-south beam at x = 0
+  const beam3 = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.3, ROOM + 0.2), beamMat);
+  beam3.position.set(0, 3.25, 0);
+  threeScene.add(beam3);
+
+  // ── Pendant light fixtures ────────────────────────────────────
+  const pendantBodyMat = new THREE.MeshLambertMaterial({ color: 0x2a2a2a });
+  // MeshBasicMaterial ignores scene lighting — always renders at full brightness (glow effect)
+  const pendantGlowMat = new THREE.MeshBasicMaterial({ color: 0xfff0b0 });
+
+  [
+    [ 0, -3],   // beam1–beam3 intersection
+    [ 0,  3],   // beam2–beam3 intersection
+    [-5, -3],   // beam1, left
+    [ 5, -3],   // beam1, right
+    [-5,  3],   // beam2, left
+    [ 5,  3],   // beam2, right
+  ].forEach(([px, pz]) => {
+    // Cord
+    const cord = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.5, 0.04), pendantBodyMat);
+    cord.position.set(px, 3.0, pz);
+    threeScene.add(cord);
+    // Shade
+    const shade = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.18, 0.35), pendantBodyMat);
+    shade.position.set(px, 2.7, pz);
+    threeScene.add(shade);
+    // Glowing core (MeshBasicMaterial = full brightness regardless of lighting)
+    const glow = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.1, 0.15), pendantGlowMat);
+    glow.position.set(px, 2.6, pz);
+    threeScene.add(glow);
+  });
+
   // Potted plants — 4 corners and mid-walls
   _addPlants(threeScene);
 }
@@ -158,4 +203,22 @@ function _buildLighting(threeScene) {
   key.shadow.camera.top    =  18;
   key.shadow.camera.bottom = -18;
   threeScene.add(key);
+
+  // Warm accent point lights above each equipment cluster
+  [
+    [-6, 2.8, -7],  // bench press
+    [ 6, 2.8, -7],  // dumbbell rack
+    [-6, 2.8,  5],  // treadmill
+    [ 5, 2.8, -2],  // pull-up rig
+    [ 0, 2.8, -3],  // punching bag
+  ].forEach(([x, y, z]) => {
+    const pt = new THREE.PointLight(0xffaa44, 0.9, 7);
+    pt.position.set(x, y, z);
+    threeScene.add(pt);
+  });
+
+  // Cool fill light near entrance
+  const fill = new THREE.PointLight(0xaaccff, 0.4, 10);
+  fill.position.set(0, 2.5, 8);
+  threeScene.add(fill);
 }
