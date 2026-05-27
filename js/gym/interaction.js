@@ -99,8 +99,8 @@ function _positionTooltip(worldPos, label, camera, renderer) {
   hint.style.left       = sx + 'px';
   hint.style.top        = sy + 'px';
   hint.style.transform  = 'translate(-50%, -100%)';
-  _hintTitle().textContent = 'Press  E';
-  _hintSub().textContent   = label;
+  _hintTitle().textContent = label;
+  _hintSub().textContent   = 'Press E to interact';
 }
 
 function _hideTooltip() {
