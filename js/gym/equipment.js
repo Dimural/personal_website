@@ -53,7 +53,7 @@ function buildBenchPress(scene) {
   scene.add(g);
   return {
     interactable: { position: POS.clone(), radius: 2.2, contentKey: 'benchPress', label: 'Experience' },
-    collider:     { cx: POS.x, cz: POS.z, w: 2.2, d: 1.5 },
+    collider:     { cx: POS.x, cz: POS.z, w: 2.2, d: 1.5, top: 0.65 },
   };
 }
 
@@ -83,7 +83,7 @@ function buildDumbbellRack(scene) {
   scene.add(g);
   return {
     interactable: { position: POS.clone(), radius: 2.2, contentKey: 'dumbbellRack', label: 'Skills' },
-    collider:     { cx: POS.x, cz: POS.z, w: 2.2, d: 1.0 },
+    collider:     { cx: POS.x, cz: POS.z, w: 2.2, d: 1.0, top: 1.0 },
   };
 }
 
@@ -111,7 +111,7 @@ function buildTreadmill(scene) {
   scene.add(g);
   return {
     interactable: { position: POS.clone(), radius: 2.2, contentKey: 'treadmill', label: 'Projects' },
-    collider:     { cx: POS.x, cz: POS.z, w: 2.0, d: 1.5 },
+    collider:     { cx: POS.x, cz: POS.z, w: 2.0, d: 1.5, top: 0.35 },
   };
 }
 
@@ -140,7 +140,7 @@ function buildPullUpRig(scene) {
   scene.add(g);
   return {
     interactable: { position: POS.clone(), radius: 2.4, contentKey: 'pullUpBar', label: 'Education' },
-    collider:     { cx: POS.x, cz: POS.z, w: 1.8, d: 1.6 },
+    collider:     { cx: POS.x, cz: POS.z, w: 1.8, d: 1.6, top: 2.25 },
   };
 }
 
@@ -167,6 +167,6 @@ function buildPunchingBag(scene) {
   scene.add(g);
   return {
     interactable: { position: POS.clone(), radius: 2.0, contentKey: 'punchingBag', label: 'About Me' },
-    collider:     { cx: POS.x, cz: POS.z, w: 0.8, d: 0.8 },
+    collider:     { cx: POS.x, cz: POS.z, w: 0.8, d: 0.8, top: 2.0 },
   };
 }

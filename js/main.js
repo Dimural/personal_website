@@ -101,13 +101,18 @@ function _movePlayer(delta) {
   nx = Math.max(-bound, Math.min(bound, nx));
   nz = Math.max(-bound, Math.min(bound, nz));
 
-  // Equipment / prop collision (AABB)
-  const pw = PLAYER_RADIUS * 2, pd = PLAYER_RADIUS * 2;
+  // Horizontal collision only when on ground — airborne player passes over obstacles
   let blocked = false;
-  for (const c of allColliders) {
-    if (aabbOverlap(nx, nz, pw, pd, c.cx, c.cz, c.w, c.d)) {
-      blocked = true;
-      break;
+  if (isOnGround) {
+    const pw = PLAYER_RADIUS * 2, pd = PLAYER_RADIUS * 2;
+    const baseY = player.userData.bobBase;
+    for (const c of allColliders) {
+      // Skip colliders the player is already standing on top of
+      if (baseY >= (c.top || 0) - 0.05) continue;
+      if (aabbOverlap(nx, nz, pw, pd, c.cx, c.cz, c.w, c.d)) {
+        blocked = true;
+        break;
+      }
     }
   }
 
@@ -119,22 +124,75 @@ function _movePlayer(delta) {
 }
 
 function _applyGravity(delta) {
+  const pw = PLAYER_RADIUS * 2, pd = PLAYER_RADIUS * 2;
+
+  // When supposedly grounded, verify a surface still exists underfoot
+  // (handles walking off a platform edge)
+  if (isOnGround) {
+    const base = player.userData.bobBase;
+    let stillGrounded = base <= 0.05; // on floor
+    if (!stillGrounded) {
+      for (const c of allColliders) {
+        const ct = c.top || 0;
+        if (ct <= 0) continue;
+        if (Math.abs(base - ct) < 0.15 &&
+            aabbOverlap(player.position.x, player.position.z, pw, pd, c.cx, c.cz, c.w, c.d)) {
+          stillGrounded = true;
+          break;
+        }
+      }
+    }
+    if (!stillGrounded) {
+      isOnGround = false;
+      velocityY  = 0; // let gravity build naturally from platform edge
+    }
+  }
+
   // Jump trigger
   if (consumeSpacePress() && isOnGround) {
     velocityY  = JUMP_FORCE;
     isOnGround = false;
   }
 
-  if (!isOnGround) {
-    velocityY += GRAVITY * delta;
-    player.position.y += velocityY * delta;
+  if (isOnGround) return; // no physics needed while grounded
 
-    // Land on floor
-    if (player.position.y <= 0) {
-      player.position.y = 0;
+  // Apply gravity and integrate position
+  velocityY += GRAVITY * delta;
+  const prevBase = player.userData.bobBase;
+  const newBase  = prevBase + velocityY * delta;
+
+  // Find the highest surface the player descends through this frame
+  let landY = null;
+
+  if (prevBase >= -0.05 && newBase <= 0) {
+    landY = 0; // floor
+  }
+
+  for (const c of allColliders) {
+    const ct = c.top || 0;
+    if (ct <= 0) continue;
+    // Descending through this surface and footprint overlaps?
+    if (prevBase >= ct - 0.05 && newBase <= ct &&
+        aabbOverlap(player.position.x, player.position.z, pw, pd, c.cx, c.cz, c.w, c.d)) {
+      if (landY === null || ct > landY) landY = ct;
+    }
+  }
+
+  if (landY !== null && velocityY <= 0) {
+    // Landed on a surface
+    player.userData.bobBase = landY;
+    player.position.y       = landY;
+    velocityY  = 0;
+    isOnGround = true;
+  } else {
+    player.userData.bobBase = newBase;
+    player.position.y       = newBase;
+    // Hard safety net — never fall through the floor
+    if (newBase < 0) {
+      player.userData.bobBase = 0;
+      player.position.y       = 0;
       velocityY  = 0;
       isOnGround = true;
-      player.userData.bobBase = 0;
     }
   }
 }

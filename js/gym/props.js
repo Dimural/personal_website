@@ -51,7 +51,7 @@ function buildSoccerBall(scene) {
   scene.add(g);
   return {
     interactable: { position: new THREE.Vector3(-3, 0, 4), radius: 1.8, contentKey: 'soccerBall', label: 'Soccer Ball' },
-    collider:     { cx: -3, cz: 4, w: 0.7, d: 0.7 },
+    collider:     { cx: -3, cz: 4, w: 0.7, d: 0.7, top: 0.5 },
   };
 }
 
@@ -77,7 +77,7 @@ function buildBoxingGloves(scene) {
   scene.add(g);
   return {
     interactable: { position: new THREE.Vector3(8, 0, 1), radius: 1.8, contentKey: 'boxingGloves', label: 'Boxing Gloves' },
-    collider:     { cx: 8, cz: 1, w: 0.6, d: 0.6 },
+    collider:     { cx: 8, cz: 1, w: 0.6, d: 0.6, top: 0 },
   };
 }
 
@@ -105,7 +105,7 @@ function buildClapperboard(scene) {
   scene.add(g);
   return {
     interactable: { position: new THREE.Vector3(-8, 0, -4), radius: 1.8, contentKey: 'clapperboard', label: 'Film Board' },
-    collider:     { cx: -8, cz: -4, w: 0.6, d: 0.6 },
+    collider:     { cx: -8, cz: -4, w: 0.6, d: 0.6, top: 0 },
   };
 }
 
@@ -131,7 +131,7 @@ function buildStethoscope(scene) {
   scene.add(g);
   return {
     interactable: { position: new THREE.Vector3(2, 0, -8.5), radius: 1.8, contentKey: 'stethoscope', label: 'Stethoscope' },
-    collider:     { cx: 2, cz: -8.5, w: 1.0, d: 0.6 },
+    collider:     { cx: 2, cz: -8.5, w: 1.0, d: 0.6, top: 1.2 },
   };
 }
 
@@ -158,7 +158,7 @@ function buildSuitcase(scene) {
   scene.add(g);
   return {
     interactable: { position: new THREE.Vector3(-7, 0, 2), radius: 1.8, contentKey: 'suitcase', label: 'Suitcase' },
-    collider:     { cx: -7, cz: 2, w: 0.9, d: 0.6 },
+    collider:     { cx: -7, cz: 2, w: 0.9, d: 0.6, top: 0.73 },
   };
 }
 
@@ -182,6 +182,6 @@ function buildLunchBox(scene) {
   scene.add(g);
   return {
     interactable: { position: new THREE.Vector3(3, 0, 5), radius: 1.8, contentKey: 'lunchBox', label: 'Lunch Box' },
-    collider:     { cx: 3, cz: 5, w: 0.8, d: 0.7 },
+    collider:     { cx: 3, cz: 5, w: 0.8, d: 0.7, top: 0.5 },
   };
 }
