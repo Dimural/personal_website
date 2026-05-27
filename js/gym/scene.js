@@ -117,24 +117,6 @@ function _buildWalls(threeScene) {
   strip.position.set(0, 0.08, HALF - 0.15);
   threeScene.add(strip);
 
-  // ── Ceiling beams ────────────────────────────────────────────
-  const beamMat = new THREE.MeshLambertMaterial({ color: 0x7a5830 });
-
-  // East-west beam at z = -3
-  const beam1 = new THREE.Mesh(new THREE.BoxGeometry(ROOM + 0.2, 0.3, 0.28), beamMat);
-  beam1.position.set(0, 3.25, -3);
-  threeScene.add(beam1);
-
-  // East-west beam at z = 3
-  const beam2 = new THREE.Mesh(new THREE.BoxGeometry(ROOM + 0.2, 0.3, 0.28), beamMat);
-  beam2.position.set(0, 3.25, 3);
-  threeScene.add(beam2);
-
-  // North-south beam at x = 0
-  const beam3 = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.3, ROOM + 0.2), beamMat);
-  beam3.position.set(0, 3.25, 0);
-  threeScene.add(beam3);
-
   // ── Pendant light fixtures ────────────────────────────────────
   const pendantBodyMat = new THREE.MeshLambertMaterial({ color: 0x2a2a2a });
   // MeshBasicMaterial ignores scene lighting — always renders at full brightness (glow effect)
