@@ -162,4 +162,21 @@ export const CONTENT = {
       <p>I love trying new food — different cuisines, hole-in-the-wall spots, anything adventurous. Good food is one of life's best experiences.</p>
     `
   },
+
+  // ── Secret parkour reward ─────────────────────────────────────
+  parkourReward: {
+    title: 'You did it!',
+    label: '🏆 ???',
+    icon: '🏆',
+    html: `
+      <h3>Good job — you finished the parkour! 🎉</h3>
+      <p>You spotted the hidden path, read the jumps, and made it all the way to the top. That takes patience and a good eye — the same things that make for great engineering.</p>
+      <ul>
+        <li>You found the secret climb</li>
+        <li>You cleared every platform</li>
+        <li>You reached the summit trophy</li>
+      </ul>
+      <p>Thanks for exploring every corner of the gym. Now go take a well-earned rest. 💪</p>
+    `
+  },
 };

@@ -10,6 +10,7 @@ import { createCamera, updateCamera, resizeCamera } from './gym/camera.js';
 import { initControls, disposeControls, keys, consumeEPress, consumeSpacePress } from './gym/controls.js';
 import { updateInteraction, openPanel, closePanel, isPanelOpen } from './gym/interaction.js';
 import { buildDecorations } from './gym/decorations.js';
+import { buildParkour }     from './gym/parkour.js';
 
 // ── Module-level state ────────────────────────────────────────
 let renderer, camera, scene, clock;
@@ -38,8 +39,9 @@ window.__initGym = function initGym() {
 
   const { interactables: eqInter, colliders: eqColl } = buildAllEquipment(scene);
   const { interactables: prInter, colliders: prColl }  = buildAllProps(scene);
-  allInteractables = [...eqInter, ...prInter];
-  allColliders     = [...eqColl,  ...prColl];
+  const { interactables: pkInter, colliders: pkColl }  = buildParkour(scene);
+  allInteractables = [...eqInter, ...prInter, ...pkInter];
+  allColliders     = [...eqColl,  ...prColl,  ...pkColl];
 
   player = buildPlayer();
   scene.add(player);
@@ -74,7 +76,7 @@ function _animate() {
   updateCamera(camera, player.position, delta);
 
   const nearest = updateInteraction(
-    { x: player.position.x, z: player.position.z },
+    { x: player.position.x, z: player.position.z, y: player.userData.bobBase },
     allInteractables,
     camera,
     renderer
