@@ -88,12 +88,12 @@ export function PortfolioPage({ onBack, onEnterGym }: Props) {
           {/* Interactive particle ring — follows the cursor */}
           <div className="p-hero-3d" aria-hidden>
             <Antigravity
-              count={260}
+              count={200}
               color="#1a3c28"
-              particleSize={1.15}
-              ringRadius={8}
-              magnetRadius={9}
-              waveAmplitude={1.1}
+              particleSize={1}
+              ringRadius={7.5}
+              magnetRadius={13}
+              waveAmplitude={1}
               waveSpeed={0.5}
               lerpSpeed={0.06}
               autoAnimate={true}
