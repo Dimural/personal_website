@@ -244,6 +244,12 @@ img { display: block; max-width: 100%; }
   color: var(--ink-dim);
 }
 
+.l-name-ascii {
+  position: relative;
+  width: min(86vw, 760px);
+  height: clamp(160px, 26vw, 280px);
+}
+
 .l-name {
   font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   font-size: clamp(56px, 9.5vw, 110px);

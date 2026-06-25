@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 // @ts-ignore
 import { ShaderGradient, ShaderGradientCanvas } from '@shadergradient/react'
+import ASCIIText from './ASCIIText'
 
 interface Props {
   onEnterPortfolio: () => void
@@ -100,10 +101,15 @@ export function LandingPage({ onEnterPortfolio, onEnterGym }: Props) {
           <motion.p className="l-eyebrow" variants={stagger.item}>
             Software Engineer
           </motion.p>
-          <motion.h1 className="l-name" variants={stagger.item}>
-            <span>Dimural</span>
-            <em>Murat</em>
-          </motion.h1>
+          <motion.div className="l-name-ascii" variants={stagger.item}>
+            <ASCIIText
+              text="Dimural Murat"
+              enableWaves={true}
+              asciiFontSize={7}
+              textFontSize={120}
+              planeBaseHeight={8}
+            />
+          </motion.div>
           <motion.p className="l-tagline" variants={stagger.item}>
             Building immersive digital experiences at the<br />intersection of design, code, and craft.
           </motion.p>
