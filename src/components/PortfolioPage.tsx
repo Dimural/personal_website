@@ -3,6 +3,8 @@ import { motion, useInView } from 'framer-motion'
 import { LiquidGlassCard, LiquidGlassPill } from './LiquidGlass'
 import Antigravity from './Antigravity'
 import CardSwap, { Card } from './CardSwap'
+import Ferrofluid from './Ferrofluid'
+import BorderGlow from './BorderGlow'
 
 interface Props {
   onBack: () => void
@@ -287,23 +289,55 @@ export function PortfolioPage({ onBack, onEnterGym }: Props) {
           </div>
         </Section>
 
-        {/* Contact */}
+        {/* Contact — dark finale */}
         <Section className="p-contact-section">
-          <span className="p-chip">07 — CONTACT</span>
-          <h2 className="p-section-title">Let's build<br />something great.</h2>
-          <div className="p-contact-body">
-            <a href="mailto:dimural722@gmail.com" className="p-email-btn">
-              <span>dimural722@gmail.com</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 17L17 7M7 7h10v10" />
-              </svg>
-            </a>
-            <div className="p-contact-links">
-              <a href="https://github.com" target="_blank" rel="noopener">GitHub ↗</a>
-              <a href="https://linkedin.com" target="_blank" rel="noopener">LinkedIn ↗</a>
-            </div>
+          <div className="p-contact-fluid" aria-hidden>
+            <Ferrofluid
+              colors={['#2a5c3c', '#6aa0b0', '#e8eee6']}
+              speed={0.42}
+              scale={1.5}
+              turbulence={1}
+              fluidity={0.12}
+              rimWidth={0.22}
+              sharpness={2.6}
+              shimmer={1.4}
+              glow={2}
+              flowDirection="up"
+              opacity={0.9}
+            />
           </div>
-          <footer className="p-footer">© 2026 Dimural Murat — Built with care.</footer>
+
+          <div className="p-contact-inner">
+            <BorderGlow
+              className="p-contact-card"
+              backgroundColor="#0e1410"
+              glowColor="150 45 60"
+              colors={['#6aa0b0', '#c4d8e8', '#e8eee6']}
+              borderRadius={24}
+              glowRadius={50}
+              glowIntensity={1.1}
+              edgeSensitivity={28}
+            >
+              <span className="p-chip">07 — CONTACT</span>
+              <h2 className="p-section-title">Let's build<br />something great.</h2>
+              <p className="p-contact-note">
+                I'm open to new roles and collaborations. The fastest way to
+                reach me is email — I read everything.
+              </p>
+              <a href="mailto:dimural722@gmail.com" className="p-email-btn">
+                <span>dimural722@gmail.com</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7 17L17 7M7 7h10v10" />
+                </svg>
+              </a>
+              <div className="p-contact-links">
+                <a href="https://github.com" target="_blank" rel="noopener">GitHub ↗</a>
+                <a href="https://linkedin.com" target="_blank" rel="noopener">LinkedIn ↗</a>
+              </div>
+            </BorderGlow>
+
+            <footer className="p-footer">© 2026 Dimural Murat — Built with care.</footer>
+          </div>
         </Section>
 
       </div>
