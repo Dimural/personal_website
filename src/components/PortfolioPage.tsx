@@ -1,8 +1,7 @@
 import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { Canvas, useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
 import { LiquidGlassCard, LiquidGlassPill } from './LiquidGlass'
+import Antigravity from './Antigravity'
 
 interface Props {
   onBack: () => void
@@ -28,23 +27,6 @@ function Section({ children, className = '' }: { children: React.ReactNode; clas
     >
       {children}
     </motion.section>
-  )
-}
-
-// Floating 3D wireframe icosahedron for the hero background
-function FloatingMesh() {
-  const mesh = useRef<THREE.Mesh>(null!)
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime
-    mesh.current.rotation.x = t * 0.06
-    mesh.current.rotation.y = t * 0.09
-    mesh.current.position.y = Math.sin(t * 0.4) * 0.08
-  })
-  return (
-    <mesh ref={mesh}>
-      <icosahedronGeometry args={[1.2, 1]} />
-      <meshStandardMaterial color="#c8d4dc" wireframe transparent opacity={0.18} />
-    </mesh>
   )
 }
 
@@ -100,13 +82,20 @@ export function PortfolioPage({ onBack, onEnterGym }: Props) {
 
         {/* Hero */}
         <section className="p-hero">
-          {/* 3D background */}
+          {/* Interactive particle ring — follows the cursor */}
           <div className="p-hero-3d" aria-hidden>
-            <Canvas camera={{ position: [0, 0, 3.5], fov: 45 }} style={{ background: 'transparent' }}>
-              <ambientLight intensity={0.6} />
-              <directionalLight position={[3, 3, 3]} intensity={0.4} />
-              <FloatingMesh />
-            </Canvas>
+            <Antigravity
+              count={260}
+              color="#1a3c28"
+              particleSize={1.15}
+              ringRadius={8}
+              magnetRadius={9}
+              waveAmplitude={1.1}
+              waveSpeed={0.5}
+              lerpSpeed={0.06}
+              autoAnimate={true}
+              particleShape="capsule"
+            />
           </div>
 
           <div className="p-hero-inner">
