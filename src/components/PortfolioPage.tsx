@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { LiquidGlassCard, LiquidGlassPill } from './LiquidGlass'
 import Antigravity from './Antigravity'
+import CardSwap, { Card } from './CardSwap'
 
 interface Props {
   onBack: () => void
@@ -221,13 +222,46 @@ export function PortfolioPage({ onBack, onEnterGym }: Props) {
         </Section>
 
         {/* Projects */}
-        <Section>
-          <span className="p-chip">05 — WORK</span>
-          <h2 className="p-section-title">Selected projects.</h2>
-          <div className="p-projects">
-            {projects.map((proj, i) => (
-              <ProjectCard key={proj.num} {...proj} index={i} />
-            ))}
+        <Section className="p-projects-section">
+          <div className="p-projects-showcase">
+            <div className="p-projects-intro">
+              <span className="p-chip">05 — WORK</span>
+              <h2 className="p-section-title">Selected projects.</h2>
+              <p className="p-projects-lead">
+                A rotating look at things I've built — each card is a project,
+                from interactive 3D to full-stack systems.
+              </p>
+              <span className="p-projects-hint">Hover to hold a card · they swap on their own</span>
+            </div>
+
+            <div className="p-projects-stage" aria-hidden>
+              <CardSwap
+                width={420}
+                height={290}
+                cardDistance={52}
+                verticalDistance={60}
+                delay={4200}
+                pauseOnHover
+                skewAmount={5}
+                easing="elastic"
+              >
+                {projects.map(proj => (
+                  <Card key={proj.num} customClass="proj-card">
+                    <div className="proj-card-top">
+                      <span className="proj-card-num">{proj.num}</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M7 17L17 7M7 7h10v10" />
+                      </svg>
+                    </div>
+                    <h3>{proj.title}</h3>
+                    <p>{proj.desc}</p>
+                    <div className="proj-card-tags">
+                      {proj.tags.map(t => <span key={t}>{t}</span>)}
+                    </div>
+                  </Card>
+                ))}
+              </CardSwap>
+            </div>
           </div>
         </Section>
 
@@ -274,42 +308,5 @@ export function PortfolioPage({ onBack, onEnterGym }: Props) {
 
       </div>
     </div>
-  )
-}
-
-function ProjectCard({ num, title, desc, tags, index }: { num: string; title: string; desc: string; tags: string[]; index: number }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-5%' })
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 28 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.7, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ y: -3, transition: { duration: 0.2 } }}
-    >
-      <LiquidGlassCard
-        className="p-project"
-        borderRadius={14}
-        type="rounded"
-        tintOpacity={0.15}
-        innerStyle={{ display: 'grid', gridTemplateColumns: '56px 1fr 40px', gap: '24px', padding: '28px', alignItems: 'center' }}
-      >
-        <div className="p-proj-num">{num}</div>
-        <div className="p-proj-body">
-          <h3>{title}</h3>
-          <p>{desc}</p>
-          <div className="p-tags">
-            {tags.map(t => <span key={t} className="p-tag">{t}</span>)}
-          </div>
-        </div>
-        <div className="p-proj-arrow">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M7 17L17 7M7 7h10v10" />
-          </svg>
-        </div>
-      </LiquidGlassCard>
-    </motion.div>
   )
 }

@@ -639,56 +639,95 @@ img { display: block; max-width: 100%; }
   border-color: var(--ink);
 }
 
-/* --- Projects --- */
-.p-projects {
+/* --- Projects showcase (CardSwap) --- */
+.p-projects-section { overflow: visible; }
+
+.p-projects-showcase {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+  position: relative;
+  min-height: 480px;
+}
+
+.p-projects-intro { max-width: 420px; }
+.p-projects-intro .p-section-title { margin-bottom: 22px; }
+
+.p-projects-lead {
+  font-size: 16px;
+  color: var(--ink-dim);
+  line-height: 1.7;
+  margin-bottom: 22px;
+}
+
+.p-projects-hint {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.p-projects-stage {
+  position: relative;
+  min-height: 420px;
+}
+
+/* dark showcase cards inside the swapping stack */
+.card.proj-card {
+  background: #0d0d0a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 28px 30px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  box-shadow: 0 40px 80px -28px rgba(13, 13, 10, 0.6);
 }
 
-.p-project {
-  border-radius: var(--r);
-  overflow: hidden;
-  cursor: pointer;
-}
-
-.p-project:hover {
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
-  border-color: rgba(0, 0, 0, 0.12);
-}
-
-.p-proj-num {
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-size: 28px;
-  color: var(--ink-faint);
-  font-style: italic;
-}
-
-.p-proj-body h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--ink);
-  margin-bottom: 6px;
-}
-
-.p-proj-body p {
-  font-size: 14px;
-  color: var(--ink-dim);
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
-
-.p-proj-arrow {
-  color: var(--ink-faint);
+.proj-card-top {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: color 0.15s, transform 0.2s;
+  justify-content: space-between;
+  color: rgba(250, 250, 247, 0.45);
 }
 
-.p-project:hover .p-proj-arrow {
-  color: var(--ink);
-  transform: translate(3px, -3px);
+.proj-card-num {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 30px;
+  font-style: italic;
+  color: rgba(250, 250, 247, 0.55);
+}
+
+.card.proj-card h3 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: auto 0 10px;
+  color: var(--bg);
+}
+
+.card.proj-card p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(250, 250, 247, 0.62);
+  margin-bottom: 18px;
+}
+
+.proj-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.proj-card-tags span {
+  padding: 5px 11px;
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: rgba(250, 250, 247, 0.78);
 }
 
 /* --- Polaroids --- */
@@ -813,8 +852,9 @@ img { display: block; max-width: 100%; }
 
   .p-about-grid { grid-template-columns: 1fr; }
   .p-skills-grid { grid-template-columns: 1fr; gap: 28px; }
-  .p-project { grid-template-columns: 40px 1fr; }
-  .p-proj-arrow { display: none; }
+
+  .p-projects-showcase { grid-template-columns: 1fr; gap: 24px; min-height: auto; }
+  .p-projects-stage { min-height: 320px; }
 
   .p-contact-section { padding: 72px 24px; }
   .p-contact-section .p-section-title { font-size: 40px; }
