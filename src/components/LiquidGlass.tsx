@@ -9,12 +9,12 @@ interface LiquidGlassCardProps {
   innerStyle?: CSSProperties
 }
 
-// Kept as no-op so App.tsx call site doesn't need to change
+// Kept as no-op so call sites don't need to change
 export function resetGlassSnapshot() {}
 
 export function LiquidGlassCard({
   children,
-  borderRadius = 14,
+  borderRadius = 16,
   className,
   innerStyle,
 }: LiquidGlassCardProps) {
@@ -23,16 +23,15 @@ export function LiquidGlassCard({
       className={className}
       style={{
         borderRadius: `${borderRadius}px`,
-        background: 'linear-gradient(145deg, rgba(255,255,255,0.88) 0%, rgba(250,250,247,0.74) 100%)',
-        backdropFilter: 'blur(22px) saturate(1.5) brightness(1.02)',
-        WebkitBackdropFilter: 'blur(22px) saturate(1.5) brightness(1.02)',
-        border: '1px solid rgba(255,255,255,0.58)',
+        background: 'linear-gradient(155deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.018) 100%)',
+        backdropFilter: 'blur(18px) saturate(1.15)',
+        WebkitBackdropFilter: 'blur(18px) saturate(1.15)',
+        border: '1px solid rgba(255,255,255,0.08)',
         boxShadow: [
-          'inset 0 1px 0 rgba(255,255,255,0.92)',
-          'inset 0 -1px 0 rgba(0,0,0,0.025)',
-          '0 1px 2px rgba(0,0,0,0.04)',
-          '0 8px 32px rgba(0,0,0,0.065)',
+          'inset 0 1px 0 rgba(255,255,255,0.06)',
+          '0 24px 60px -32px rgba(0,0,0,0.7)',
         ].join(', '),
+        padding: '6px 26px',
       }}
     >
       <div style={innerStyle}>{children}</div>
@@ -53,14 +52,13 @@ export function LiquidGlassPill({ text, fontSize = 12 }: LiquidGlassPillProps) {
         display: 'inline-block',
         padding: '6px 13px',
         borderRadius: '100px',
-        background: 'rgba(255,255,255,0.72)',
-        backdropFilter: 'blur(10px) saturate(1.3)',
-        WebkitBackdropFilter: 'blur(10px) saturate(1.3)',
-        border: '1px solid rgba(255,255,255,0.55)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 3px rgba(0,0,0,0.05)',
+        background: 'rgba(255,255,255,0.04)',
+        backdropFilter: 'blur(10px) saturate(1.2)',
+        WebkitBackdropFilter: 'blur(10px) saturate(1.2)',
+        border: '1px solid rgba(255,255,255,0.08)',
         fontSize: `${fontSize}px`,
         fontWeight: 500,
-        color: 'var(--ink-dim)',
+        color: 'var(--text-dim)',
         fontFamily: 'inherit',
         letterSpacing: '0.2px',
       }}

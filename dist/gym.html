@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dimural Murat — The Gym</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
+        }
+    }
+    </script>
+  <script type="module" crossorigin src="/assets/gym-DKU5Lvs5.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="stylesheet" crossorigin href="/assets/gym-CsJEVFZa.css">
+</head>
+<body>
+
+    <!-- ── Loading Screen ─────────────────────────────────────── -->
+    <div id="loading-screen" style="display: flex;">
+        <div class="load-grid"></div>
+
+        <header class="load-top">
+            <div class="load-brand">
+                <span class="load-brand-mark">DM</span>
+            </div>
+        </header>
+
+        <main class="load-main">
+            <p class="load-eyebrow">Dimural Murat</p>
+            <h1 class="load-title">The <em>Gym</em></h1>
+            <p class="load-sub">An interactive 3D portfolio</p>
+
+            <div class="load-bar">
+                <div class="load-bar-fill"></div>
+                <div class="load-bar-shine"></div>
+            </div>
+        </main>
+
+        <footer class="load-bottom">
+            <span>Three.js</span>
+            <span id="load-res">—</span>
+            <span>WebGL</span>
+        </footer>
+    </div>
+
+    <!-- ── Welcome Overlay ───────────────────────────────────── -->
+    <div id="welcome-overlay" style="display: none;">
+        <div class="welcome-backdrop"></div>
+        <div class="welcome-card">
+            <p class="welcome-eyebrow">Interactive Portfolio</p>
+            <h1>Welcome to<br><em>my Gym</em></h1>
+            <p>Walk around, explore the space, and interact with equipment to learn more about me.</p>
+
+            <div class="welcome-controls">
+                <div class="wc-item">
+                    <div class="wc-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
+                    <span class="wc-label">Walk around</span>
+                </div>
+                <div class="wc-item">
+                    <div class="wc-keys"><kbd class="wide">Space</kbd></div>
+                    <span class="wc-label">Jump</span>
+                </div>
+                <div class="wc-item">
+                    <div class="wc-keys"><kbd>E</kbd></div>
+                    <span class="wc-label">Interact</span>
+                </div>
+                <div class="wc-item">
+                    <div class="wc-keys"><kbd class="wide">Esc</kbd></div>
+                    <span class="wc-label">Close panel</span>
+                </div>
+            </div>
+
+            <button id="start-btn">
+                <span>Enter the Gym</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Info Panel ─────────────────────────────────────────── -->
+    <div id="info-panel" style="display: none;">
+        <div class="panel-backdrop"></div>
+        <div class="panel-card">
+            <button id="close-panel" aria-label="Close">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+
+            <header class="panel-header">
+                <div id="panel-icon" style="display:none;"></div>
+                <h2 id="panel-title"></h2>
+                <div class="panel-title-rule"></div>
+            </header>
+
+            <div class="panel-scroll">
+                <div id="panel-content"></div>
+            </div>
+
+            <footer class="panel-footer">
+                <span class="pf-left">Press <kbd>Esc</kbd> to close</span>
+            </footer>
+        </div>
+    </div>
+
+    <!-- ── Interaction Hint ──────────────────────────────────── -->
+    <div id="interact-hint" style="display: none;">
+        <div class="hint-key">E</div>
+        <div class="hint-body">
+            <div class="hint-title">Press E</div>
+            <div class="hint-sub">to interact</div>
+        </div>
+    </div>
+
+    <!-- ── HUD ──────────────────────────────────────────────── -->
+    <div id="controls-reminder">
+        <span>WASD — Walk &nbsp;·&nbsp; Space — Jump &nbsp;·&nbsp; E — Interact &nbsp;·&nbsp; M — Menu &nbsp;·&nbsp; Esc — Close</span>
+    </div>
+
+    <button id="gym-menu-btn" style="display: none;" aria-label="Open menu">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <span>Menu</span>
+        <kbd>M</kbd>
+    </button>
+
+    <!-- ── Pause Menu ─────────────────────────────────────────── -->
+    <div id="pause-menu" style="display: none;">
+        <div class="pause-backdrop"></div>
+        <div class="pause-card">
+            <p class="pause-eyebrow">Paused</p>
+            <h1>Take a<br><em>breather.</em></h1>
+            <p>The gym is still here when you're ready.</p>
+
+            <div class="pause-actions">
+                <button class="pause-btn pause-resume" id="pause-resume">
+                    <span class="pause-btn-label">
+                        <span class="pause-btn-text">Resume</span>
+                        <span class="pause-btn-sub">Back into the gym</span>
+                    </span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                </button>
+                <button class="pause-btn pause-exit" id="pause-exit">
+                    <span class="pause-btn-label">
+                        <span class="pause-btn-text">Return to Home</span>
+                        <span class="pause-btn-sub">Back to the portfolio</span>
+                    </span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+            </div>
+
+            <footer class="pause-footer">
+                Press <kbd>M</kbd> or <kbd>Esc</kbd> to resume
+            </footer>
+        </div>
+    </div>
+
+
+
+
+    <script>
+    (function () {
+        const resEl = document.getElementById('load-res');
+        if (resEl) resEl.textContent = window.innerWidth + ' × ' + window.innerHeight;
+
+        const tryInit = () => {
+            if (typeof window.__initGym === 'function') {
+                window.__initGym();
+            } else {
+                setTimeout(tryInit, 40);
+            }
+        };
+        setTimeout(tryInit, 250);
+
+        document.addEventListener('click', function (e) {
+            if (e.target && e.target.closest('#pause-exit')) {
+                window.location.href = '/';
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
