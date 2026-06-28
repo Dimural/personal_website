@@ -31,7 +31,7 @@ const projects = [
   {
     num: '01',
     title: '3D Gym Portfolio',
-    desc: 'An interactive, gamified personal site built in Three.js — walk a virtual gym and click equipment to explore each section.',
+    desc: 'An interactive, gamified personal site built in Three.js. Walk a virtual gym and click equipment to explore each section.',
     tags: ['Three.js', 'WebGL', 'GLSL'],
   },
   {
@@ -61,18 +61,16 @@ export function PortfolioPage({ onEnterGym }: Props) {
       {/* About ---------------------------------------------------- */}
       <Section>
         <div className="section-head">
-          <span className="label"><span className="label-accent">01</span> &nbsp;— &nbsp;About</span>
           <h2 className="section-title">A quiet obsession<br />with the details.</h2>
         </div>
         <div className="about-grid">
           <div className="about-prose">
-            <p>I'm Dimural — a software engineer drawn to problems where engineering craft and user experience intersect.</p>
+            <p>I'm Dimural, a software engineer drawn to problems where engineering craft and user experience intersect.</p>
             <p>I like turning ambitious ideas into polished, performant products. Off the keyboard you'll find me in the gym, watching Real Madrid, or playing guitar.</p>
           </div>
-          <LiquidGlassCard className="about-card" borderRadius={18}>
+          <LiquidGlassCard className="about-card" borderRadius={16}>
             <div className="about-row"><span>Focus</span><strong>Full-stack · 3D</strong></div>
             <div className="about-row"><span>Stack</span><strong>TS · React · Node</strong></div>
-            <div className="about-row"><span>Based in</span><strong>—</strong></div>
             <div className="about-row"><span>Status</span><strong className="is-open">Open to work</strong></div>
           </LiquidGlassCard>
         </div>
@@ -84,10 +82,10 @@ export function PortfolioPage({ onEnterGym }: Props) {
       <Section>
         <div className="work-grid">
           <div className="work-intro">
-            <span className="label"><span className="label-accent">02</span> &nbsp;— &nbsp;Work</span>
+            <span className="label">Selected Work</span>
             <h2 className="section-title">Selected<br />projects.</h2>
-            <p className="lead">A rotating look at things I've built — from interactive 3D to full-stack systems.</p>
-            <span className="work-hint">Hover to hold a card · they swap on their own</span>
+            <p className="lead">A rotating look at things I've built, from interactive 3D to full-stack systems.</p>
+            <span className="work-hint">Hover to pause the rotation</span>
           </div>
           <div className="work-stage" aria-hidden>
             <CardSwap
@@ -125,7 +123,6 @@ export function PortfolioPage({ onEnterGym }: Props) {
       {/* Skills --------------------------------------------------- */}
       <Section>
         <div className="section-head">
-          <span className="label"><span className="label-accent">03</span> &nbsp;— &nbsp;Skills</span>
           <h2 className="section-title">Tools of the trade.</h2>
         </div>
         <div className="skills-grid">
@@ -146,7 +143,7 @@ export function PortfolioPage({ onEnterGym }: Props) {
           <BorderGlow
             className="contact-card"
             backgroundColor="#101a14"
-            glowColor="155 50 55"
+            glowColor="120 200 150"
             colors={['#2f6f54', '#3c7d74', '#557a9e']}
             borderRadius={24}
             glowRadius={48}
@@ -154,11 +151,10 @@ export function PortfolioPage({ onEnterGym }: Props) {
             edgeSensitivity={26}
             animated
           >
-            <span className="label"><span className="label-accent">04</span> &nbsp;— &nbsp;Contact</span>
             <h2 className="contact-title">Let's build<br />something good.</h2>
             <p className="contact-note">
               I'm open to new roles and collaborations. Email is the fastest way
-              to reach me — I read everything.
+              to reach me, and I read everything.
             </p>
             <a href="mailto:dimural722@gmail.com" className="email-btn">
               <span>dimural722@gmail.com</span>

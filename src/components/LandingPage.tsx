@@ -59,7 +59,7 @@ export function LandingPage({ onEnterPortfolio, onEnterGym }: Props) {
         </motion.h1>
 
         <motion.p className="hero-tagline" variants={stagger.item}>
-          I build considered, tactile digital experiences — where engineering
+          I build considered, tactile digital experiences where engineering
           craft and design quietly meet.
         </motion.p>
 
@@ -73,16 +73,6 @@ export function LandingPage({ onEnterPortfolio, onEnterGym }: Props) {
             <ArrowUpRight />
           </button>
         </motion.div>
-      </motion.div>
-
-      <motion.div
-        className="hero-scroll"
-        aria-hidden
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5, duration: 1 }}
-      >
-        <div className="rail" />
       </motion.div>
     </header>
   )
