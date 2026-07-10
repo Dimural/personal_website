@@ -1,43 +1,22 @@
-import { useRef } from 'react'
-import { motion, useInView } from 'framer-motion'
 import { LiquidGlassCard } from './LiquidGlass'
-import CardSwap, { Card } from './CardSwap'
-import BorderGlow from './BorderGlow'
+import { MaskLine, Section } from './Reveal'
 
 interface Props {
   onEnterGym: () => void
-}
-
-const ease = [0.16, 1, 0.3, 1] as const
-
-function Section({ children, className = '', id }: { children: React.ReactNode; className?: string; id?: string }) {
-  const ref = useRef<HTMLElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-12%' })
-  return (
-    <motion.section
-      ref={ref}
-      id={id}
-      className={`section ${className}`}
-      initial={{ opacity: 0, y: 36 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.85, ease }}
-    >
-      {children}
-    </motion.section>
-  )
 }
 
 const projects = [
   {
     num: '01',
     title: '3D Gym Portfolio',
-    desc: 'An interactive, gamified personal site built in Three.js. Walk a virtual gym and click equipment to explore each section.',
+    desc: 'A gamified personal site built in Three.js. Walk around a virtual gym and click the equipment to explore each section.',
     tags: ['Three.js', 'WebGL', 'GLSL'],
+    action: 'gym' as const,
   },
   {
     num: '02',
     title: 'Project Two',
-    desc: 'A brief description of another project — what it does, the stack behind it, and the impact it had.',
+    desc: 'A brief description of another project: what it does, the stack behind it, and the impact it had.',
     tags: ['React', 'Node.js', 'PostgreSQL'],
   },
   {
@@ -48,11 +27,10 @@ const projects = [
   },
 ]
 
-const skills = {
-  Languages: ['TypeScript', 'JavaScript', 'Python', 'C++', 'SQL'],
-  Frameworks: ['React', 'Node.js', 'Three.js', 'Next.js', 'FastAPI'],
-  Platforms: ['AWS', 'Docker', 'Git', 'Linux', 'Vercel'],
-}
+const tools = [
+  'TypeScript', 'React', 'Three.js', 'WebGL', 'Node.js', 'Python',
+  'C++', 'Next.js', 'FastAPI', 'AWS', 'Docker', 'SQL',
+]
 
 export function PortfolioPage({ onEnterGym }: Props) {
   return (
@@ -60,118 +38,99 @@ export function PortfolioPage({ onEnterGym }: Props) {
 
       {/* About ---------------------------------------------------- */}
       <Section>
-        <div className="section-head">
-          <h2 className="section-title">A quiet obsession<br />with the details.</h2>
-        </div>
+        <h2 className="section-title about-title">
+          <MaskLine inView>I like software</MaskLine>
+          <MaskLine inView delay={0.12}>you can <em>feel</em>.</MaskLine>
+        </h2>
         <div className="about-grid">
           <div className="about-prose">
             <p>I'm Dimural, a software engineer drawn to problems where engineering craft and user experience intersect.</p>
             <p>I like turning ambitious ideas into polished, performant products. Off the keyboard you'll find me in the gym, watching Real Madrid, or playing guitar.</p>
           </div>
           <LiquidGlassCard className="about-card" borderRadius={16}>
-            <div className="about-row"><span>Focus</span><strong>Full-stack · 3D</strong></div>
-            <div className="about-row"><span>Stack</span><strong>TS · React · Node</strong></div>
+            <div className="about-row"><span>Focus</span><strong>Full-stack / 3D</strong></div>
+            <div className="about-row"><span>Stack</span><strong>TS / React / Node</strong></div>
             <div className="about-row"><span>Status</span><strong className="is-open">Open to work</strong></div>
           </LiquidGlassCard>
         </div>
       </Section>
 
-      <div className="rule" />
-
       {/* Work ----------------------------------------------------- */}
-      <Section>
-        <div className="work-grid">
-          <div className="work-intro">
-            <span className="label">Selected Work</span>
-            <h2 className="section-title">Selected<br />projects.</h2>
-            <p className="lead">A rotating look at things I've built, from interactive 3D to full-stack systems.</p>
-            <span className="work-hint">Hover to pause the rotation</span>
-          </div>
-          <div className="work-stage" aria-hidden>
-            <CardSwap
-              width={400}
-              height={280}
-              cardDistance={50}
-              verticalDistance={58}
-              delay={4200}
-              pauseOnHover
-              skewAmount={4}
-              easing="elastic"
-            >
-              {projects.map(proj => (
-                <Card key={proj.num} customClass="proj-card">
-                  <div className="proj-card-top">
-                    <span className="proj-card-num">{proj.num}</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M7 17L17 7M7 7h10v10" />
-                    </svg>
-                  </div>
-                  <h3>{proj.title}</h3>
-                  <p>{proj.desc}</p>
-                  <div className="proj-card-tags">
+      <Section className="section-full">
+        <div className="work-head">
+          <h2 className="section-title">
+            <MaskLine inView>Selected work</MaskLine>
+          </h2>
+        </div>
+        <div className="work-index">
+          {projects.map(proj => {
+            const Row = proj.action === 'gym' ? 'button' : 'div'
+            return (
+              <Row
+                key={proj.num}
+                className="work-row"
+                onClick={proj.action === 'gym' ? onEnterGym : undefined}
+              >
+                <span className="work-row-num">{proj.num}</span>
+                <div className="work-row-main">
+                  <h3 className="work-row-title">{proj.title}</h3>
+                  <div className="work-row-tags">
                     {proj.tags.map(t => <span key={t}>{t}</span>)}
                   </div>
-                </Card>
-              ))}
-            </CardSwap>
-          </div>
+                </div>
+                <p className="work-row-desc">{proj.desc}</p>
+                <span className="work-row-arrow" aria-hidden>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 17L17 7M7 7h10v10" />
+                  </svg>
+                </span>
+              </Row>
+            )
+          })}
         </div>
       </Section>
 
-      <div className="rule" />
-
-      {/* Skills --------------------------------------------------- */}
-      <Section>
-        <div className="section-head">
-          <h2 className="section-title">Tools of the trade.</h2>
-        </div>
-        <div className="skills-grid">
-          {Object.entries(skills).map(([cat, items]) => (
-            <div key={cat} className="skill-col">
-              <h4 className="skill-cat">{cat}</h4>
-              <div className="skill-list">
-                {items.map(s => <span key={s}>{s}</span>)}
-              </div>
+      {/* Toolbelt marquee ----------------------------------------- */}
+      <section className="marquee" aria-label="Tools and technologies">
+        <div className="marquee-track">
+          {[0, 1].map(copy => (
+            <div className="marquee-group" key={copy} aria-hidden={copy === 1}>
+              {tools.map(t => (
+                <span className="marquee-item" key={t}>
+                  {t}
+                  <span className="marquee-sep">/</span>
+                </span>
+              ))}
             </div>
           ))}
         </div>
-      </Section>
+      </section>
 
       {/* Contact -------------------------------------------------- */}
       <section className="contact" id="contact">
         <div className="contact-wrap">
-          <BorderGlow
-            className="contact-card"
-            backgroundColor="#101a14"
-            glowColor="120 200 150"
-            colors={['#2f6f54', '#3c7d74', '#557a9e']}
-            borderRadius={24}
-            glowRadius={48}
-            glowIntensity={1.0}
-            edgeSensitivity={26}
-            animated
-          >
-            <h2 className="contact-title">Let's build<br />something good.</h2>
-            <p className="contact-note">
-              I'm open to new roles and collaborations. Email is the fastest way
-              to reach me, and I read everything.
-            </p>
-            <a href="mailto:dimural722@gmail.com" className="email-btn">
-              <span>dimural722@gmail.com</span>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <p className="contact-kicker">Open to roles and collaborations</p>
+          <a href="mailto:dimural722@gmail.com" className="contact-email">
+            <MaskLine inView className="contact-email-line">
+              dimural722@gmail.com
+              <svg width="0.55em" height="0.55em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M7 17L17 7M7 7h10v10" />
               </svg>
-            </a>
-            <div className="contact-links">
-              <a href="https://github.com" target="_blank" rel="noopener">GitHub ↗</a>
-              <a href="https://linkedin.com" target="_blank" rel="noopener">LinkedIn ↗</a>
-              <button className="contact-links-btn" onClick={onEnterGym} style={{ color: 'inherit' }}>3D Gym ↗</button>
-            </div>
-          </BorderGlow>
+            </MaskLine>
+          </a>
+          <div className="contact-links">
+            <a href="https://github.com" target="_blank" rel="noopener">GitHub ↗</a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener">LinkedIn ↗</a>
+          </div>
 
           <footer className="footer">
             <span>© 2026 Dimural Murat</span>
-            <span>Built with care.</span>
+            <button
+              className="footer-top"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
+              Back to top ↑
+            </button>
           </footer>
         </div>
       </section>

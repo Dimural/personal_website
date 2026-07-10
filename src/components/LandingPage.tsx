@@ -1,5 +1,7 @@
-import { motion } from 'framer-motion'
+import { useRef } from 'react'
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import Aurora from './Aurora'
+import { MaskLine } from './Reveal'
 
 interface Props {
   onEnterPortfolio: () => void
@@ -8,17 +10,19 @@ interface Props {
 
 const ease = [0.16, 1, 0.3, 1] as const
 
-const stagger = {
-  container: { animate: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } } },
-  item: {
-    initial: { opacity: 0, y: 24 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.95, ease } },
-  },
-}
-
 export function LandingPage({ onEnterPortfolio, onEnterGym }: Props) {
+  const heroRef = useRef<HTMLElement>(null)
+  const reduce = useReducedMotion()
+
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  })
+  const y = useTransform(scrollYProgress, [0, 1], [0, 140])
+  const opacity = useTransform(scrollYProgress, [0, 0.85], [1, 0])
+
   return (
-    <header className="hero">
+    <header className="hero" ref={heroRef}>
       <div className="hero-aurora" aria-hidden>
         <Aurora
           colorStops={['#2f6f54', '#3c7d74', '#557a9e']}
@@ -33,45 +37,55 @@ export function LandingPage({ onEnterPortfolio, onEnterGym }: Props) {
         className="nav"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.9, delay: 0.15, ease }}
+        transition={{ duration: 0.9, delay: 0.2, ease }}
       >
         <span className="nav-mark">DM</span>
         <div className="nav-links">
           <button className="nav-link" onClick={onEnterPortfolio}>Work</button>
+          <a className="nav-link" href="#contact">Contact</a>
           <button className="nav-link" onClick={onEnterGym}>Gym ↗</button>
         </div>
       </motion.nav>
 
       <motion.div
         className="hero-inner"
-        variants={stagger.container}
-        initial="initial"
-        animate="animate"
+        style={reduce ? undefined : { y, opacity }}
       >
-        <motion.div className="hero-eyebrow" variants={stagger.item}>
-          <span className="dot" />
+        <motion.div
+          className="hero-topline"
+          initial={reduce ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 0.9, ease }}
+        >
           <span>Software Engineer</span>
+          <span className="hero-topline-right">Open to work</span>
         </motion.div>
 
-        <motion.h1 className="hero-title" variants={stagger.item}>
-          Dimural<br />
-          <span className="line2">Murat</span>
-        </motion.h1>
+        <h1 className="hero-title">
+          <MaskLine delay={0.15}>Dimural</MaskLine>
+          <MaskLine delay={0.28} className="hero-title-line2">Murat</MaskLine>
+        </h1>
 
-        <motion.p className="hero-tagline" variants={stagger.item}>
-          I build considered, tactile digital experiences where engineering
-          craft and design quietly meet.
-        </motion.p>
-
-        <motion.div className="hero-actions" variants={stagger.item}>
-          <button className="btn btn-primary" onClick={onEnterPortfolio}>
-            View Work
-            <ArrowRight />
-          </button>
-          <button className="btn btn-ghost" onClick={onEnterGym}>
-            Enter the Gym
-            <ArrowUpRight />
-          </button>
+        <motion.div
+          className="hero-foot"
+          initial={reduce ? false : { opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.75, ease }}
+        >
+          <p className="hero-tagline">
+            I build interactive things for the web, from full-stack products
+            to real-time 3D you can walk around in.
+          </p>
+          <div className="hero-actions">
+            <button className="btn btn-primary" onClick={onEnterPortfolio}>
+              View Work
+              <ArrowRight />
+            </button>
+            <button className="btn btn-ghost" onClick={onEnterGym}>
+              Enter the Gym
+              <ArrowUpRight />
+            </button>
+          </div>
         </motion.div>
       </motion.div>
     </header>
