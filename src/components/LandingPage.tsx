@@ -25,7 +25,7 @@ export function LandingPage({ onEnterPortfolio, onEnterGym }: Props) {
     <header className="hero" ref={heroRef}>
       <div className="hero-aurora" aria-hidden>
         <Aurora
-          colorStops={['#2f6f54', '#3c7d74', '#557a9e']}
+          colorStops={['#6f5230', '#8a6a3e', '#7a5158']}
           amplitude={0.85}
           blend={0.42}
           speed={0.28}

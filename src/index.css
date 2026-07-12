@@ -8,34 +8,34 @@
 }
 
 /* ============================================================
-   TOKENS  —  dark, green-tinted neutrals (OKLCH)
-   Display: Clash Display · Body: Geist · Labels: Geist Mono
+   TOKENS  —  warm dark luxury: espresso neutrals (OKLCH)
+   Display: Clash Display · Body/Labels: Geist · Accent serif: Gambetta
    ============================================================ */
 :root {
   /* Surfaces */
-  --bg:          oklch(0.165 0.008 165);
-  --bg-deep:     oklch(0.132 0.008 165);
-  --surface:     oklch(0.205 0.010 165);
-  --surface-hi:  oklch(0.248 0.011 165);
+  --bg:          oklch(0.165 0.010 65);
+  --bg-deep:     oklch(0.132 0.010 62);
+  --surface:     oklch(0.205 0.012 65);
+  --surface-hi:  oklch(0.248 0.013 66);
 
   /* Ink */
-  --text:        oklch(0.962 0.006 150);
-  --text-dim:    oklch(0.726 0.012 160);
-  --text-faint:  oklch(0.548 0.012 162);
+  --text:        oklch(0.958 0.010 85);
+  --text-dim:    oklch(0.726 0.020 78);
+  --text-faint:  oklch(0.548 0.018 74);
 
   /* Lines */
-  --border:      oklch(0.305 0.012 165);
-  --border-soft: oklch(0.252 0.010 165);
+  --border:      oklch(0.305 0.018 70);
+  --border-soft: oklch(0.252 0.015 68);
 
-  /* Accent — single luminous green, locked for the whole page */
-  --accent:      oklch(0.855 0.16 152);
-  --accent-dim:  oklch(0.73 0.13 152);
-  --accent-rgb:  132 235 168;
+  /* Accent — single muted champagne gold, locked for the whole page */
+  --accent:      oklch(0.815 0.095 86);
+  --accent-dim:  oklch(0.70 0.085 84);
+  --accent-rgb:  221 187 133;
 
   /* Type */
   --font-display: 'Clash Display', 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body:    'Geist', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  --font-mono:    'Geist Mono', ui-monospace, 'SF Mono', monospace;
+  --font-serif:   'Gambetta', 'Georgia', 'Times New Roman', serif;
 
   /* Spacing — 4pt scale */
   --space-xs:  8px;
@@ -107,7 +107,11 @@ img { display: block; max-width: 100%; }
   color: var(--text);
 }
 .section-title em {
+  font-family: var(--font-serif);
   font-style: italic;
+  font-weight: 500;
+  font-size: 1.04em;
+  letter-spacing: -0.01em;
   color: var(--accent);
 }
 
@@ -209,9 +213,10 @@ img { display: block; max-width: 100%; }
   border-top: 1px solid var(--border);
   padding-top: 14px;
   margin-bottom: clamp(18px, 2.6vw, 34px);
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 500;
   font-size: 0.74rem;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
@@ -396,9 +401,10 @@ img { display: block; max-width: 100%; }
 .work-row:focus-visible { outline: none; }
 
 .work-row-num {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 500;
   font-size: 0.8rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   color: var(--text-faint);
   transition: color 0.3s var(--ease);
 }
@@ -424,9 +430,10 @@ img { display: block; max-width: 100%; }
   gap: 8px 18px;
 }
 .work-row-tags span {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 500;
   font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-faint);
   transition: color 0.3s var(--ease);
@@ -511,9 +518,10 @@ img { display: block; max-width: 100%; }
 .contact-wrap { max-width: var(--maxw); margin: 0 auto; }
 
 .contact-kicker {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 500;
   font-size: 0.76rem;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--text-faint);
   margin-bottom: clamp(22px, 3vw, 36px);
