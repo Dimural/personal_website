@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+.output/
+.vercel/
+.netlify/
+
+# typescript / tooling caches
+*.tsbuildinfo
+.cache/
+
+# env
+.env
+.env.*
+!.env.example
+
+# editor / os
+.DS_Store
+*.log
+.claude/settings.local.json
