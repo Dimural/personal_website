@@ -21,3 +21,10 @@ build/
 .DS_Store
 *.log
 .claude/settings.local.json
+
+# personal documents — never commit
+Dimural_Murat.pdf
+*resume*.pdf
+*Resume*.pdf
+*CV*.pdf
+/private/
