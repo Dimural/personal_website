@@ -1,0 +1,37 @@
+/* Design tokens.
+   Palette and easing are carried over from the Working Volumes shelf
+   reference so the hero and the 3D library read as one room. */
+
+:root {
+  /* Surfaces — the room */
+  --paper: #171a24;
+  --paper-deep: #10131b;
+  --paper-pale: #f1eadf;
+
+  /* Type */
+  --ink: #f4eee6;
+  --ink-soft: #b9b4ae;
+  --ink-faint: rgba(244, 238, 230, 0.44);
+
+  /* Materials — shelf and binding */
+  --walnut: #3a2118;
+  --walnut-deep: #1c0e0a;
+  --brass: #c87046;
+  --brass-pale: #efc16d;
+
+  --rule: rgba(244, 238, 230, 0.24);
+  --rule-faint: rgba(244, 238, 230, 0.1);
+
+  /* Faces: a book face for reading, a catalog face for filing */
+  --serif: "EB Garamond", "Iowan Old Style", "Palatino Linotype", Baskerville,
+    "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.2, 0.72, 0.24, 1);
+  --ease-soft: cubic-bezier(0.32, 0.08, 0.24, 1);
+
+  /* Measure */
+  --gutter: clamp(1.5rem, 5vw, 5.5rem);
+  --rail: 76rem;
+}
