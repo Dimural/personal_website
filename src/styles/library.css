@@ -1,0 +1,344 @@
+/* ── The library ──────────────────────────────────────────────────
+   One wall, two bays. The toggle dollies the camera along it. The
+   detail panel borrows the bookplate's frame so the room and the
+   front matter read as one design. */
+
+.library {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  padding: clamp(2rem, 6vh, 4rem) var(--gutter) clamp(1.5rem, 4vh, 2.5rem);
+  background: var(--bone);
+  border-top: 1px solid var(--rule-faint);
+}
+
+.library__head {
+  width: 100%;
+  max-width: var(--rail);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.9rem 2rem;
+}
+
+.library__toggle {
+  display: flex;
+  gap: 1.6rem;
+}
+
+.library__tab {
+  position: relative;
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0 0 0.5rem;
+  font-family: var(--serif);
+  font-size: clamp(1.15rem, 1.8vw, 1.5rem);
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: color 0.45s var(--ease-out);
+}
+
+.library__tab::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.55s var(--ease-out);
+}
+
+.library__tab:hover,
+.library__tab.is-active {
+  color: var(--ink);
+}
+
+.library__tab.is-active::after {
+  transform: scaleX(1);
+}
+
+.library__caption {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-left: auto;
+}
+
+/* ── Stage ── */
+.library__stage {
+  position: relative;
+  width: 100%;
+  max-width: 62rem;
+  margin: clamp(1rem, 3vh, 2rem) auto clamp(2.5rem, 5vh, 3.5rem);
+}
+
+.library__canvas {
+  display: block;
+  width: 100%;
+  /* Fixed framing: the room's composition should not depend on the
+     viewport's leftover vertical space. */
+  aspect-ratio: 3 / 2;
+  height: auto;
+  border-radius: 2px;
+}
+
+.library__hint {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.9rem);
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  transition: color 0.4s var(--ease-out);
+  pointer-events: none;
+}
+
+.library__hint.is-named {
+  color: var(--ink-soft);
+}
+
+/* Keyboard route into the shelf; a canvas gives none of its own. */
+.library__keys {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 2.4rem);
+  display: flex;
+  gap: 0.5rem;
+}
+
+.library__key {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.library__key:focus-visible {
+  position: static;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  padding: 0.5rem 0.9rem;
+  background: var(--plate);
+  border: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* ── Detail panel ── */
+.detail {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: min(25rem, 42%);
+  padding: clamp(1.6rem, 2.4vw, 2.2rem);
+  background: var(--plate);
+  border: 1px solid var(--rule);
+  box-shadow:
+    0 1px 2px rgba(35, 50, 79, 0.04),
+    0 20px 44px -26px rgba(35, 50, 79, 0.22);
+  opacity: 0;
+  transform: translate(0.9rem, -50%);
+  transition:
+    opacity 0.5s var(--ease-out),
+    transform 0.5s var(--ease-out);
+}
+
+.detail.is-open {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+.detail::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid var(--rule-faint);
+  pointer-events: none;
+}
+
+.detail__eyebrow {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.8rem;
+}
+
+.detail__title {
+  font-size: clamp(1.4rem, 2.1vw, 1.85rem);
+  font-weight: 400;
+  line-height: 1.12;
+  color: var(--ink);
+  margin-bottom: 0.35rem;
+}
+
+.detail__subtitle {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.detail__rule {
+  width: 3rem;
+  height: 1px;
+  border: 0;
+  margin: 1.1rem 0;
+  background: var(--rule);
+}
+
+.detail__lines {
+  margin: 0 0 1.3rem;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.detail__lines li {
+  font-size: 0.9rem;
+  line-height: 1.62;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.detail__tags {
+  margin: 0 0 1.4rem;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.5rem;
+}
+
+.detail__tags li {
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 0.32rem 0.55rem;
+  border: 1px solid var(--rule-faint);
+}
+
+.detail__close {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: color 0.4s var(--ease-out);
+}
+
+.detail__close:hover,
+.detail__close:focus-visible {
+  color: var(--copper);
+}
+
+/* ── Static fallback: no WebGL, full content in reading form ── */
+.library--static .library__stage {
+  min-height: 0;
+}
+
+.shelf-static {
+  display: grid;
+  gap: clamp(2rem, 5vw, 3.5rem);
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  padding-top: 1.5rem;
+}
+
+.shelf-static__title {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--rule-faint);
+  margin-bottom: 1.6rem;
+}
+
+.shelf-static__item {
+  margin-bottom: 2rem;
+}
+
+.shelf-static__name {
+  font-size: 1.3rem;
+  font-weight: 400;
+  color: var(--ink);
+  margin-bottom: 0.3rem;
+}
+
+.shelf-static__meta {
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+  margin-bottom: 0.8rem;
+}
+
+.shelf-static__lines {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.shelf-static__lines li {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 56rem) {
+  .library__canvas {
+    aspect-ratio: 4 / 5;
+  }
+
+  /* On a phone the panel reads below the shelf, in flow — a sheet
+     floating over a small viewport clips its own heading. */
+  .detail {
+    position: static;
+    width: 100%;
+    margin-top: 1.4rem;
+    transform: translateY(0.8rem);
+  }
+
+  .detail.is-open {
+    transform: translateY(0);
+  }
+
+  /* Hover has no meaning on touch. */
+  .library__hint {
+    display: none;
+  }
+
+  .library__caption {
+    margin-left: 0;
+    width: 100%;
+  }
+}

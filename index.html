@@ -59,8 +59,33 @@
         </div>
       </section>
 
-      <!-- The shelf mounts here next: one wall, two bays, camera dolly. -->
-      <section class="library" id="library" aria-label="The library"></section>
+      <section class="library" id="library" aria-label="The library">
+        <div class="library__head">
+          <div class="library__toggle" role="tablist" aria-label="Shelf bay">
+            <button
+              class="library__tab"
+              type="button"
+              role="tab"
+              data-bay="experience"
+              aria-selected="true"
+            >
+              Experience
+            </button>
+            <button
+              class="library__tab"
+              type="button"
+              role="tab"
+              data-bay="projects"
+              aria-selected="false"
+            >
+              Projects
+            </button>
+          </div>
+          <p class="library__caption">Where the work was done</p>
+        </div>
+
+        <div class="library__stage"></div>
+      </section>
     </main>
 
     <script type="module" src="/src/main.ts"></script>
