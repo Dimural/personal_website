@@ -11,6 +11,9 @@ const probe = new URLSearchParams(location.search).get("probe");
 if (probe === "textures") {
   const { mountTextureProbe } = await import("./library/probe");
   mountTextureProbe(document.querySelector<HTMLElement>("#probe")!);
+} else if (probe === "rig") {
+  const { mountRigProbe } = await import("./library/probe");
+  mountRigProbe(document.querySelector<HTMLElement>("#probe")!);
 } else if (library) {
   mountLibrary(library);
 

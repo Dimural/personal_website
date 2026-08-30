@@ -895,28 +895,6 @@ export function makeContactShadowTexture() {
   return sharedContactShadowTexture;
 }
 
-// ── Page edges (legacy, flat) ─────────────────────────────────────
-
-/** Page edges — stacked leaves seen side on. */
-export function makePagesTexture() {
-  const W = 256;
-  const H = 512;
-  const { c, ctx } = canvas(W, H);
-  ctx.fillStyle = "#efe9dc";
-  ctx.fillRect(0, 0, W, H);
-  for (let x = 0; x < W; x += 1) {
-    const n = 0.5 + Math.random() * 0.5;
-    ctx.globalAlpha = 0.055 * n;
-    ctx.fillStyle = Math.random() > 0.65 ? "#8e8676" : "#ffffff";
-    ctx.fillRect(x, 0, 1, H);
-  }
-  ctx.globalAlpha = 0.14;
-  ctx.fillStyle = "#a89c86";
-  ctx.fillRect(0, 0, W, 5);
-  ctx.fillRect(0, H - 5, W, 5);
-  return finish(c);
-}
-
 /** Light oak, quarter-sawn — the shelf and the room's only warmth. */
 export function makeOakTexture(repeat: [number, number] = [1, 1]) {
   const W = 1024;

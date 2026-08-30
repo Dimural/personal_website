@@ -10,6 +10,8 @@ export interface LibraryDebug {
   spread: number;
   bookCount: number;
   ready: boolean;
+  /** `?probe=rig` only — the pivot-tree sanity check: should always be 6. */
+  rigPivots?: number;
 }
 
 declare global {

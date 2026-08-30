@@ -17,6 +17,8 @@ import {
   makeSpineFoilTexture,
   makeSpineTexture,
 } from "./materials";
+import { createBookRig } from "./rig";
+import { addLights } from "./room";
 
 const STYLE = `
   #probe {
@@ -356,4 +358,87 @@ export function mountTextureProbe(el: HTMLElement) {
     return;
   }
   mountOverview(el);
+}
+
+/**
+ * The rig route (`?probe=rig`) — one book rig, alone, centred on a neutral
+ * ground, so the harness can screenshot it and a human can judge whether
+ * it reads as a bound object: board overhang, a rounded spine profile,
+ * paper-like page edges, a contact shadow underneath.
+ *
+ * `?volume=<id>` swaps which volume builds the rig (defaults to the
+ * first). `?spread=N&open=X` are accepted and otherwise ignored — the
+ * query shape Task 5 will read to drive the page-turn and cover-open
+ * state.
+ */
+export function mountRigProbe(el: HTMLElement) {
+  // Hide the site chrome directly — this route wants a clean, full-bleed
+  // canvas, not the texture route's padded contact-sheet card.
+  for (const id of ["#top", "#library"]) {
+    const section = document.querySelector<HTMLElement>(id);
+    if (section) section.style.display = "none";
+  }
+  el.hidden = false;
+  el.innerHTML = "";
+  el.style.cssText = "display: block; margin: 0; padding: 0; background: #efe9dc;";
+
+  const params = new URLSearchParams(location.search);
+  const volumeId = params.get("volume");
+  const volume = (volumeId && VOLUMES.find((v) => v.id === volumeId)) || VOLUMES[0];
+
+  const canvasEl = document.createElement("canvas");
+  canvasEl.style.cssText = "display: block; width: 100vw; height: 100vh;";
+  el.appendChild(canvasEl);
+
+  const width = window.innerWidth || 1280;
+  const height = window.innerHeight || 800;
+
+  const renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setSize(width, height, false);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color("#efe9dc");
+
+  const camera = new THREE.PerspectiveCamera(34, width / height, 0.1, 100);
+
+  const rig = createBookRig(volume, 0);
+  scene.add(rig.root);
+
+  // A plain, unbranded floor — the point is the rig, not the shelf room.
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(20, 20),
+    new THREE.MeshStandardMaterial({ color: "#e3ddcf", roughness: 0.96 }),
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -rig.base.height * 0.5 - 0.02;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  addLights(scene);
+
+  // A three-quarter, slightly elevated angle: reveals the front board's
+  // overhang past the fore edge, the spine's rounded profile on the near
+  // side, and the head edge (paper texture, headband) from above, with
+  // enough room below the book to see the contact shadow on the ground.
+  camera.position.set(-2.6, 1.7, 3.1);
+  camera.lookAt(-0.05, -0.15, 0);
+
+  renderer.render(scene, camera);
+
+  installDebug(() => ({
+    mode: "probe",
+    bay: "experience",
+    selectedIndex: 0,
+    readingOpen: false,
+    spread: 0,
+    bookCount: 1,
+    rigPivots: rig.pagePivots.length,
+    ready: true,
+  }));
 }

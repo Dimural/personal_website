@@ -129,6 +129,19 @@ async function main() {
     check("texture probe detail painted one volume", detailPainted === 23, `got ${detailPainted}`);
     await detail.screenshot({ path: `${SHOTS}textures-finaldose.png`, fullPage: true });
     await detail.close();
+
+    console.log("\nrig probe");
+    const rig = await browser.newPage();
+    await rig.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 2 });
+    await rig.goto(`${ORIGIN}/?probe=rig`, { waitUntil: "domcontentloaded" });
+    await settle(rig);
+    const rigState = await debugState(rig);
+    check("rig probe: debug surface present", rigState !== null);
+    check("rig probe: scene ready", rigState?.ready === true);
+    check("rig probe: bookCount", rigState?.bookCount === 1, `got ${rigState?.bookCount}`);
+    check("rig probe: rigPivots === 6", rigState?.rigPivots === 6, `got ${rigState?.rigPivots}`);
+    await rig.screenshot({ path: `${SHOTS}rig.png` });
+    await rig.close();
   } finally {
     if (browser) await browser.close();
     if (server) server.kill();

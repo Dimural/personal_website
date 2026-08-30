@@ -1,7 +1,24 @@
 import * as THREE from "three";
 import { BAYS, VOLUMES, volumesInBay, type Bay, type Volume } from "./data";
-import { BOOK_HEIGHT, BOOK_WIDTH, createBook, type BookHandle } from "./book";
+import { createBookRig, disposeRig, type BookRig } from "./rig";
 import { BAY_X, SHELF_DEPTH, SHELF_SURFACE_Y, addLights, createRoom } from "./room";
+
+/**
+ * Transient shelf-drawer state, kept alongside a rig rather than on
+ * `BookRig` itself — `BookRig`'s shape is consumed by later tasks and has
+ * no notion of "home" or "presented". This wrapper (and the shelf-drawer
+ * behaviour it supports) is throwaway: Task 7 replaces it with a carousel.
+ */
+interface ShelfBook {
+  rig: BookRig;
+  /** Where the book rests on the shelf. */
+  home: THREE.Vector3;
+  homeRotation: THREE.Euler;
+  /** 0 = shelved, 1 = drawn fully out and presented. */
+  presented: number;
+  /** 0 = flush, 1 = tipped out under the cursor. */
+  hovered: number;
+}
 
 const GAP = 0.028;
 const CAMERA_Z = 4.55;
@@ -51,8 +68,8 @@ export function createLibrary(options: LibraryOptions): Library {
   addLights(scene);
 
   // ── Shelve the books ────────────────────────────────────────────
-  const books: BookHandle[] = [];
-  const meshes: THREE.Object3D[] = [];
+  const books: ShelfBook[] = [];
+  const hitMeshes: THREE.Object3D[] = [];
 
   for (const { id: bay } of BAYS) {
     const volumes = volumesInBay(bay);
@@ -60,27 +77,33 @@ export function createLibrary(options: LibraryOptions): Library {
       volumes.reduce((sum, v) => sum + v.depth, 0) + GAP * (volumes.length - 1);
     let cursor = -span / 2;
 
-    for (const volume of volumes) {
-      const book = createBook(volume);
+    volumes.forEach((volume, volumeIndex) => {
+      const rig = createBookRig(volume, volumeIndex);
+      rig.hit.userData.volumeId = volume.id;
       const x = BAY_X[bay] + cursor + volume.depth / 2;
       cursor += volume.depth + GAP;
 
-      book.home.set(
-        x,
-        SHELF_SURFACE_Y + BOOK_HEIGHT / 2,
-        SHELF_DEPTH / 2 - BOOK_WIDTH / 2 - 0.07,
-      );
-      book.homeRotation.set(0, 0, 0);
-      book.group.position.copy(book.home);
-      scene.add(book.group);
+      const book: ShelfBook = {
+        rig,
+        home: new THREE.Vector3(
+          x,
+          SHELF_SURFACE_Y + rig.base.height / 2,
+          SHELF_DEPTH / 2 - rig.base.width / 2 - 0.07,
+        ),
+        homeRotation: new THREE.Euler(0, 0, 0),
+        presented: 0,
+        hovered: 0,
+      };
+      rig.root.position.copy(book.home);
+      scene.add(rig.root);
       books.push(book);
-      meshes.push(book.group.children[0]);
-    }
+      hitMeshes.push(rig.hit);
+    });
   }
 
   // ── State ───────────────────────────────────────────────────────
   let currentBay: Bay = "experience";
-  let selected: BookHandle | null = null;
+  let selected: ShelfBook | null = null;
   let hoveredId: string | null = null;
   let cameraX = camera.position.x;
   let baseZ = CAMERA_Z;
@@ -90,11 +113,11 @@ export function createLibrary(options: LibraryOptions): Library {
   let pointerActive = false;
 
   /** Where a drawn-out book is held: left of centre, panel to its right. */
-  function presentedTransform(book: BookHandle) {
+  function presentedTransform(book: ShelfBook) {
     const wide = canvas.clientWidth > 900;
     return {
       position: new THREE.Vector3(
-        BAY_X[book.volume.bay] + (wide ? -0.82 : 0),
+        BAY_X[book.rig.data.bay] + (wide ? -0.82 : 0),
         wide ? 0.08 : 0.34,
         SHELF_DEPTH / 2 + 0.95,
       ),
@@ -112,9 +135,9 @@ export function createLibrary(options: LibraryOptions): Library {
   }
 
   function select(id: string | null) {
-    const next = id ? books.find((b) => b.volume.id === id) ?? null : null;
+    const next = id ? books.find((b) => b.rig.data.id === id) ?? null : null;
     selected = next;
-    onSelect(next?.volume ?? null);
+    onSelect(next?.rig.data ?? null);
   }
 
   // ── Pointer ─────────────────────────────────────────────────────
@@ -125,26 +148,26 @@ export function createLibrary(options: LibraryOptions): Library {
     pointerActive = true;
   }
 
-  function pick(): BookHandle | null {
+  function pick(): ShelfBook | null {
     raycaster.setFromCamera(pointer, camera);
-    const hit = raycaster.intersectObjects(meshes, false)[0];
+    const hit = raycaster.intersectObjects(hitMeshes, false)[0];
     if (!hit) return null;
     const id = hit.object.userData.volumeId as string | undefined;
     if (!id) return null;
-    const book = books.find((b) => b.volume.id === id) ?? null;
+    const book = books.find((b) => b.rig.data.id === id) ?? null;
     // Only the bay in front of the camera is live.
-    return book && book.volume.bay === currentBay ? book : null;
+    return book && book.rig.data.bay === currentBay ? book : null;
   }
 
   const onPointerMove = (event: PointerEvent) => {
     updatePointer(event);
     if (selected) return;
     const book = pick();
-    const id = book?.volume.id ?? null;
+    const id = book?.rig.data.id ?? null;
     if (id !== hoveredId) {
       hoveredId = id;
       canvas.style.cursor = id ? "pointer" : "default";
-      onHover(book?.volume ?? null);
+      onHover(book?.rig.data ?? null);
     }
   };
 
@@ -161,7 +184,7 @@ export function createLibrary(options: LibraryOptions): Library {
     updatePointer(event);
     const book = pick();
     if (book) {
-      select(book.volume.id === selected?.volume.id ? null : book.volume.id);
+      select(book.rig.data.id === selected?.rig.data.id ? null : book.rig.data.id);
     } else if (selected) {
       select(null);
     }
@@ -223,7 +246,7 @@ export function createLibrary(options: LibraryOptions): Library {
 
     for (const book of books) {
       const isSelected = selected === book;
-      const isHovered = !selected && hoveredId === book.volume.id && pointerActive;
+      const isHovered = !selected && hoveredId === book.rig.data.id && pointerActive;
 
       const wantPresented = isSelected ? 1 : 0;
       const wantHovered = isHovered ? 1 : 0;
@@ -242,18 +265,18 @@ export function createLibrary(options: LibraryOptions): Library {
       from.z += book.hovered * 0.16;
 
       if (p < 0.001) {
-        book.group.position.copy(from);
-        book.group.rotation.set(0, 0, book.hovered * -0.02);
+        book.rig.root.position.copy(from);
+        book.rig.root.rotation.set(0, 0, book.hovered * -0.02);
         continue;
       }
 
       const { position, rotation } = presentedTransform(book);
       target.copy(position);
 
-      book.group.position.lerpVectors(from, target, p);
+      book.rig.root.position.lerpVectors(from, target, p);
       // Arc the book up and out rather than sliding it flat.
-      book.group.position.y += Math.sin(p * Math.PI) * 0.22;
-      book.group.rotation.set(
+      book.rig.root.position.y += Math.sin(p * Math.PI) * 0.22;
+      book.rig.root.rotation.set(
         rotation.x * p,
         rotation.y * p,
         rotation.z * p + (1 - p) * book.hovered * -0.02,
@@ -276,6 +299,7 @@ export function createLibrary(options: LibraryOptions): Library {
       canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("click", onClick as EventListener);
       renderer.dispose();
+      for (const book of books) disposeRig(book.rig);
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh) {
           object.geometry.dispose();
