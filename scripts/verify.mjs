@@ -142,6 +142,32 @@ async function main() {
     check("rig probe: rigPivots === 6", rigState?.rigPivots === 6, `got ${rigState?.rigPivots}`);
     await rig.screenshot({ path: `${SHOTS}rig.png` });
     await rig.close();
+
+    // Page physics (Task 5) — the rig probe's own settle loop (~1.5s of
+    // simulated frames, see `mountRigProbe`) runs before its one render, so
+    // no extra `settle()` wait is needed for the springs themselves; the
+    // page load's usual settle still covers fonts/scene readiness.
+    console.log("\nrig probe (page physics)");
+    const flexCases = [
+      { name: "rig-open-0", query: "open=0" },
+      { name: "rig-open-0.5", query: "open=0.5" },
+      { name: "rig-open-1", query: "open=1" },
+      { name: "rig-open-1-spread-2", query: "open=1&spread=2" },
+    ];
+    for (const { name, query } of flexCases) {
+      const flexPage = await browser.newPage();
+      await flexPage.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 2 });
+      await flexPage.goto(`${ORIGIN}/?probe=rig&${query}`, { waitUntil: "domcontentloaded" });
+      await settle(flexPage);
+      const flexState = await debugState(flexPage);
+      check(`${name}: debug surface present`, flexState !== null);
+      check(`${name}: scene ready`, flexState?.ready === true);
+      if (query.includes("spread=2")) {
+        check(`${name}: spread === 2`, flexState?.spread === 2, `got ${flexState?.spread}`);
+      }
+      await flexPage.screenshot({ path: `${SHOTS}${name}.png` });
+      await flexPage.close();
+    }
   } finally {
     if (browser) await browser.close();
     if (server) server.kill();

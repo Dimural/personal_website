@@ -17,6 +17,7 @@ import {
   makeSpineFoilTexture,
   makeSpineTexture,
 } from "./materials";
+import { updatePaginatedBook } from "./pages";
 import { createBookRig } from "./rig";
 import { addLights } from "./room";
 
@@ -367,9 +368,10 @@ export function mountTextureProbe(el: HTMLElement) {
  * paper-like page edges, a contact shadow underneath.
  *
  * `?volume=<id>` swaps which volume builds the rig (defaults to the
- * first). `?spread=N&open=X` are accepted and otherwise ignored — the
- * query shape Task 5 will read to drive the page-turn and cover-open
- * state.
+ * first). `?open=<0..1>` drives the cover-open amount and `?spread=<0..4>`
+ * the number of turned leaves (Task 5's `updatePaginatedBook`); before
+ * the screenshot is taken the physics is advanced through ~1.5s of
+ * simulated frames so the curve/twist springs have settled.
  */
 export function mountRigProbe(el: HTMLElement) {
   // Hide the site chrome directly — this route wants a clean, full-bleed
@@ -385,6 +387,9 @@ export function mountRigProbe(el: HTMLElement) {
   const params = new URLSearchParams(location.search);
   const volumeId = params.get("volume");
   const volume = (volumeId && VOLUMES.find((v) => v.id === volumeId)) || VOLUMES[0];
+  const openAmount = THREE.MathUtils.clamp(Number(params.get("open") ?? "0"), 0, 1);
+  const spread = THREE.MathUtils.clamp(Math.round(Number(params.get("spread") ?? "0")), 0, 4);
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const canvasEl = document.createElement("canvas");
   canvasEl.style.cssText = "display: block; width: 100vw; height: 100vh;";
@@ -429,14 +434,25 @@ export function mountRigProbe(el: HTMLElement) {
   camera.position.set(-2.6, 1.7, 3.1);
   camera.lookAt(-0.05, -0.15, 0);
 
+  // Advance the page physics through ~1.5s of simulated 60fps frames
+  // before the first (and only) render, so the cover hinge and every
+  // leaf's curve/twist spring have settled from rest into `openAmount` /
+  // `spread` well before the harness takes its screenshot. Fixed-step and
+  // synchronous rather than a real `requestAnimationFrame` loop, so the
+  // result is deterministic regardless of how fast this machine renders.
+  const settleStep = 1 / 60;
+  for (let simulated = 0; simulated < 1.5; simulated += settleStep) {
+    updatePaginatedBook(rig, settleStep, openAmount, spread, null, false, reduced);
+  }
+
   renderer.render(scene, camera);
 
   installDebug(() => ({
     mode: "probe",
     bay: "experience",
     selectedIndex: 0,
-    readingOpen: false,
-    spread: 0,
+    readingOpen: openAmount > 0,
+    spread,
     bookCount: 1,
     rigPivots: rig.pagePivots.length,
     ready: true,
