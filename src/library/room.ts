@@ -124,6 +124,15 @@ export function addLights(scene: THREE.Scene): RoomLights {
   key.position.set(-4.6, 7.4, 5.8);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
+  // These bounds travel with this reference eight-light rig (lean file
+  // 4164–4226), not with the project's earlier two-light `addLights` — that
+  // rig used ±9/±7/-7, near 0.5, far 30, bias -0.0012, normalBias 0.02,
+  // tuned for a single directional light doing all the shadow work. Eight
+  // lights (softKey/rim/backFill/spineRake/pageRake plus this key) changed
+  // the falloff and shadow-acne behaviour enough that those bounds no
+  // longer apply verbatim; these were retuned for this rig instead. Task 7
+  // spreads books to roughly ±4 world units when drawn into a carousel —
+  // ±6 left/right still covers that with margin.
   key.shadow.camera.left = -6;
   key.shadow.camera.right = 6;
   key.shadow.camera.top = 6;
@@ -201,8 +210,14 @@ export function createRoom(scene: THREE.Scene, renderer: THREE.WebGLRenderer): R
 
   // One shared set of wood/shadow materials across both bays, so Task 9 can
   // retint the whole carcass in one pass by walking `RoomHandles.materials`.
+  // Tinted a shade past the raw map's `#cbb392`: under this rig's exposure
+  // and the dimmed PMREM environment (see `environmentIntensity` below) the
+  // untinted map read almost bone, losing the frame's wood identity — this
+  // pulls it back to a clearly warm oak tan without touching the back
+  // board, which stays flat and near-bone on purpose.
   const shelfMaterial = new THREE.MeshStandardMaterial({
     map: makeOakTexture([2, 1]),
+    color: "#c7a877",
     roughness: 0.72,
     metalness: 0,
   });
