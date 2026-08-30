@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { BAYS, VOLUMES, volumesInBay, type Bay, type Volume } from "./data";
 import { createBookRig, disposeRig, type BookRig } from "./rig";
-import { BAY_X, SHELF_DEPTH, SHELF_SURFACE_Y, addLights, createRoom } from "./room";
+import { BAY_X, SHELF_BOARD_TOP, SHELF_DEPTH, createRoom } from "./room";
 
 /**
  * Transient shelf-drawer state, kept alongside a rig rather than on
@@ -54,7 +54,7 @@ export function createLibrary(options: LibraryOptions): Library {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 0.55;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -64,8 +64,7 @@ export function createLibrary(options: LibraryOptions): Library {
   const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
   camera.position.set(BAY_X.experience, 0.12, CAMERA_Z);
 
-  createRoom(scene);
-  addLights(scene);
+  const room = createRoom(scene, renderer);
 
   // ── Shelve the books ────────────────────────────────────────────
   const books: ShelfBook[] = [];
@@ -87,7 +86,7 @@ export function createLibrary(options: LibraryOptions): Library {
         rig,
         home: new THREE.Vector3(
           x,
-          SHELF_SURFACE_Y + rig.base.height / 2,
+          SHELF_BOARD_TOP + rig.base.height / 2,
           SHELF_DEPTH / 2 - rig.base.width / 2 - 0.07,
         ),
         // The rig's local +Z (front cover) and -X (spine) axes are built
@@ -100,7 +99,7 @@ export function createLibrary(options: LibraryOptions): Library {
       };
       rig.root.position.copy(book.home);
       rig.root.rotation.copy(book.homeRotation);
-      scene.add(rig.root);
+      room.shelfStage.add(rig.root);
       books.push(book);
       hitMeshes.push(rig.hit);
     });
@@ -319,6 +318,7 @@ export function createLibrary(options: LibraryOptions): Library {
       canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("click", onClick as EventListener);
       renderer.dispose();
+      scene.environment?.dispose();
       for (const book of books) disposeRig(book.rig);
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh) {

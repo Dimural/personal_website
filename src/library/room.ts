@@ -1,8 +1,11 @@
 import * as THREE from "three";
-import { makeOakTexture, makePlasterTexture } from "./materials";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
+import type { Bay } from "./data";
+import { makeContactShadowTexture, makeOakTexture, makePlasterTexture } from "./materials";
 
 /** Where each bay sits along the wall. The toggle dollies between them. */
-export const BAY_X: Record<"experience" | "projects", number> = {
+export const BAY_X: Record<Bay, number> = {
   experience: -1.55,
   projects: 1.55,
 };
@@ -14,29 +17,54 @@ const PLANK = 0.075;
 const BAY_INNER_HEIGHT = 2.42;
 
 /** Y of the surface books stand on. */
-export const SHELF_SURFACE_Y = -BAY_INNER_HEIGHT / 2;
+export const SHELF_BOARD_TOP = -BAY_INNER_HEIGHT / 2;
 
-function oakMaterial(repeat: [number, number]) {
-  return new THREE.MeshStandardMaterial({
-    map: makeOakTexture(repeat),
-    roughness: 0.72,
-    metalness: 0,
-  });
+/** Where `shelfStage` sits normally, and where it sinks to during `browse`. */
+export const SHELF_REST_POSITION = new THREE.Vector3(0, 0, 0);
+export const SHELF_SUNK_POSITION = new THREE.Vector3(0, -4.2, -3);
+
+export interface RoomMaterials {
+  floor: THREE.MeshStandardMaterial;
+  wall: THREE.MeshStandardMaterial;
+  shelf: THREE.MeshStandardMaterial;
+  shelfDark: THREE.MeshStandardMaterial;
+  shadow: THREE.MeshBasicMaterial;
 }
 
-function buildBay(x: number) {
+export interface RoomLights {
+  hemisphere: THREE.HemisphereLight;
+  key: THREE.DirectionalLight;
+  softKey: THREE.RectAreaLight;
+  fill: THREE.DirectionalLight;
+  rim: THREE.RectAreaLight;
+  backFill: THREE.RectAreaLight;
+  spineRake: THREE.RectAreaLight;
+  pageRake: THREE.RectAreaLight;
+}
+
+export interface RoomHandles {
+  /** Carcass + shelved books ride this group; it sinks away during `browse`. */
+  shelfStage: THREE.Group;
+  materials: RoomMaterials;
+  lights: RoomLights;
+}
+
+function buildBay(
+  x: number,
+  shelfMaterial: THREE.MeshStandardMaterial,
+  shelfDarkMaterial: THREE.MeshStandardMaterial,
+  shadowMaterial: THREE.MeshBasicMaterial,
+) {
   const bay = new THREE.Group();
   bay.position.x = x;
 
   const outerW = BAY_INNER_WIDTH + PANEL * 2;
-  const side = oakMaterial([1, 2]);
-  const plank = oakMaterial([2, 1]);
 
   // Uprights
   for (const dir of [-1, 1]) {
     const panel = new THREE.Mesh(
       new THREE.BoxGeometry(PANEL, BAY_INNER_HEIGHT + PLANK * 2, SHELF_DEPTH),
-      side,
+      shelfMaterial,
     );
     panel.position.set(dir * (BAY_INNER_WIDTH / 2 + PANEL / 2), 0, 0);
     panel.castShadow = true;
@@ -48,7 +76,7 @@ function buildBay(x: number) {
   for (const dir of [-1, 1]) {
     const board = new THREE.Mesh(
       new THREE.BoxGeometry(outerW, PLANK, SHELF_DEPTH),
-      plank,
+      shelfMaterial,
     );
     board.position.set(0, dir * (BAY_INNER_HEIGHT / 2 + PLANK / 2), 0);
     board.castShadow = true;
@@ -59,66 +87,159 @@ function buildBay(x: number) {
   // Back board, set in from the wall so the shelf casts its own shadow.
   const back = new THREE.Mesh(
     new THREE.BoxGeometry(outerW, BAY_INNER_HEIGHT, 0.04),
-    new THREE.MeshStandardMaterial({ color: "#d9d0c1", roughness: 0.94 }),
+    shelfDarkMaterial,
   );
   back.position.z = -SHELF_DEPTH / 2 + 0.02;
   back.receiveShadow = true;
   bay.add(back);
 
+  // Soft contact shadow under where the books stand, faked with an
+  // alpha-mapped decal rather than relying on shadow-map resolution alone.
+  const shadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(outerW * 0.92, SHELF_DEPTH * 0.7),
+    shadowMaterial,
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.set(0, SHELF_BOARD_TOP + 0.006, 0.12);
+  bay.add(shadow);
+
   return bay;
 }
 
-export function createRoom(scene: THREE.Scene) {
-  const room = new THREE.Group();
+/**
+ * Eight named lights so `updateTheme` (Task 9) can retint the room by book:
+ * a sky/ground hemisphere, a shadow-casting key, a soft cloth-lighting
+ * softbox, a cool fill, a foil rim rake, a back-cover softbox, and two
+ * narrow rakes for spine foil and page edges.
+ */
+export function addLights(scene: THREE.Scene): RoomLights {
+  // Must run before any RectAreaLight is constructed, or it renders black.
+  RectAreaLightUniformsLib.init();
+
+  const hemisphere = new THREE.HemisphereLight(0xfff8e8, 0x5b4030, 0.56);
+  scene.add(hemisphere);
+
+  const key = new THREE.DirectionalLight(0xffe8c2, 1.42);
+  key.name = "shadow-key";
+  key.position.set(-4.6, 7.4, 5.8);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.camera.left = -6;
+  key.shadow.camera.right = 6;
+  key.shadow.camera.top = 6;
+  key.shadow.camera.bottom = -1.5;
+  key.shadow.camera.near = 1;
+  key.shadow.camera.far = 18;
+  key.shadow.bias = -0.00018;
+  key.shadow.normalBias = 0.018;
+  key.shadow.radius = 3.5;
+  scene.add(key);
+
+  const softKey = new THREE.RectAreaLight(0xffe8c2, 5.4, 4.8, 5.6);
+  softKey.name = "cloth-softbox";
+  softKey.position.set(-3.2, 5.5, 4.6);
+  softKey.lookAt(0, 1.45, 0);
+  scene.add(softKey);
+
+  const fill = new THREE.DirectionalLight(0xd8e3e7, 0.3);
+  fill.name = "cool-fill";
+  fill.position.set(5.5, 3.6, 4.2);
+  scene.add(fill);
+
+  const rim = new THREE.RectAreaLight(0xd5a45e, 3.45, 1.6, 4.8);
+  rim.name = "foil-rake";
+  rim.position.set(3.8, 3.6, -2.1);
+  rim.lookAt(-0.2, 1.5, 0);
+  scene.add(rim);
+
+  const backFill = new THREE.RectAreaLight(0xd8e3e7, 2.7, 3.8, 4.8);
+  backFill.name = "back-cover-softbox";
+  backFill.position.set(-1.8, 2.9, -4.5);
+  backFill.lookAt(-0.1, 1.45, 0);
+  scene.add(backFill);
+
+  const spineRake = new THREE.RectAreaLight(0xffe8c2, 1.9, 0.9, 4.6);
+  spineRake.name = "spine-rake";
+  spineRake.position.set(-4.6, 3.2, 1.1);
+  spineRake.lookAt(-0.55, 1.5, 0);
+  scene.add(spineRake);
+
+  const pageRake = new THREE.RectAreaLight(0xfff7e7, 2.15, 1.15, 3.8);
+  pageRake.name = "page-edge-rake";
+  pageRake.position.set(4.2, 4.8, 3.1);
+  pageRake.lookAt(0.65, 1.55, 0);
+  scene.add(pageRake);
+
+  return { hemisphere, key, softKey, fill, rim, backFill, spineRake, pageRake };
+}
+
+export function createRoom(scene: THREE.Scene, renderer: THREE.WebGLRenderer): RoomHandles {
+  // Everything that must sink away during `browse` rides this group; the
+  // floor and wall below do not — they stay put.
+  const shelfStage = new THREE.Group();
+  shelfStage.name = "shelf-stage";
+  shelfStage.position.copy(SHELF_REST_POSITION);
+  scene.add(shelfStage);
 
   // Wall
-  const wall = new THREE.Mesh(
-    new THREE.PlaneGeometry(30, 18),
-    new THREE.MeshStandardMaterial({ map: makePlasterTexture(), roughness: 0.97 }),
-  );
+  const wallMaterial = new THREE.MeshStandardMaterial({
+    map: makePlasterTexture(),
+    roughness: 0.97,
+  });
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(30, 18), wallMaterial);
   wall.position.z = -SHELF_DEPTH / 2 - 0.06;
   wall.receiveShadow = true;
-  room.add(wall);
+  scene.add(wall);
 
   // Floor, catching the light from below
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(40, 24),
-    new THREE.MeshStandardMaterial({ color: "#ddd5c6", roughness: 0.95 }),
-  );
+  const floorMaterial = new THREE.MeshStandardMaterial({ color: "#ddd5c6", roughness: 0.95 });
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 24), floorMaterial);
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -3.6;
   floor.receiveShadow = true;
-  room.add(floor);
+  scene.add(floor);
 
-  room.add(buildBay(BAY_X.experience));
-  room.add(buildBay(BAY_X.projects));
+  // One shared set of wood/shadow materials across both bays, so Task 9 can
+  // retint the whole carcass in one pass by walking `RoomHandles.materials`.
+  const shelfMaterial = new THREE.MeshStandardMaterial({
+    map: makeOakTexture([2, 1]),
+    roughness: 0.72,
+    metalness: 0,
+  });
+  const shelfDarkMaterial = new THREE.MeshStandardMaterial({
+    map: makeOakTexture([2, 1]),
+    color: "#8a7355",
+    roughness: 0.8,
+    metalness: 0,
+  });
+  const shadowMaterial = new THREE.MeshBasicMaterial({
+    color: 0x2f1d13,
+    alphaMap: makeContactShadowTexture(),
+    transparent: true,
+    opacity: 0.22,
+    depthWrite: false,
+  });
 
-  scene.add(room);
-  return room;
-}
+  shelfStage.add(buildBay(BAY_X.experience, shelfMaterial, shelfDarkMaterial, shadowMaterial));
+  shelfStage.add(buildBay(BAY_X.projects, shelfMaterial, shelfDarkMaterial, shadowMaterial));
 
-export function addLights(scene: THREE.Scene) {
-  // Daylight, not lamplight: soft sky fill plus one window key.
-  scene.add(new THREE.HemisphereLight(0xf6f1e7, 0xc9bda6, 1.32));
+  // Image-based lighting: this is what makes foil read as metal rather than
+  // as a flat bright colour, and gives cloth a visible tooth.
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
 
-  const key = new THREE.DirectionalLight(0xfff6e8, 1.35);
-  key.position.set(-3.1, 4.7, 7.4);
-  key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
-  key.shadow.camera.near = 0.5;
-  key.shadow.camera.far = 30;
-  key.shadow.camera.left = -9;
-  key.shadow.camera.right = 9;
-  key.shadow.camera.top = 7;
-  key.shadow.camera.bottom = -7;
-  key.shadow.bias = -0.0012;
-  key.shadow.normalBias = 0.02;
-  scene.add(key);
+  const lights = addLights(scene);
 
-  // Bounce off the opposite wall so the shadow sides never go muddy.
-  const fill = new THREE.DirectionalLight(0xe8eef6, 0.42);
-  fill.position.set(6, 1.5, 4);
-  scene.add(fill);
-
-  return key;
+  return {
+    shelfStage,
+    materials: {
+      floor: floorMaterial,
+      wall: wallMaterial,
+      shelf: shelfMaterial,
+      shelfDark: shelfDarkMaterial,
+      shadow: shadowMaterial,
+    },
+    lights,
+  };
 }
