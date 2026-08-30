@@ -113,6 +113,22 @@ async function main() {
     check("texture probe painted every canvas", painted >= 6 * 12, `got ${painted}`);
     await probe.screenshot({ path: `${SHOTS}textures.png`, fullPage: true });
     await probe.close();
+
+    // The overview above downscales every canvas to a 320px thumbnail (see
+    // the comment on `snapshot` in probe.ts) — enough to spot a missing
+    // painter, not enough to judge micro-text or page margins. Shoot one
+    // representative volume at full resolution so a legible artifact is
+    // always in the evidence trail, without slowing the harness down by
+    // shooting all six.
+    console.log("\ntexture probe (detail)");
+    const detail = await browser.newPage();
+    await detail.setViewport({ width: 3400, height: 1000, deviceScaleFactor: 1 });
+    await detail.goto(`${ORIGIN}/?probe=textures&volume=finaldose`, { waitUntil: "domcontentloaded" });
+    await settle(detail);
+    const detailPainted = await detail.evaluate(() => document.querySelectorAll("#probe canvas").length);
+    check("texture probe detail painted one volume", detailPainted === 23, `got ${detailPainted}`);
+    await detail.screenshot({ path: `${SHOTS}textures-finaldose.png`, fullPage: true });
+    await detail.close();
   } finally {
     if (browser) await browser.close();
     if (server) server.kill();
