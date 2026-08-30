@@ -34,16 +34,24 @@ async function startServer() {
     ["vite", "--port", String(PORT), "--strictPort"],
     { cwd: new URL("..", import.meta.url).pathname, stdio: ["ignore", "pipe", "pipe"] },
   );
-  await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("vite did not start")), 30000);
-    server.stdout.on("data", (chunk) => {
-      if (String(chunk).includes("ready in")) {
-        clearTimeout(timer);
-        resolve();
-      }
+  try {
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("vite did not start")), 30000);
+      server.stdout.on("data", (chunk) => {
+        if (String(chunk).includes("ready in")) {
+          clearTimeout(timer);
+          resolve();
+        }
+      });
+      server.on("error", reject);
     });
-    server.on("error", reject);
-  });
+  } catch (error) {
+    // Readiness never arrived (timeout) or the child errored before it could
+    // — kill the spawned process ourselves, since the caller never got a
+    // handle on it to do so.
+    server.kill();
+    throw error;
+  }
   return server;
 }
 
@@ -61,15 +69,18 @@ async function main() {
   await rm(SHOTS, { recursive: true, force: true });
   await mkdir(SHOTS, { recursive: true });
 
-  const server = await startServer();
-  const { default: puppeteer } = await import(PUPPETEER);
-  const browser = await puppeteer.launch({
-    executablePath: CHROME,
-    headless: true,
-    args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
-  });
+  let server = null;
+  let browser = null;
 
   try {
+    server = await startServer();
+    const { default: puppeteer } = await import(PUPPETEER);
+    browser = await puppeteer.launch({
+      executablePath: CHROME,
+      headless: true,
+      args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
+    });
+
     for (const viewport of VIEWPORTS) {
       console.log(`\n${viewport.name} ${viewport.width}x${viewport.height}`);
       const page = await browser.newPage();
@@ -93,8 +104,8 @@ async function main() {
       await page.close();
     }
   } finally {
-    await browser.close();
-    server.kill();
+    if (browser) await browser.close();
+    if (server) server.kill();
   }
 
   console.log("");
