@@ -206,10 +206,13 @@ export function createRoom(scene: THREE.Scene, renderer: THREE.WebGLRenderer): R
     roughness: 0.72,
     metalness: 0,
   });
+  // Muted, near-bone recess — deliberately not oak-mapped: a large textured
+  // honey-oak panel this size reads as a warm room bolted onto the page's
+  // cool bone-and-ultramarine palette. Keep it quiet and cool-neutral so the
+  // books (not the carcass) carry the colour.
   const shelfDarkMaterial = new THREE.MeshStandardMaterial({
-    map: makeOakTexture([2, 1]),
-    color: "#8a7355",
-    roughness: 0.8,
+    color: "#d9d0c1",
+    roughness: 0.9,
     metalness: 0,
   });
   const shadowMaterial = new THREE.MeshBasicMaterial({
@@ -224,9 +227,13 @@ export function createRoom(scene: THREE.Scene, renderer: THREE.WebGLRenderer): R
   shelfStage.add(buildBay(BAY_X.projects, shelfMaterial, shelfDarkMaterial, shadowMaterial));
 
   // Image-based lighting: this is what makes foil read as metal rather than
-  // as a flat bright colour, and gives cloth a visible tooth.
+  // as a flat bright colour, and gives cloth a visible tooth. Dialed down via
+  // `environmentIntensity` (r163+) rather than the renderer's global exposure
+  // — that targets the PMREM map itself, which is what was blowing out the
+  // floor/walls, without crushing every material's saturation along with it.
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.45;
   pmrem.dispose();
 
   const lights = addLights(scene);
