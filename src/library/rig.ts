@@ -69,6 +69,14 @@ export interface BookRig {
   contactShadow: THREE.Mesh;
   fadeMaterials: THREE.Material[];
   materials: THREE.Material[];
+  /**
+   * Every texture unique to this rig — safe for `disposeRig` to dispose.
+   * Deliberately excludes the two module-level singletons `materials.ts`
+   * shares across every volume (`makePaperFaceTexture`'s unprinted stock,
+   * `makeContactShadowTexture`) — disposing either here would break every
+   * other still-live rig.
+   */
+  textures: THREE.Texture[];
   base: { width: number; height: number; depth: number };
   opacity: number;
   lastOffset: number | null;
@@ -712,6 +720,27 @@ export function createBookRig(volume: Volume, index: number): BookRig {
     contactShadow,
     fadeMaterials,
     materials: [...fadeMaterials, contactShadowMaterial, hitMaterial],
+    // Every texture painted fresh for this volume — excludes the two
+    // shared singletons (`paperFaceTexture`, `makeContactShadowTexture()`)
+    // used as maps above; see the interface doc comment.
+    textures: [
+      coverTexture,
+      foilTexture,
+      clothBumpTexture,
+      clothSurfaceMaps.normal,
+      clothSurfaceMaps.roughness,
+      ...interiorPageTextures,
+      endpaperTexture,
+      pageEdgeTextures.foreEdge,
+      pageEdgeTextures.headTail,
+      spineTexture,
+      spineFoilTexture,
+      backCoverTexture,
+      backFoilTexture,
+      foilEmbossTexture,
+      spineEmbossTexture,
+      backEmbossTexture,
+    ],
     base: { width, height, depth },
     opacity: 1,
     lastOffset: null,
@@ -719,11 +748,11 @@ export function createBookRig(volume: Volume, index: number): BookRig {
 }
 
 /**
- * Disposes every geometry reachable from `rig.root` and every material in
- * `rig.materials`. Deliberately leaves textures alone: some of them
- * (`makePaperFaceTexture`'s unprinted stock, `makeContactShadowTexture`)
- * are module-level singletons shared across every rig, and disposing one
- * here would break every other still-live book.
+ * Disposes every geometry reachable from `rig.root`, every material in
+ * `rig.materials`, and every texture in `rig.textures`. Deliberately
+ * leaves the two shared singletons out of `rig.textures` in the first
+ * place (`makePaperFaceTexture`'s unprinted stock, `makeContactShadowTexture`)
+ * — disposing either here would break every other still-live rig.
  */
 export function disposeRig(rig: BookRig): void {
   const geometries = new Set<THREE.BufferGeometry>();
@@ -732,4 +761,5 @@ export function disposeRig(rig: BookRig): void {
   });
   for (const geometry of geometries) geometry.dispose();
   for (const material of rig.materials) material.dispose();
+  for (const texture of rig.textures) texture.dispose();
 }

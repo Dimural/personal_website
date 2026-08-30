@@ -90,11 +90,16 @@ export function createLibrary(options: LibraryOptions): Library {
           SHELF_SURFACE_Y + rig.base.height / 2,
           SHELF_DEPTH / 2 - rig.base.width / 2 - 0.07,
         ),
-        homeRotation: new THREE.Euler(0, 0, 0),
+        // The rig's local +Z (front cover) and -X (spine) axes are built
+        // for a book lying face-up; a quarter turn about Y brings the
+        // spine to face the room (world +Z) the way a shelved book should
+        // — rotating local (-1,0,0) by +90° about Y lands on world (0,0,1).
+        homeRotation: new THREE.Euler(0, Math.PI / 2, 0),
         presented: 0,
         hovered: 0,
       };
       rig.root.position.copy(book.home);
+      rig.root.rotation.copy(book.homeRotation);
       scene.add(rig.root);
       books.push(book);
       hitMeshes.push(rig.hit);
@@ -112,7 +117,14 @@ export function createLibrary(options: LibraryOptions): Library {
   const pointer = new THREE.Vector2();
   let pointerActive = false;
 
-  /** Where a drawn-out book is held: left of centre, panel to its right. */
+  /**
+   * Where a drawn-out book is held: left of centre, panel to its right.
+   * `rotation` is the absolute pose at full presentation (p = 1) — the
+   * frame loop lerps to it from `book.homeRotation`, not from zero. At
+   * home (rotation.y = π/2) the spine faces the room; turning to y ≈ 0.2
+   * swings the front cover back around to face the camera almost flat-on,
+   * with a small flourish rather than a dead-on square view.
+   */
   function presentedTransform(book: ShelfBook) {
     const wide = canvas.clientWidth > 900;
     return {
@@ -121,7 +133,7 @@ export function createLibrary(options: LibraryOptions): Library {
         wide ? 0.08 : 0.34,
         SHELF_DEPTH / 2 + 0.95,
       ),
-      rotation: new THREE.Euler(0.045, -Math.PI / 2 + 0.2, 0.012),
+      rotation: new THREE.Euler(0.045, 0.2, 0.012),
     };
   }
 
@@ -264,9 +276,15 @@ export function createLibrary(options: LibraryOptions): Library {
       from.copy(book.home);
       from.z += book.hovered * 0.16;
 
+      const homeRotation = book.homeRotation;
+
       if (p < 0.001) {
         book.rig.root.position.copy(from);
-        book.rig.root.rotation.set(0, 0, book.hovered * -0.02);
+        book.rig.root.rotation.set(
+          homeRotation.x,
+          homeRotation.y,
+          homeRotation.z + book.hovered * -0.02,
+        );
         continue;
       }
 
@@ -276,10 +294,12 @@ export function createLibrary(options: LibraryOptions): Library {
       book.rig.root.position.lerpVectors(from, target, p);
       // Arc the book up and out rather than sliding it flat.
       book.rig.root.position.y += Math.sin(p * Math.PI) * 0.22;
+      // Turn from the shelved pose (spine-out) to the presented one
+      // (cover toward camera), not from an assumed zero rotation.
       book.rig.root.rotation.set(
-        rotation.x * p,
-        rotation.y * p,
-        rotation.z * p + (1 - p) * book.hovered * -0.02,
+        THREE.MathUtils.lerp(homeRotation.x, rotation.x, p),
+        THREE.MathUtils.lerp(homeRotation.y, rotation.y, p),
+        THREE.MathUtils.lerp(homeRotation.z, rotation.z, p) + (1 - p) * book.hovered * -0.02,
       );
     }
 
