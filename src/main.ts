@@ -6,14 +6,21 @@ import { mountLibrary } from "./library";
 import { installDebug } from "./library/debug";
 
 const library = document.querySelector<HTMLElement>("#library");
-if (library) mountLibrary(library);
 
-installDebug(() => ({
-  mode: "shelf",
-  bay: "experience",
-  selectedIndex: 0,
-  readingOpen: false,
-  spread: 0,
-  bookCount: 0,
-  ready: true,
-}));
+const probe = new URLSearchParams(location.search).get("probe");
+if (probe === "textures") {
+  const { mountTextureProbe } = await import("./library/probe");
+  mountTextureProbe(document.querySelector<HTMLElement>("#probe")!);
+} else if (library) {
+  mountLibrary(library);
+
+  installDebug(() => ({
+    mode: "shelf",
+    bay: "experience",
+    selectedIndex: 0,
+    readingOpen: false,
+    spread: 0,
+    bookCount: 0,
+    ready: true,
+  }));
+}

@@ -103,6 +103,16 @@ async function main() {
       check(`${viewport.name}: console clean`, noise.length === 0, noise.slice(0, 3).join(" | "));
       await page.close();
     }
+
+    console.log("\ntexture probe");
+    const probe = await browser.newPage();
+    await probe.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 1 });
+    await probe.goto(`${ORIGIN}/?probe=textures`, { waitUntil: "domcontentloaded" });
+    await settle(probe);
+    const painted = await probe.evaluate(() => document.querySelectorAll("#probe canvas").length);
+    check("texture probe painted every canvas", painted >= 6 * 12, `got ${painted}`);
+    await probe.screenshot({ path: `${SHOTS}textures.png`, fullPage: true });
+    await probe.close();
   } finally {
     if (browser) await browser.close();
     if (server) server.kill();
