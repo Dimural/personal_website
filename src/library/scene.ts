@@ -1,10 +1,15 @@
 import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { slotFor, snapRigToSlot, updateCarousel, type Slot } from "./carousel";
 import { BAYS, VOLUMES, volumesInBay, type Bay, type Volume } from "./data";
 import type { LibraryDebug } from "./debug";
+import { updatePaginatedBook } from "./pages";
 import {
+  DETAIL_TRANSITION_DURATION,
   SPREAD_DURATION,
   STAGGER,
+  applyClosingPose,
+  applyOpeningPose,
   applySpreadPose,
   capturePose,
   type CapturedPose,
@@ -47,12 +52,20 @@ export type Mode =
 export interface Library {
   /** Empties a bay into the carousel. Ignored unless `mode === "shelf"`. */
   openBay(bay: Bay): void;
-  /** Gathers the carousel back onto the shelf. Ignored unless browsing. */
+  /**
+   * Backs up one level: closes the held book to the carousel if one is
+   * being read, otherwise gathers the carousel back onto the shelf. Ignored
+   * in every other mode (mid-transition, or already on the shelf).
+   */
   close(): void;
   /** Steps the carousel by whole slots. */
   navigate(direction: number): void;
   /** Turns the carousel to a specific book, the short way round. */
   select(index: number): void;
+  /** Flies the centred book to the camera to be read. Ignored unless browsing. */
+  open(): void;
+  /** Recentres the orbit camera on the held book. Ignored unless reading. */
+  resetView(): void;
   debug(): LibraryDebug;
   dispose(): void;
 }
@@ -66,6 +79,7 @@ export interface LibraryOptions {
 
 const clamp = THREE.MathUtils.clamp;
 const damp = THREE.MathUtils.damp;
+const lerp = THREE.MathUtils.lerp;
 const mod = (value: number, length: number) => ((value % length) + length) % length;
 const smootherstep = (value: number) =>
   value * value * value * (value * (value * 6 - 15) + 10);
@@ -89,6 +103,18 @@ export function createLibrary(options: LibraryOptions): Library {
   scene.background = new THREE.Color("#ebe6dc");
 
   const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+
+  // Orbiting is only ever meaningful while a book is held for reading —
+  // `announce()` keeps `enabled` in lockstep with `mode` at every
+  // transition, so it never fights the opening/closing pose interpolators.
+  const controls = new OrbitControls(camera, canvas);
+  controls.enabled = false;
+  controls.enableDamping = !REDUCED;
+  controls.enablePan = false;
+  controls.minDistance = 2.4;
+  controls.maxDistance = 7.5;
+  controls.minPolarAngle = Math.PI * 0.18;
+  controls.maxPolarAngle = Math.PI * 0.62;
 
   const room = createRoom(scene, renderer);
 
@@ -154,6 +180,37 @@ export function createLibrary(options: LibraryOptions): Library {
   let toSlots: Slot[] = [];
   let hoveredId: string | null = null;
 
+  // ── Reading (Task 8) ────────────────────────────────────────────
+  /** The one rig currently opening, held, or closing — null otherwise. */
+  let readingRig: BookRig | null = null;
+  /** Cover-open amount and turned-page count. Task 10/11's to drive. */
+  let readingOpen = false;
+  let spread = 0;
+
+  let openingFrom: CapturedPose | null = null;
+  const openingCameraFrom = new THREE.Vector3();
+  const openingCameraTargetFrom = new THREE.Vector3();
+  let openingViewOffsetFrom = 0;
+
+  let closingFrom: CapturedPose | null = null;
+  let closingToSlot: Slot | null = null;
+  const closingCameraFrom = new THREE.Vector3();
+  const closingCameraTargetFrom = new THREE.Vector3();
+  let closingViewOffsetFrom = 0;
+
+  // Responsive targets for the held/reading pose — recomputed on resize.
+  const inspectPosition = new THREE.Vector3();
+  const inspectCameraPosition = new THREE.Vector3();
+  const inspectCameraTarget = new THREE.Vector3();
+  const inspectBookQuaternion = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(0.055, -0.14, 0),
+  );
+  /** How far `camera.setViewOffset` slides the book left of the panel. */
+  let detailViewOffsetX = 0;
+  let detailSafeWidth = 0;
+  /** The offset actually applied this frame, mid-lerp during a transition. */
+  let currentViewOffsetX = 0;
+
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
 
@@ -179,8 +236,69 @@ export function createLibrary(options: LibraryOptions): Library {
     browseCameraPosition.set(0, CAROUSEL_FOCUS_Y + 0.1, browseZ);
   }
 
+  /**
+   * Where the held book sits and how the camera frames it, for reading.
+   * Narrow viewports centre the book; wide ones hold it left of where
+   * Task 10's detail panel will sit — there is no real panel yet, so the
+   * gutter falls back to the same `viewWidth * 0.64` estimate the reference
+   * uses when it can't measure one either.
+   */
+  function configureResponsiveTargets() {
+    const viewWidth = canvas.clientWidth || window.innerWidth;
+    const narrow = viewWidth < 820;
+    inspectPosition.set(narrow ? 0 : -2.25, narrow ? 2.3 : 1.56, narrow ? 0.15 : 0);
+    inspectCameraPosition.set(narrow ? 0 : -0.52, narrow ? 2.46 : 1.78, narrow ? 5.7 : 5.25);
+    inspectCameraTarget.copy(inspectPosition);
+
+    if (narrow) {
+      detailViewOffsetX = 0;
+      detailSafeWidth = viewWidth;
+      return;
+    }
+
+    const panelLeft = viewWidth * 0.64;
+    const gutter = clamp(viewWidth * 0.035, 32, 56);
+    detailSafeWidth = Math.max(viewWidth * 0.42, panelLeft - gutter);
+    const wideLayoutProgress = clamp((viewWidth - 820) / 620, 0, 1);
+    const bookCenterRatio = lerp(0.55, 0.615, wideLayoutProgress);
+    const desiredBookCenter = detailSafeWidth * bookCenterRatio;
+    detailViewOffsetX = Math.max(0, viewWidth * 0.5 - desiredBookCenter);
+  }
+
+  /** Sizes the held book to whatever width the (future) panel leaves it. */
+  function getInspectScale(): number {
+    if (!readingRig || canvas.clientWidth < 820) return 0.82;
+    const distance = Math.abs(inspectCameraPosition.z - inspectPosition.z);
+    const worldHeight = 2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5));
+    const pixelsPerWorld = canvas.clientHeight / Math.max(worldHeight, 0.001);
+    const estimatedBookWidth = readingRig.base.width * pixelsPerWorld * 1.16;
+    const scaleForSafeWidth = (detailSafeWidth * 0.72) / Math.max(estimatedBookWidth, 1);
+    return clamp(scaleForSafeWidth, 0.9, 1.32);
+  }
+
+  /**
+   * Slides the render straight off `camera.setViewOffset` so the book sits
+   * left of the panel instead of behind it. A near-zero offset is cleared
+   * outright — a stale offset left in place skews every mode after this
+   * one, `shelf` and `browse` included.
+   */
+  function applyDetailViewOffset() {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    if (!w || !h) return;
+    if (Math.abs(currentViewOffsetX) < 0.5) {
+      camera.clearViewOffset();
+      return;
+    }
+    camera.setViewOffset(w, h, currentViewOffsetX, 0, w, h);
+  }
+
   // ── Mode machine ────────────────────────────────────────────────
   function announce() {
+    // Centralised here rather than in every transition function, since
+    // `announce()` already runs at the tail of every one of them: orbiting
+    // is only ever live while a book is actually being read.
+    controls.enabled = mode === "reading";
     onMode(mode, currentBay);
   }
 
@@ -253,7 +371,8 @@ export function createLibrary(options: LibraryOptions): Library {
     announce();
   }
 
-  function close() {
+  /** Gathers the carousel back onto the shelf. The `browse`-only half of `close()`. */
+  function shelveBooks() {
     if (mode !== "browse") return;
     fromPoses = activeRigs.map((rig) => capturePose(rig.root));
     // Home slots are `shelfStage`-local, but the books travel in scene space
@@ -296,6 +415,123 @@ export function createLibrary(options: LibraryOptions): Library {
     canvas.style.cursor = "default";
     onHover(null);
     announce();
+  }
+
+  // ── Opening / reading / closing (Task 8) ───────────────────────
+  /**
+   * Flies the centred book from its carousel slot to the camera, held
+   * large and ready to be orbited. Not interruptible — a click mid-flight
+   * is dropped, same as every other transition here.
+   */
+  function open() {
+    if (mode !== "browse") return;
+    const rig = activeRigs[selectedIndex];
+    if (!rig) return;
+
+    readingRig = rig;
+    readingOpen = false;
+    spread = 0;
+    configureResponsiveTargets();
+
+    openingFrom = capturePose(rig.root);
+    openingCameraFrom.copy(camera.position);
+    openingCameraTargetFrom.copy(cameraTarget);
+    openingViewOffsetFrom = currentViewOffsetX;
+
+    mode = "opening";
+    transitionTime = 0;
+    announce();
+    if (REDUCED) finishOpening();
+  }
+
+  function applyOpening(t: number) {
+    const rig = readingRig;
+    if (!rig || !openingFrom) return;
+    const eased = smootherstep(clamp(t, 0, 1));
+    applyOpeningPose(rig, openingFrom, inspectPosition, inspectBookQuaternion, getInspectScale(), t);
+    camera.position.lerpVectors(openingCameraFrom, inspectCameraPosition, eased);
+    cameraTarget.lerpVectors(openingCameraTargetFrom, inspectCameraTarget, eased);
+    currentViewOffsetX = lerp(openingViewOffsetFrom, detailViewOffsetX, eased);
+    applyDetailViewOffset();
+    camera.lookAt(cameraTarget);
+  }
+
+  function finishOpening() {
+    if (!readingRig) return;
+    applyOpening(1);
+    mode = "reading";
+    transitionTime = 1;
+    controls.target.copy(inspectCameraTarget);
+    controls.update();
+    announce();
+  }
+
+  /**
+   * Reverses `open()`: flies the held book back down onto the carousel
+   * slot it left. The `reading`-only half of `close()`.
+   */
+  function closeBook() {
+    if (mode !== "reading" || !readingRig) return;
+    const rig = readingRig;
+
+    closingFrom = capturePose(rig.root);
+    closingCameraFrom.copy(camera.position);
+    closingCameraTargetFrom.copy(controls.target);
+    closingViewOffsetFrom = currentViewOffsetX;
+    closingToSlot = slotFor(selectedIndex, position, activeRigs.length, rig.base.height);
+
+    readingOpen = false;
+    spread = 0;
+    mode = "closing";
+    transitionTime = 0;
+    announce();
+    if (REDUCED) finishClosing();
+  }
+
+  function applyClosing(t: number) {
+    const rig = readingRig;
+    if (!rig || !closingFrom || !closingToSlot) return;
+    const eased = smootherstep(clamp(t, 0, 1));
+    applyClosingPose(rig, closingFrom, closingToSlot, t);
+    camera.position.lerpVectors(closingCameraFrom, browseCameraPosition, eased);
+    cameraTarget.lerpVectors(closingCameraTargetFrom, browseCameraTarget, eased);
+    currentViewOffsetX = lerp(closingViewOffsetFrom, 0, eased);
+    applyDetailViewOffset();
+    camera.lookAt(cameraTarget);
+  }
+
+  function finishClosing() {
+    const rig = readingRig;
+    if (!rig || !closingToSlot) return;
+    applyClosing(1);
+    snapRigToSlot(rig, closingToSlot);
+    rig.lastOffset = null;
+    currentViewOffsetX = 0;
+    camera.clearViewOffset();
+    camera.position.copy(browseCameraPosition);
+    cameraTarget.copy(browseCameraTarget);
+    camera.lookAt(cameraTarget);
+    readingRig = null;
+    openingFrom = null;
+    closingFrom = null;
+    closingToSlot = null;
+    mode = "browse";
+    transitionTime = 1;
+    announce();
+  }
+
+  /** Backs up one level — closes the held book, or shelves the carousel. */
+  function close() {
+    if (mode === "reading") closeBook();
+    else shelveBooks();
+  }
+
+  /** Recentres the orbit camera on the held book, without leaving `reading`. */
+  function resetView() {
+    if (mode !== "reading") return;
+    camera.position.copy(inspectCameraPosition);
+    controls.target.copy(inspectCameraTarget);
+    controls.update();
   }
 
   // ── Selection ───────────────────────────────────────────────────
@@ -366,9 +602,11 @@ export function createLibrary(options: LibraryOptions): Library {
   const onClick = (event: PointerEvent) => {
     updatePointer(event);
     const index = pick();
-    // Clicking the centred volume is Task 8's business (it opens the book);
-    // clicking a neighbour turns the ring to it.
-    if (index >= 0 && index !== selectedIndex) select(index);
+    if (index < 0) return;
+    // Clicking the centred volume opens it; clicking a neighbour turns the
+    // ring to it instead.
+    if (index === selectedIndex) open();
+    else select(index);
   };
 
   /**
@@ -398,6 +636,16 @@ export function createLibrary(options: LibraryOptions): Library {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     frameCameras();
+    configureResponsiveTargets();
+    // Steady-state reading: re-seat the held book on the new targets without
+    // touching the orbit camera the user may already have moved.
+    if (mode === "reading" && readingRig) {
+      readingRig.root.position.copy(inspectPosition);
+      readingRig.root.quaternion.copy(inspectBookQuaternion);
+      readingRig.root.scale.setScalar(getInspectScale());
+      currentViewOffsetX = detailViewOffsetX;
+      applyDetailViewOffset();
+    }
   }
 
   const observer = new ResizeObserver(resize);
@@ -448,6 +696,17 @@ export function createLibrary(options: LibraryOptions): Library {
       if (nearest !== selectedIndex) updateSelection(nearest);
 
       updateCarousel(activeRigs, position, dt, REDUCED);
+    } else if (mode === "opening") {
+      transitionTime = Math.min(1, transitionTime + dt / DETAIL_TRANSITION_DURATION);
+      if (transitionTime >= 1) finishOpening();
+      else applyOpening(transitionTime);
+    } else if (mode === "closing") {
+      transitionTime = Math.min(1, transitionTime + dt / DETAIL_TRANSITION_DURATION);
+      if (transitionTime >= 1) finishClosing();
+      else applyClosing(transitionTime);
+    } else if (mode === "reading" && readingRig) {
+      controls.update();
+      updatePaginatedBook(readingRig, dt, readingOpen ? 1 : 0, spread, null, false, REDUCED);
     }
 
     // Floating books have nothing to cast a contact shadow onto once the
@@ -465,13 +724,18 @@ export function createLibrary(options: LibraryOptions): Library {
     // the books frozen halfway out of the shelf.
     if (!visible) return;
 
-    camera.position.lerpVectors(
-      shelfCameraPosition,
-      browseCameraPosition,
-      browseAmount,
-    );
-    cameraTarget.lerpVectors(shelfCameraTarget, browseCameraTarget, browseAmount);
-    camera.lookAt(cameraTarget);
+    // Opening, reading, and closing all drive the camera themselves — the
+    // pose interpolators above, or the orbit controls — so the shelf/browse
+    // blend must not also touch it here, or the two would fight every frame.
+    if (mode !== "opening" && mode !== "reading" && mode !== "closing") {
+      camera.position.lerpVectors(
+        shelfCameraPosition,
+        browseCameraPosition,
+        browseAmount,
+      );
+      cameraTarget.lerpVectors(shelfCameraTarget, browseCameraTarget, browseAmount);
+      camera.lookAt(cameraTarget);
+    }
 
     renderer.render(scene, camera);
     ready = true;
@@ -484,12 +748,14 @@ export function createLibrary(options: LibraryOptions): Library {
     close,
     navigate,
     select,
+    open,
+    resetView,
     debug: () => ({
       mode,
       bay: currentBay,
       selectedIndex,
-      readingOpen: false,
-      spread: 0,
+      readingOpen,
+      spread,
       bookCount: allRigs.length,
       ready,
     }),
@@ -501,6 +767,7 @@ export function createLibrary(options: LibraryOptions): Library {
       canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("click", onClick as EventListener);
       canvas.removeEventListener("wheel", onWheel);
+      controls.dispose();
       renderer.dispose();
       scene.environment?.dispose();
       for (const rig of allRigs) disposeRig(rig);

@@ -4,6 +4,8 @@ import type { BookRig } from "./rig";
 
 /** Seconds the whole fly-out (or the gather back up) takes, stagger included. */
 export const SPREAD_DURATION = 0.92;
+/** Seconds a book's flight to (or back from) the reading pose takes. */
+export const DETAIL_TRANSITION_DURATION = 0.92;
 /**
  * Fraction of the window each successive book waits before starting. The
  * books do not leave the shelf as a slab — the second sets off a beat after
@@ -69,4 +71,43 @@ export function applySpreadPose(
     rig.root.position.y += Math.sin(local * Math.PI) * 0.28;
     rig.root.position.z += Math.sin(local * Math.PI) * 0.18;
   });
+}
+
+/**
+ * Flies one rig from a captured pose to an explicit destination transform —
+ * the single book leaving the carousel to be held and read. Every other rig
+ * in the carousel stays exactly where it is; this only ever touches one.
+ */
+export function applyOpeningPose(
+  rig: BookRig,
+  from: CapturedPose,
+  toPosition: THREE.Vector3,
+  toQuaternion: THREE.Quaternion,
+  toScale: number,
+  t: number,
+): void {
+  const eased = smootherstep(clamp(t, 0, 1));
+  rig.root.position.lerpVectors(from.position, toPosition, eased);
+  rig.root.quaternion.slerpQuaternions(from.quaternion, toQuaternion, eased);
+  rig.root.scale.setScalar(lerp(from.scale.x, toScale, eased));
+}
+
+/**
+ * The reverse of `applyOpeningPose`: flies the held rig from its reading
+ * pose back down onto its carousel slot.
+ */
+export function applyClosingPose(
+  rig: BookRig,
+  from: CapturedPose,
+  toSlot: Slot,
+  t: number,
+): void {
+  const eased = smootherstep(clamp(t, 0, 1));
+  rig.root.position.lerpVectors(from.position, toSlot.position, eased);
+  rig.root.quaternion.slerpQuaternions(
+    from.quaternion,
+    destination.setFromEuler(toSlot.rotation),
+    eased,
+  );
+  rig.root.scale.setScalar(lerp(from.scale.x, toSlot.scale, eased));
 }

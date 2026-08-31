@@ -258,6 +258,34 @@ async function main() {
     check("carousel: still browsing after the wheel", afterWheel?.mode === "browse", `got ${afterWheel?.mode}`);
     await shootStage(carousel, `${SHOTS}wide-browse-turned.png`);
 
+    // ── Picking a volume up: fly to camera, hold it, put it back ──────
+    console.log("\nopening a book");
+    const beforeOpen = await debugState(carousel);
+    await carousel.keyboard.press("Enter");
+    const reachedReading = await waitForMode(carousel, "reading");
+    check("carousel: Enter opens the centred book", reachedReading.ok, `mode stuck at ${reachedReading.mode}`);
+    await sleep(600);
+    const readingState = await debugState(carousel);
+    check(
+      "carousel: readingOpen stays false (Task 10/11's to flip)",
+      readingState?.readingOpen === false,
+      `got ${readingState?.readingOpen}`,
+    );
+    check("carousel: spread stays 0", readingState?.spread === 0, `got ${readingState?.spread}`);
+    await shootStage(carousel, `${SHOTS}wide-reading.png`);
+
+    await carousel.keyboard.press("Escape");
+    const backToBrowse = await waitForMode(carousel, "browse");
+    check("carousel: Escape closes the held book", backToBrowse.ok, `mode stuck at ${backToBrowse.mode}`);
+    await sleep(500);
+    const afterClose = await debugState(carousel);
+    check(
+      "carousel: selection unchanged, book back in its slot",
+      afterClose?.selectedIndex === beforeOpen?.selectedIndex,
+      `${beforeOpen?.selectedIndex} -> ${afterClose?.selectedIndex}`,
+    );
+    await shootStage(carousel, `${SHOTS}wide-reading-closed.png`);
+
     await carousel.keyboard.press("Escape");
     const reachedShelf = await waitForMode(carousel, "shelf");
     check("carousel: Escape reshelves", reachedShelf.ok, `mode stuck at ${reachedShelf.mode}`);

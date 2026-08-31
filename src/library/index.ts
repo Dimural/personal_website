@@ -153,8 +153,10 @@ export function mountLibrary(section: HTMLElement): (() => LibraryDebug) | null 
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") library.close();
+    else if (event.key === "Enter") library.open();
     else if (event.key === "ArrowRight") library.navigate(1);
     else if (event.key === "ArrowLeft") library.navigate(-1);
+    else if (event.key === "r" || event.key === "R") library.resetView();
   });
 
   reflect("shelf", "experience");
