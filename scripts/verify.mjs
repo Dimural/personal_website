@@ -55,6 +55,17 @@ async function startServer() {
   return server;
 }
 
+/**
+ * Every `page.goto` below passes an explicit 60s `timeout` rather than
+ * Puppeteer's 30s default. Measured directly (isolated `goto` timing,
+ * against both this codebase and an unmodified HEAD checkout): the initial
+ * module graph — six books' worth of canvas-painted textures, evaluated
+ * synchronously before `domcontentloaded` can fire — took 35-45s on a
+ * loaded dev machine, comfortably clearing 30s but not by much. Same
+ * swiftshader-under-load story as `waitForMode`'s 90s budget below; this is
+ * the same headroom applied one step earlier, at first navigation.
+ */
+
 /** Never `networkidle` — fonts come from Google and the hero animates to ~1.2s. */
 async function settle(page) {
   await page.evaluate(() => document.fonts.ready);
@@ -174,7 +185,7 @@ async function main() {
       });
       page.on("pageerror", (error) => noise.push(`pageerror: ${error.message}`));
       await page.setViewport({ ...viewport, deviceScaleFactor: 2 });
-      await page.goto(ORIGIN, { waitUntil: "domcontentloaded" });
+      await page.goto(ORIGIN, { waitUntil: "domcontentloaded", timeout: 60000 });
       await settle(page);
 
       const state = await debugState(page);
@@ -199,7 +210,7 @@ async function main() {
     // `spreading` forever and only lurch forward when a screenshot forced a
     // composite. This test is about motion over time; it needs a live clock.
     await carousel.bringToFront();
-    await carousel.goto(ORIGIN, { waitUntil: "domcontentloaded" });
+    await carousel.goto(ORIGIN, { waitUntil: "domcontentloaded", timeout: 60000 });
     await settle(carousel);
     await revealLibrary(carousel);
     const stopPump = await startFramePump(carousel);
@@ -303,7 +314,7 @@ async function main() {
     console.log("\ntexture probe");
     const probe = await browser.newPage();
     await probe.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 1 });
-    await probe.goto(`${ORIGIN}/?probe=textures`, { waitUntil: "domcontentloaded" });
+    await probe.goto(`${ORIGIN}/?probe=textures`, { waitUntil: "domcontentloaded", timeout: 60000 });
     await settle(probe);
     const painted = await probe.evaluate(() => document.querySelectorAll("#probe canvas").length);
     check("texture probe painted every canvas", painted >= 6 * 12, `got ${painted}`);
@@ -319,7 +330,7 @@ async function main() {
     console.log("\ntexture probe (detail)");
     const detail = await browser.newPage();
     await detail.setViewport({ width: 3400, height: 1000, deviceScaleFactor: 1 });
-    await detail.goto(`${ORIGIN}/?probe=textures&volume=finaldose`, { waitUntil: "domcontentloaded" });
+    await detail.goto(`${ORIGIN}/?probe=textures&volume=finaldose`, { waitUntil: "domcontentloaded", timeout: 60000 });
     await settle(detail);
     const detailPainted = await detail.evaluate(() => document.querySelectorAll("#probe canvas").length);
     check("texture probe detail painted one volume", detailPainted === 23, `got ${detailPainted}`);
@@ -329,7 +340,7 @@ async function main() {
     console.log("\nrig probe");
     const rig = await browser.newPage();
     await rig.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 2 });
-    await rig.goto(`${ORIGIN}/?probe=rig`, { waitUntil: "domcontentloaded" });
+    await rig.goto(`${ORIGIN}/?probe=rig`, { waitUntil: "domcontentloaded", timeout: 60000 });
     await settle(rig);
     const rigState = await debugState(rig);
     check("rig probe: debug surface present", rigState !== null);
@@ -353,7 +364,7 @@ async function main() {
     for (const { name, query } of flexCases) {
       const flexPage = await browser.newPage();
       await flexPage.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 2 });
-      await flexPage.goto(`${ORIGIN}/?probe=rig&${query}`, { waitUntil: "domcontentloaded" });
+      await flexPage.goto(`${ORIGIN}/?probe=rig&${query}`, { waitUntil: "domcontentloaded", timeout: 60000 });
       await settle(flexPage);
       const flexState = await debugState(flexPage);
       check(`${name}: debug surface present`, flexState !== null);

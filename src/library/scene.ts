@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { slotFor, snapRigToSlot, updateCarousel, type Slot } from "./carousel";
+import { applyOpacity, slotFor, snapRigToSlot, updateCarousel, type Slot } from "./carousel";
 import { BAYS, VOLUMES, volumesInBay, type Bay, type Volume } from "./data";
 import type { LibraryDebug } from "./debug";
 import { updatePaginatedBook } from "./pages";
@@ -449,6 +449,15 @@ export function createLibrary(options: LibraryOptions): Library {
     if (!rig || !openingFrom) return;
     const eased = smootherstep(clamp(t, 0, 1));
     applyOpeningPose(rig, openingFrom, inspectPosition, inspectBookQuaternion, getInspectScale(), t);
+    // The rest of the carousel is parented to `scene`, not `shelfStage` (Task
+    // 7 needs that so the fly-out preserves a world transform), so sinking
+    // the stage the way the reference does no longer takes them out of
+    // frame. Fade them instead — same mechanism as the inactive-bay and
+    // carousel-distance fades, just driven by the transition clock so it
+    // reverses cleanly under `applyClosing`.
+    for (const other of activeRigs) {
+      if (other !== rig) applyOpacity(other, 1 - eased);
+    }
     camera.position.lerpVectors(openingCameraFrom, inspectCameraPosition, eased);
     cameraTarget.lerpVectors(openingCameraTargetFrom, inspectCameraTarget, eased);
     currentViewOffsetX = lerp(openingViewOffsetFrom, detailViewOffsetX, eased);
@@ -493,6 +502,11 @@ export function createLibrary(options: LibraryOptions): Library {
     if (!rig || !closingFrom || !closingToSlot) return;
     const eased = smootherstep(clamp(t, 0, 1));
     applyClosingPose(rig, closingFrom, closingToSlot, t);
+    // Reverses the opening fade: the rest of the carousel returns to full
+    // opacity in step with the held book's flight back to its slot.
+    for (const other of activeRigs) {
+      if (other !== rig) applyOpacity(other, eased);
+    }
     camera.position.lerpVectors(closingCameraFrom, browseCameraPosition, eased);
     cameraTarget.lerpVectors(closingCameraTargetFrom, browseCameraTarget, eased);
     currentViewOffsetX = lerp(closingViewOffsetFrom, 0, eased);
