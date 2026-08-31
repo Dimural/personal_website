@@ -131,6 +131,7 @@
   align-items: end;
   gap: 1.2rem 2rem;
   color: var(--ink, #23324f);
+  transition: color 0.6s var(--ease-out);
   animation: browse-in 0.5s var(--ease-out) both;
 }
 
@@ -295,10 +296,10 @@
   max-height: 82vh;
   overflow-y: auto;
   padding: clamp(1.6rem, 3vw, 2.4rem);
-  background: var(--paper-pale, var(--plate));
+  background: var(--paper, var(--plate));
   color: var(--ink, #23324f);
   border: 1px solid var(--rule, var(--rule-faint));
-  box-shadow: 0 30px 60px -40px rgb(20 22 30 / 45%);
+  box-shadow: 0 30px 60px -40px rgb(10 12 16 / 55%);
   animation: detail-in 0.55s var(--ease-out) both;
 }
 

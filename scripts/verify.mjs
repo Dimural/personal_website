@@ -88,6 +88,10 @@ async function revealLibrary(page) {
   await sleep(600);
 }
 
+async function shootViewport(page, path) {
+  await page.screenshot({ path });
+}
+
 async function shootStage(page, path) {
   const stage = await page.$(".library__stage");
   await stage.screenshot({ path });
@@ -296,6 +300,7 @@ async function main() {
     );
     check("carousel: spread starts at 0", readingState?.spread === 0, `got ${readingState?.spread}`);
     await shootStage(carousel, `${SHOTS}wide-reading.png`);
+    await shootViewport(carousel, `${SHOTS}wide-reading-full.png`);
 
     // Space swings the cover; the arrows then turn spreads. Both are the
     // keyboard route to what dragging the cover and pages does by pointer.
@@ -304,6 +309,7 @@ async function main() {
     check("carousel: Space opens the cover", opened.ok, `readingOpen ${opened.state?.readingOpen}`);
     await sleep(900);
     await shootStage(carousel, `${SHOTS}wide-reading-open.png`);
+    await shootViewport(carousel, `${SHOTS}wide-reading-open-full.png`);
 
     await carousel.keyboard.press("ArrowRight");
     await carousel.keyboard.press("ArrowRight");
@@ -311,6 +317,7 @@ async function main() {
     check("carousel: arrows turn two spreads", turned.ok, `spread ${turned.state?.spread}`);
     await sleep(900);
     await shootStage(carousel, `${SHOTS}wide-reading-spread.png`);
+    await shootViewport(carousel, `${SHOTS}wide-reading-spread-full.png`);
 
     const panelText = await carousel.evaluate(() => ({
       title: document.getElementById("detail-title")?.textContent ?? "",
@@ -334,6 +341,39 @@ async function main() {
       `got "${panelText.live}"`,
     );
 
+
+    // Light ink on a light ground is invisible but passes every structural
+    // check — the volume palettes pair a dark `paper` with a light `ink`, so
+    // a panel that mixes pairs loses its own type. Measure it.
+    const contrast = await carousel.evaluate(() => {
+      const luminance = (color) => {
+        const [r, g, b] = color.match(/[\d.]+/g).slice(0, 3).map(Number);
+        const channel = (v) => {
+          const c = v / 255;
+          return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+      };
+      const panel = document.getElementById("detail");
+      const bg = luminance(getComputedStyle(panel).backgroundColor);
+      const read = (id) => {
+        const fg = luminance(getComputedStyle(document.getElementById(id)).color);
+        const [hi, lo] = fg > bg ? [fg, bg] : [bg, fg];
+        return Number(((hi + 0.05) / (lo + 0.05)).toFixed(2));
+      };
+      return {
+        title: read("detail-title"),
+        binding: read("detail-binding"),
+        folio: read("page-label"),
+      };
+    });
+    for (const [name, ratio] of Object.entries(contrast)) {
+      check(
+        `carousel: detail ${name} is legible on the panel`,
+        ratio >= 4.5,
+        `contrast ${ratio}:1`,
+      );
+    }
     await carousel.keyboard.press("ArrowLeft");
     const turnedBack = await waitUntil(carousel, (s) => s?.spread === 1);
     check("carousel: arrows turn back", turnedBack.ok, `spread ${turnedBack.state?.spread}`);
@@ -428,6 +468,64 @@ async function main() {
       await flexPage.screenshot({ path: `${SHOTS}${name}.png` });
       await flexPage.close();
     }
+
+    // ── Reduced motion ────────────────────────────────────────────
+    // Every transition should collapse to a single-frame settle, so the
+    // whole flow stays reachable without any of it animating.
+    console.log("\nreduced motion");
+    const reduced = await browser.newPage();
+    const reducedNoise = [];
+    reduced.on("console", (m) => {
+      if (m.type() === "error") reducedNoise.push(m.text());
+    });
+    reduced.on("pageerror", (e) => reducedNoise.push(e.message));
+    await reduced.emulateMediaFeatures([
+      { name: "prefers-reduced-motion", value: "reduce" },
+    ]);
+    await reduced.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
+    await reduced.goto(ORIGIN, { waitUntil: "domcontentloaded" });
+    await settle(reduced);
+    await reduced.evaluate(() => document.querySelector("#library").scrollIntoView());
+    await sleep(400);
+    await reduced.click('[data-bay="experience"]');
+    const rBrowse = await waitUntil(reduced, (st) => st?.mode === "browse", 15000);
+    check("reduced motion: reaches browse without animating", rBrowse.ok, `mode ${rBrowse.state?.mode}`);
+    await reduced.keyboard.press("Enter");
+    const rRead = await waitUntil(reduced, (st) => st?.mode === "reading", 15000);
+    check("reduced motion: opens a book", rRead.ok, `mode ${rRead.state?.mode}`);
+    await reduced.keyboard.press("Escape");
+    await reduced.keyboard.press("Escape");
+    const rShelf = await waitUntil(reduced, (st) => st?.mode === "shelf", 15000);
+    check("reduced motion: returns to the shelf", rShelf.ok, `mode ${rShelf.state?.mode}`);
+    await shootViewport(reduced, `${SHOTS}reduced-motion.png`);
+    check("reduced motion: console clean", reducedNoise.length === 0, reducedNoise.slice(0, 2).join(" | "));
+    await reduced.close();
+
+    // ── No WebGL ──────────────────────────────────────────────────
+    // The outer guard: the full catalogue must stay readable as HTML.
+    console.log("\nno webgl");
+    const noGl = await browser.newPage();
+    await noGl.evaluateOnNewDocument(() => {
+      // Deny every WebGL context so the fallback path is the only one left.
+      const deny = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+        if (String(type).includes("webgl")) return null;
+        return deny.call(this, type, ...rest);
+      };
+    });
+    await noGl.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
+    await noGl.goto(ORIGIN, { waitUntil: "domcontentloaded" });
+    await settle(noGl);
+    const fallback = await noGl.evaluate(() => ({
+      present: Boolean(document.querySelector(".shelf-static")),
+      items: document.querySelectorAll(".shelf-static__item").length,
+      lines: document.querySelectorAll(".shelf-static__lines li").length,
+    }));
+    check("no webgl: static catalogue renders", fallback.present, JSON.stringify(fallback));
+    check("no webgl: all six volumes listed", fallback.items === 6, `got ${fallback.items}`);
+    check("no webgl: every bullet present", fallback.lines >= 15, `got ${fallback.lines}`);
+    await shootViewport(noGl, `${SHOTS}no-webgl.png`);
+    await noGl.close();
   } finally {
     if (browser) await browser.close();
     if (server) server.kill();
