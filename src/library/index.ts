@@ -1,5 +1,6 @@
 import { BAYS, VOLUMES, volumesInBay, type Bay, type Volume } from "./data";
-import { createLibrary, type Library } from "./scene";
+import type { LibraryDebug } from "./debug";
+import { createLibrary, type Library, type Mode } from "./scene";
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -46,133 +47,119 @@ function buildFallback(): HTMLElement {
   return wrap;
 }
 
-function buildDetail(v: Volume): DocumentFragment {
-  const frag = document.createDocumentFragment();
-  frag.append(el("p", "detail__eyebrow", v.dates));
-  frag.append(el("h3", "detail__title", v.title));
-  frag.append(el("p", "detail__subtitle", `${v.subtitle} · ${v.place}`));
-
-  const rule = el("hr", "detail__rule");
-  frag.append(rule);
-
-  const list = el("ul", "detail__lines");
-  for (const line of v.lines) list.append(el("li", undefined, line));
-  frag.append(list);
-
-  const tags = el("ul", "detail__tags");
-  for (const tag of v.tags) tags.append(el("li", undefined, tag));
-  frag.append(tags);
-
-  return frag;
-}
-
-export function mountLibrary(section: HTMLElement) {
+/**
+ * Mounts the shelf and returns a debug accessor for `installDebug`.
+ *
+ * The browse interface here is deliberately thin — the bay tabs, a hint line,
+ * a keyboard route, and Escape. The real one (counter, markers, prev/next,
+ * detail panel) is Task 10's; this is only enough to drive and verify the
+ * mode machine.
+ */
+export function mountLibrary(section: HTMLElement): (() => LibraryDebug) | null {
   const stage = section.querySelector<HTMLElement>(".library__stage");
   const caption = section.querySelector<HTMLElement>(".library__caption");
-  if (!stage || !caption) return;
+  if (!stage || !caption) return null;
   const captionEl: HTMLElement = caption;
 
   if (!webglAvailable()) {
     section.classList.add("library--static");
     stage.replaceChildren(buildFallback());
-    return;
+    return null;
   }
 
   // ── Stage furniture ───────────────────────────────────────────
   const canvas = el("canvas", "library__canvas");
   canvas.setAttribute("aria-hidden", "true");
 
-  const hint = el("p", "library__hint", "Select a volume to open it");
-
-  const detail = el("aside", "detail");
-  detail.setAttribute("aria-live", "polite");
-  detail.hidden = true;
-
-  const close = el("button", "detail__close");
-  close.type = "button";
-  close.setAttribute("aria-label", "Return the volume to the shelf");
-  close.textContent = "Shelve it";
-
-  const detailBody = el("div", "detail__body");
-  detail.append(detailBody, close);
+  const IDLE_HINT = "Choose a bay to empty it";
+  const hint = el("p", "library__hint", IDLE_HINT);
 
   // Keyboard route to every volume, since a canvas offers none.
   const keys = el("div", "library__keys");
   keys.setAttribute("aria-label", "Volumes on this shelf");
 
-  stage.replaceChildren(canvas, hint, detail, keys);
+  stage.replaceChildren(canvas, hint, keys);
 
   // ── Scene ─────────────────────────────────────────────────────
   let library: Library;
   try {
     library = createLibrary({
       canvas,
-      onSelect: (volume) => showDetail(volume),
-      onHover: (volume) => {
-        hint.textContent = volume
-          ? `${volume.title} — ${volume.subtitle}`
-          : "Select a volume to open it";
-        hint.classList.toggle("is-named", Boolean(volume));
+      onSelect: (volume) => {
+        selectedVolume = volume;
+        describe(volume);
       },
+      onHover: (volume) => describe(volume ?? selectedVolume),
+      onMode: (mode, bay) => reflect(mode, bay),
     });
   } catch {
     section.classList.add("library--static");
     stage.replaceChildren(buildFallback());
-    return;
+    return null;
   }
 
-  function showDetail(volume: Volume | null) {
-    if (!volume) {
-      detail.classList.remove("is-open");
-      window.setTimeout(() => {
-        if (!detail.classList.contains("is-open")) detail.hidden = true;
-      }, 420);
-      hint.hidden = false;
-      return;
-    }
-    detailBody.replaceChildren(buildDetail(volume));
-    detail.hidden = false;
-    hint.hidden = true;
-    // Let the element paint before transitioning it in.
-    requestAnimationFrame(() => detail.classList.add("is-open"));
+  let selectedVolume: Volume | null = null;
+
+  function describe(volume: Volume | null) {
+    hint.textContent = volume
+      ? `${volume.title} — ${volume.subtitle}`
+      : IDLE_HINT;
+    hint.classList.toggle("is-named", Boolean(volume));
   }
 
-  close.addEventListener("click", () => library.select(null));
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") library.select(null);
-  });
-
-  // ── Bay toggle ────────────────────────────────────────────────
+  // ── Bay tabs ──────────────────────────────────────────────────
   const tabs = section.querySelectorAll<HTMLButtonElement>("[data-bay]");
 
-  function renderKeys(bay: Bay) {
-    keys.replaceChildren(
-      ...volumesInBay(bay).map((v) => {
-        const button = el("button", "library__key", `Open ${v.title}`);
-        button.type = "button";
-        button.addEventListener("click", () => library.select(v.id));
-        return button;
-      }),
-    );
-  }
-
-  function activate(bay: Bay) {
-    library.setBay(bay);
-    captionEl.textContent = BAYS.find((b) => b.id === bay)!.caption;
+  function reflect(mode: Mode, bay: Bay) {
+    const open = mode !== "shelf";
     for (const tab of tabs) {
-      const active = tab.dataset.bay === bay;
+      const active = open && tab.dataset.bay === bay;
       tab.setAttribute("aria-selected", String(active));
       tab.classList.toggle("is-active", active);
     }
-    renderKeys(bay);
+    captionEl.textContent = open
+      ? BAYS.find((b) => b.id === bay)!.caption
+      : "Two bays, six volumes";
+    renderKeys(bay, open);
+  }
+
+  function renderKeys(bay: Bay, open: boolean) {
+    keys.replaceChildren(
+      ...volumesInBay(bay).map((v, index) => {
+        const button = el("button", "library__key", `Show ${v.title}`);
+        button.type = "button";
+        button.addEventListener("click", () => {
+          library.openBay(bay);
+          library.select(index);
+        });
+        return button;
+      }),
+      ...(open
+        ? [
+            (() => {
+              const button = el("button", "library__key", "Shelve these volumes");
+              button.type = "button";
+              button.addEventListener("click", () => library.close());
+              return button;
+            })(),
+          ]
+        : []),
+    );
   }
 
   for (const tab of tabs) {
-    tab.addEventListener("click", () => activate(tab.dataset.bay as Bay));
+    tab.addEventListener("click", () => library.openBay(tab.dataset.bay as Bay));
   }
 
-  activate("experience");
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") library.close();
+    else if (event.key === "ArrowRight") library.navigate(1);
+    else if (event.key === "ArrowLeft") library.navigate(-1);
+  });
+
+  reflect("shelf", "experience");
+
+  return library.debug;
 }
 
 export { VOLUMES };

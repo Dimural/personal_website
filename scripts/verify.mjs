@@ -65,6 +65,78 @@ async function debugState(page) {
   return page.evaluate(() => window.__library ?? null);
 }
 
+/**
+ * The scene pauses when the canvas leaves the viewport (IntersectionObserver
+ * in `scene.ts`), so anything that has to *animate* must be scrolled into
+ * view first or it will simply never advance.
+ */
+async function revealLibrary(page) {
+  await page.evaluate(() =>
+    document.querySelector("#library").scrollIntoView({ block: "center" }),
+  );
+  await sleep(600);
+}
+
+async function shootStage(page, path) {
+  const stage = await page.$(".library__stage");
+  await stage.screenshot({ path });
+}
+
+/**
+ * Headless Chrome produces frames only on demand, so a `requestAnimationFrame`
+ * loop stalls between screenshots and a time-driven transition never advances
+ * — it lurches forward only when something forces a composite. A screencast
+ * keeps BeginFrames coming for as long as it runs, which is what lets the
+ * carousel case measure motion over real time. Returns a stop function.
+ */
+async function startFramePump(page) {
+  const client = await page.createCDPSession();
+  client.on("Page.screencastFrame", ({ sessionId }) => {
+    client.send("Page.screencastFrameAck", { sessionId }).catch(() => {});
+  });
+  await client.send("Page.enable");
+  await client.send("Page.startScreencast", {
+    format: "jpeg",
+    quality: 10,
+    maxWidth: 120,
+    maxHeight: 120,
+    everyNthFrame: 1,
+  });
+  return async () => {
+    await client.send("Page.stopScreencast").catch(() => {});
+    await client.detach().catch(() => {});
+  };
+}
+
+/**
+ * Polls the debug surface; resolves false if the mode never arrives.
+ *
+ * The default timeout is generous. In this headless + swiftshader setup,
+ * `requestAnimationFrame` itself — not `renderer.render()`, which is
+ * consistently a few milliseconds — gets paced by the browser at roughly
+ * 1 Hz once a bay tab is clicked and the scene starts actively animating
+ * (confirmed with an independent rAF counter unrelated to Three.js: it
+ * throttles identically). `dt` is clamped to 0.05s per frame by design (a
+ * production safeguard against huge jumps if a real tab was backgrounded),
+ * so at ~1 frame/second the 0.92s SPREAD_DURATION transition needs on the
+ * order of twenty real seconds to accumulate here, even though it renders
+ * in under a second in a normal browser. Measured completion in this
+ * environment: 25-40s per transition, and regrouping runs slower than
+ * spreading the further into an animated session it starts, so the budget
+ * below leaves real headroom rather than chasing the measured minimum.
+ */
+async function waitForMode(page, target, timeout = 90000) {
+  const deadline = Date.now() + timeout;
+  let last = null;
+  while (Date.now() < deadline) {
+    const state = await debugState(page);
+    last = state?.mode ?? null;
+    if (last === target) return { ok: true, mode: last };
+    await sleep(80);
+  }
+  return { ok: false, mode: last };
+}
+
 async function main() {
   await rm(SHOTS, { recursive: true, force: true });
   await mkdir(SHOTS, { recursive: true });
@@ -78,7 +150,17 @@ async function main() {
     browser = await puppeteer.launch({
       executablePath: CHROME,
       headless: true,
-      args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
+      args: [
+        "--use-gl=angle",
+        "--use-angle=swiftshader",
+        "--enable-unsafe-swiftshader",
+        // Without these a background tab's rAF loop is throttled to a stop,
+        // and a transition driven by the frame clock never advances between
+        // screenshots. See `bringToFront` below as well.
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+      ],
     });
 
     for (const viewport of VIEWPORTS) {
@@ -103,6 +185,92 @@ async function main() {
       check(`${viewport.name}: console clean`, noise.length === 0, noise.slice(0, 3).join(" | "));
       await page.close();
     }
+
+    // ── The fly-out, the carousel, and the gather back up ──────────
+    console.log("\ncarousel");
+    const carousel = await browser.newPage();
+    const carouselNoise = [];
+    carousel.on("console", (message) => {
+      if (message.type() === "error") carouselNoise.push(message.text());
+    });
+    carousel.on("pageerror", (error) => carouselNoise.push(error.message));
+    await carousel.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
+    // A backgrounded tab produces no frames, so the mode machine would sit at
+    // `spreading` forever and only lurch forward when a screenshot forced a
+    // composite. This test is about motion over time; it needs a live clock.
+    await carousel.bringToFront();
+    await carousel.goto(ORIGIN, { waitUntil: "domcontentloaded" });
+    await settle(carousel);
+    await revealLibrary(carousel);
+    const stopPump = await startFramePump(carousel);
+
+    const shelfState = await debugState(carousel);
+    check("carousel: starts in shelf mode", shelfState?.mode === "shelf", `got ${shelfState?.mode}`);
+    check("carousel: six books on the shelf", shelfState?.bookCount === 6, `got ${shelfState?.bookCount}`);
+    await shootStage(carousel, `${SHOTS}wide-shelf.png`);
+
+    await carousel.evaluate(() =>
+      document.querySelector('[data-bay="experience"]').click(),
+    );
+
+    // Mid-flight: read the state first, then shoot, so the assertion is not
+    // pushed past the transition by the screenshot's own latency.
+    await sleep(300);
+    const midState = await debugState(carousel);
+    await shootStage(carousel, `${SHOTS}wide-spreading.png`);
+    check("carousel: caught mid-flight", midState?.mode === "spreading", `got ${midState?.mode}`);
+
+    const reachedBrowse = await waitForMode(carousel, "browse");
+    check("carousel: reaches browse", reachedBrowse.ok, `mode stuck at ${reachedBrowse.mode}`);
+    await sleep(700);
+    await shootStage(carousel, `${SHOTS}wide-browse.png`);
+
+    const beforeWheel = (await debugState(carousel))?.selectedIndex;
+    await carousel.evaluate(() => {
+      const canvas = document.querySelector(".library__canvas");
+      const rect = canvas.getBoundingClientRect();
+      for (let i = 0; i < 2; i++) {
+        canvas.dispatchEvent(
+          new WheelEvent("wheel", {
+            deltaY: 400,
+            bubbles: true,
+            cancelable: true,
+            clientX: rect.left + rect.width / 2,
+            clientY: rect.top + rect.height / 2,
+          }),
+        );
+      }
+    });
+    // Same rAF throttling as `waitForMode` above applies here too — `position`
+    // only damps toward `targetPosition` on real animation frames, so give it
+    // the same generous, poll-until-changed budget rather than a fixed sleep.
+    const wheelDeadline = Date.now() + 60000;
+    let afterWheel = await debugState(carousel);
+    while (Date.now() < wheelDeadline && afterWheel?.selectedIndex === beforeWheel) {
+      await sleep(200);
+      afterWheel = await debugState(carousel);
+    }
+    check(
+      "carousel: wheel advances the selection",
+      afterWheel?.selectedIndex !== beforeWheel,
+      `${beforeWheel} -> ${afterWheel?.selectedIndex}`,
+    );
+    check("carousel: still browsing after the wheel", afterWheel?.mode === "browse", `got ${afterWheel?.mode}`);
+    await shootStage(carousel, `${SHOTS}wide-browse-turned.png`);
+
+    await carousel.keyboard.press("Escape");
+    const reachedShelf = await waitForMode(carousel, "shelf");
+    check("carousel: Escape reshelves", reachedShelf.ok, `mode stuck at ${reachedShelf.mode}`);
+    await sleep(500);
+    await shootStage(carousel, `${SHOTS}wide-reshelved.png`);
+
+    check(
+      "carousel: console clean",
+      carouselNoise.length === 0,
+      carouselNoise.slice(0, 3).join(" | "),
+    );
+    await stopPump();
+    await carousel.close();
 
     console.log("\ntexture probe");
     const probe = await browser.newPage();

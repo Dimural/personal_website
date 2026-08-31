@@ -15,15 +15,20 @@ if (probe === "textures") {
   const { mountRigProbe } = await import("./library/probe");
   mountRigProbe(document.querySelector<HTMLElement>("#probe")!);
 } else if (library) {
-  mountLibrary(library);
+  const surface = mountLibrary(library);
 
-  installDebug(() => ({
-    mode: "shelf",
-    bay: "experience",
-    selectedIndex: 0,
-    readingOpen: false,
-    spread: 0,
-    bookCount: 0,
-    ready: true,
-  }));
+  // No surface means the static fallback took over (no WebGL, or the scene
+  // threw on construction) — the harness still needs something to read.
+  installDebug(
+    surface ??
+      (() => ({
+        mode: "static",
+        bay: "experience",
+        selectedIndex: 0,
+        readingOpen: false,
+        spread: 0,
+        bookCount: 0,
+        ready: true,
+      })),
+  );
 }
