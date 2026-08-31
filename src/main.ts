@@ -8,13 +8,23 @@ import { installDebug } from "./library/debug";
 const library = document.querySelector<HTMLElement>("#library");
 
 const probe = new URLSearchParams(location.search).get("probe");
-if (probe === "textures") {
-  const { mountTextureProbe } = await import("./library/probe");
-  mountTextureProbe(document.querySelector<HTMLElement>("#probe")!);
-} else if (probe === "rig") {
-  const { mountRigProbe } = await import("./library/probe");
-  mountRigProbe(document.querySelector<HTMLElement>("#probe")!);
-} else if (library) {
+
+/**
+ * Wrapped rather than run at the top level: `vite build` targets browsers
+ * without top-level await, so a bare `await import(...)` here typechecks but
+ * fails the production build. The dev server tolerates it, which is exactly
+ * why it went unnoticed.
+ */
+async function start() {
+  if (probe === "textures" || probe === "rig") {
+    const target = document.querySelector<HTMLElement>("#probe")!;
+    const { mountTextureProbe, mountRigProbe } = await import("./library/probe");
+    if (probe === "textures") mountTextureProbe(target);
+    else mountRigProbe(target);
+    return;
+  }
+
+  if (!library) return;
   const surface = mountLibrary(library);
 
   // No surface means the static fallback took over (no WebGL, or the scene
@@ -32,3 +42,5 @@ if (probe === "textures") {
       })),
   );
 }
+
+void start();

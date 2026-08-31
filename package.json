@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "verify": "node scripts/verify.mjs"
+    "verify": "tsc --noEmit && vite build && node scripts/verify.mjs"
   },
   "dependencies": {
     "three": "^0.165.0"

@@ -9,6 +9,8 @@ export const SPREAD_COUNT = PAGINATED_LEAF_COUNT + 1;
 
 const clamp = THREE.MathUtils.clamp;
 const damp = THREE.MathUtils.damp;
+const lerp = THREE.MathUtils.lerp;
+const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
 /**
  * Advances one sheet's curve/twist springs toward their targets and, unless
@@ -123,8 +125,8 @@ export function updatePaginatedBook(
     let pageTarget = 0;
     let positionTarget = pagePivot.userData.restZ;
     let pageTwistTarget = 0;
-    const dragCurveBoost = 0;
-    const flexTwistTarget = 0;
+    let dragCurveBoost = 0;
+    let flexTwistTarget = 0;
 
     if (leafOrder < PAGINATED_LEAF_COUNT) {
       const isTurned = leafOrder < spread;
@@ -133,10 +135,33 @@ export function updatePaginatedBook(
       pageTarget = isTurned ? turnedTarget : unturnedTarget;
       positionTarget = isTurned ? pagePivot.userData.turnedZ : pagePivot.userData.restZ;
 
-      if (drag !== null && drag.active) {
-        // Task 11 fills this in: drag-driven page target, curve boost, and
-        // twist, keyed off `drag.direction` / `drag.progress` for the leaf
-        // currently being dragged.
+      // Only the one leaf under the finger responds; the rest hold their
+      // resting targets, so a half-finished drag never disturbs the stack.
+      if (drag !== null && drag.active && drag.direction !== 0) {
+        const draggedLeaf = drag.direction > 0 ? spread : spread - 1;
+        if (leafOrder === draggedLeaf) {
+          const dragProgress = smoothstep(drag.progress);
+          const envelope = Math.sin(Math.PI * dragProgress);
+          const speedResponse = clamp(Math.abs(drag.progressVelocity) / 5.5, 0, 1);
+          const signedSpeed = clamp(drag.progressVelocity / 5.5, -1, 1);
+
+          pageTarget =
+            drag.direction > 0
+              ? lerp(unturnedTarget, turnedTarget, dragProgress)
+              : lerp(turnedTarget, unturnedTarget, dragProgress);
+          positionTarget =
+            drag.direction > 0
+              ? lerp(pagePivot.userData.restZ, pagePivot.userData.turnedZ, dragProgress)
+              : lerp(pagePivot.userData.turnedZ, pagePivot.userData.restZ, dragProgress);
+
+          // The sheet lifts and bows hardest at mid-turn, and harder still
+          // the faster it is dragged — that is what makes a flick whip.
+          pageTwistTarget =
+            drag.direction * envelope * (0.014 + drag.verticalBias * 0.026);
+          dragCurveBoost = envelope * (0.032 + speedResponse * 0.064);
+          flexTwistTarget =
+            envelope * (drag.verticalBias * 0.08 + signedSpeed * drag.direction * 0.03);
+        }
       }
 
       pagePivot.position.z = damp(

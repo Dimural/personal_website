@@ -86,6 +86,80 @@
         </div>
 
         <div class="library__stage"></div>
+
+        <section class="browse" id="browse" aria-label="Volume browser" hidden>
+          <div class="browse__selection">
+            <p class="browse__counter" id="browse-counter">01 / 03</p>
+            <h3 class="browse__title" id="browse-title">FinalDose</h3>
+            <p class="browse__note" id="browse-note"></p>
+          </div>
+
+          <div class="browse__actions">
+            <button class="round" id="browse-prev" type="button" aria-label="Previous volume">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10.5 3.5-4.5 4.5 4.5 4.5" /></svg>
+            </button>
+            <button class="text-button" id="browse-open" type="button">Open</button>
+            <button class="round" id="browse-next" type="button" aria-label="Next volume">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5.5 3.5 4.5 4.5-4.5 4.5" /></svg>
+            </button>
+          </div>
+
+          <nav class="browse__index" aria-label="Volume index">
+            <div class="browse__markers" id="browse-markers" role="tablist" aria-label="Choose a volume"></div>
+            <p class="browse__hint">Wheel · arrows · select</p>
+            <button class="text-button text-button--quiet" id="browse-shelve" type="button">
+              Shelve these
+            </button>
+          </nav>
+        </section>
+
+        <aside
+          class="detail"
+          id="detail"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="detail-title"
+          aria-hidden="true"
+          hidden
+        >
+          <button class="detail__close" id="detail-close" type="button" aria-label="Return the volume to the carousel">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" /></svg>
+          </button>
+
+          <p class="detail__eyebrow" id="detail-eyebrow"></p>
+          <h3 class="detail__title" id="detail-title"></h3>
+          <p class="detail__deck" id="detail-deck"></p>
+
+          <dl class="detail__meta">
+            <div><dt>Binding</dt><dd id="detail-binding"></dd></div>
+            <div><dt>Format</dt><dd id="detail-format"></dd></div>
+            <div><dt>Theme</dt><dd id="detail-theme"></dd></div>
+            <div><dt>Place</dt><dd id="detail-place"></dd></div>
+          </dl>
+
+          <div class="detail__pages" role="group" aria-label="Browse the pages">
+            <button class="round" id="page-prev" type="button" aria-label="Previous spread" disabled>
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10.5 3.5-4.5 4.5 4.5 4.5" /></svg>
+            </button>
+            <p class="detail__folio">
+              <strong id="page-label">Closed</strong>
+              <span id="page-counter">Click the book to open it</span>
+            </p>
+            <button class="round" id="page-next" type="button" aria-label="Next spread" disabled>
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5.5 3.5 4.5 4.5-4.5 4.5" /></svg>
+            </button>
+          </div>
+
+          <div class="detail__foot">
+            <p class="detail__hint">Drag the cover or a page · drag the background to orbit</p>
+            <div class="detail__buttons">
+              <button class="text-button" id="detail-toggle" type="button" aria-pressed="false">Open book</button>
+              <button class="text-button text-button--quiet" id="detail-reset" type="button">Reset view</button>
+            </div>
+          </div>
+        </aside>
+
+        <p class="sr-only" id="live" aria-live="polite"></p>
       </section>
 
       <section class="probe" id="probe" hidden aria-label="Texture probe"></section>

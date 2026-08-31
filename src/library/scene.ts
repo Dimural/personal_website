@@ -3,7 +3,14 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { applyOpacity, slotFor, snapRigToSlot, updateCarousel, type Slot } from "./carousel";
 import { BAYS, VOLUMES, volumesInBay, type Bay, type Volume } from "./data";
 import type { LibraryDebug } from "./debug";
-import { updatePaginatedBook } from "./pages";
+import { SPREAD_COUNT, updatePaginatedBook } from "./pages";
+import {
+  applyPageReleaseImpulse,
+  createDetailPress,
+  createPageDrag,
+  resetPageDrag,
+  updatePageDragFromEvent,
+} from "./gestures";
 import {
   DETAIL_TRANSITION_DURATION,
   SPREAD_DURATION,
@@ -15,6 +22,7 @@ import {
   type CapturedPose,
 } from "./poses";
 import { createBookRig, disposeRig, type BookRig } from "./rig";
+import { createTheme } from "./theme";
 import {
   BAY_X,
   SHELF_BOARD_TOP,
@@ -66,12 +74,18 @@ export interface Library {
   open(): void;
   /** Recentres the orbit camera on the held book. Ignored unless reading. */
   resetView(): void;
+  /** Swings the held book's cover open or shut. Ignored unless reading. */
+  setReadingOpen(open: boolean): void;
+  /** Turns one spread. Ignored unless the held book is open. */
+  turnPage(direction: number): void;
   debug(): LibraryDebug;
   dispose(): void;
 }
 
 export interface LibraryOptions {
   canvas: HTMLCanvasElement;
+  /** The library section — theme custom properties are scoped to it. */
+  section: HTMLElement;
   onSelect: (volume: Volume | null) => void;
   onHover: (volume: Volume | null) => void;
   onMode: (mode: Mode, bay: Bay) => void;
@@ -85,7 +99,7 @@ const smootherstep = (value: number) =>
   value * value * value * (value * (value * 6 - 15) + 10);
 
 export function createLibrary(options: LibraryOptions): Library {
-  const { canvas, onSelect, onHover, onMode } = options;
+  const { canvas, section, onSelect, onHover, onMode } = options;
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -117,6 +131,8 @@ export function createLibrary(options: LibraryOptions): Library {
   controls.maxPolarAngle = Math.PI * 0.62;
 
   const room = createRoom(scene, renderer);
+  const theme = createTheme(room, section, REDUCED);
+  theme.apply(null);
 
   // ── Shelve the books ────────────────────────────────────────────
   /** Every rig, grouped by bay; carousel indices are indices into these. */
@@ -368,6 +384,7 @@ export function createLibrary(options: LibraryOptions): Library {
     browseAmount = 1;
     transitionTime = 1;
     mode = "browse";
+    theme.apply(activeRigs[selectedIndex]?.data ?? null);
     announce();
   }
 
@@ -408,6 +425,7 @@ export function createLibrary(options: LibraryOptions): Library {
     }
     activeRigs = [];
     setInactiveOpacity(1);
+    theme.apply(null);
     browseAmount = 0;
     transitionTime = 1;
     mode = "shelf";
@@ -489,6 +507,7 @@ export function createLibrary(options: LibraryOptions): Library {
     closingViewOffsetFrom = currentViewOffsetX;
     closingToSlot = slotFor(selectedIndex, position, activeRigs.length, rig.base.height);
 
+    settleDrag(false);
     readingOpen = false;
     spread = 0;
     mode = "closing";
@@ -552,7 +571,9 @@ export function createLibrary(options: LibraryOptions): Library {
   function updateSelection(index: number) {
     if (index === selectedIndex) return;
     selectedIndex = index;
-    onSelect(activeRigs[index]?.data ?? null);
+    const volume = activeRigs[index]?.data ?? null;
+    theme.apply(volume);
+    onSelect(volume);
   }
 
   function navigate(direction: number) {
@@ -627,6 +648,128 @@ export function createLibrary(options: LibraryOptions): Library {
    * `{ passive: false }` is not optional — `preventDefault` on a passive
    * listener is a silent no-op and the page scrolls instead of the carousel.
    */
+  // ── Reading gestures ────────────────────────────────────────────
+  // Two independent machines: `press` distinguishes a click on the book from
+  // a drag that orbits the camera; `drag` runs the cover-open and page-turn
+  // gestures. They must stay separate — one pointer stream, two meanings.
+  const drag = createPageDrag();
+  const press = createDetailPress();
+
+  function setReadingOpen(open: boolean) {
+    if (mode !== "reading" || readingOpen === open) return;
+    readingOpen = open;
+    if (!open) spread = 0;
+    announce();
+  }
+
+  function turnPage(direction: number) {
+    if (mode !== "reading" || !readingOpen) return;
+    const next = clamp(spread + direction, 0, SPREAD_COUNT - 1);
+    if (next === spread) return;
+    spread = next;
+    announce();
+  }
+
+  /** The leaf a committed drag was turning, so its springs get the impulse. */
+  function draggedFlex() {
+    if (!readingRig || drag.direction === 0) return null;
+    const leafOrder = drag.direction > 0 ? spread : spread - 1;
+    const pivot = readingRig.pagePivots[readingRig.pagePivots.length - 1 - leafOrder];
+    return (pivot?.userData.flex ?? null) as {
+      curveVelocity: number;
+      twistVelocity: number;
+    } | null;
+  }
+
+  function settleDrag(commit: boolean) {
+    if (!drag.active) return;
+    const kind = drag.kind;
+    const direction = drag.direction;
+    const committed = commit && drag.committed;
+    if (committed && kind === "page") {
+      const flex = draggedFlex();
+      if (flex) applyPageReleaseImpulse(flex, drag);
+    }
+    if (drag.pointerId !== null && canvas.hasPointerCapture?.(drag.pointerId)) {
+      canvas.releasePointerCapture(drag.pointerId);
+    }
+    resetPageDrag(drag);
+    controls.enabled = mode === "reading";
+    if (!committed) return;
+    if (kind === "cover-open") setReadingOpen(true);
+    else if (kind === "cover-close") setReadingOpen(false);
+    else if (kind === "page") turnPage(direction);
+  }
+
+  /** Which surface of the held book is under the pointer, if any. */
+  function readingSurface(): "cover" | "page" | null {
+    if (!readingRig) return null;
+    raycaster.setFromCamera(pointer, camera);
+    if (readingOpen) {
+      const page = raycaster.intersectObjects(readingRig.pageSurfaces, false)[0];
+      if (page) return "page";
+    }
+    const cover = raycaster.intersectObject(readingRig.frontPivot, true)[0];
+    if (cover) return "cover";
+    return raycaster.intersectObject(readingRig.hit, false)[0] ? "cover" : null;
+  }
+
+  const onPointerDown = (event: PointerEvent) => {
+    if (mode !== "reading" || !readingRig || event.button !== 0) return;
+    if (event.isPrimary === false) return;
+    updatePointer(event);
+    const surface = readingSurface();
+    if (!surface) return;
+
+    // Record the press either way: an unmoved pointerup on the book toggles
+    // the cover, while a moved one is an orbit and must not.
+    press.active = true;
+    press.pointerId = event.pointerId;
+    press.startX = event.clientX;
+    press.startY = event.clientY;
+    press.moved = false;
+    press.allowClick = false;
+
+    drag.active = true;
+    drag.pointerId = event.pointerId;
+    drag.startX = event.clientX;
+    drag.startY = event.clientY;
+    drag.lastTime = event.timeStamp || performance.now();
+    drag.kind =
+      surface === "page" ? "page" : readingOpen ? "cover-close" : "cover-open";
+    controls.enabled = false;
+    canvas.setPointerCapture?.(event.pointerId);
+  };
+
+  const onPointerDrag = (event: PointerEvent) => {
+    if (press.active && event.pointerId === press.pointerId) {
+      if (Math.hypot(event.clientX - press.startX, event.clientY - press.startY) > 16) {
+        press.moved = true;
+      }
+    }
+    if (!drag.active || event.pointerId !== drag.pointerId) return;
+    event.preventDefault();
+    updatePointer(event);
+    updatePageDragFromEvent(drag, event, spread, SPREAD_COUNT);
+  };
+
+  const onPointerUp = (event: PointerEvent) => {
+    const wasPress = press.active && event.pointerId === press.pointerId;
+    if (wasPress) {
+      press.allowClick = event.type === "pointerup" && !press.moved;
+      press.active = false;
+      press.pointerId = null;
+    }
+    if (drag.active && event.pointerId === drag.pointerId) {
+      const committed = drag.committed;
+      settleDrag(true);
+      // A tap that never became a drag still opens or closes the cover.
+      if (!committed && wasPress && press.allowClick && mode === "reading") {
+        setReadingOpen(!readingOpen);
+      }
+    }
+  };
+
   const onWheel = (event: WheelEvent) => {
     if (mode !== "browse") return;
     event.preventDefault();
@@ -640,6 +783,10 @@ export function createLibrary(options: LibraryOptions): Library {
   canvas.addEventListener("pointerleave", onPointerLeave);
   canvas.addEventListener("click", onClick as EventListener);
   canvas.addEventListener("wheel", onWheel, { passive: false });
+  canvas.addEventListener("pointerdown", onPointerDown);
+  canvas.addEventListener("pointermove", onPointerDrag);
+  canvas.addEventListener("pointerup", onPointerUp);
+  canvas.addEventListener("pointercancel", onPointerUp);
 
   // ── Resize ──────────────────────────────────────────────────────
   function resize() {
@@ -720,8 +867,18 @@ export function createLibrary(options: LibraryOptions): Library {
       else applyClosing(transitionTime);
     } else if (mode === "reading" && readingRig) {
       controls.update();
-      updatePaginatedBook(readingRig, dt, readingOpen ? 1 : 0, spread, null, false, REDUCED);
+      updatePaginatedBook(
+        readingRig,
+        dt,
+        readingOpen ? 1 : 0,
+        spread,
+        drag.active ? drag : null,
+        hoveredId === readingRig.data.id,
+        REDUCED,
+      );
     }
+
+    theme.update(dt);
 
     // Floating books have nothing to cast a contact shadow onto once the
     // carcass has sunk, so the decal fades out with the shelf.
@@ -764,6 +921,8 @@ export function createLibrary(options: LibraryOptions): Library {
     select,
     open,
     resetView,
+    setReadingOpen,
+    turnPage,
     debug: () => ({
       mode,
       bay: currentBay,
@@ -781,6 +940,10 @@ export function createLibrary(options: LibraryOptions): Library {
       canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("click", onClick as EventListener);
       canvas.removeEventListener("wheel", onWheel);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointermove", onPointerDrag);
+      canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", onPointerUp);
       controls.dispose();
       renderer.dispose();
       scene.environment?.dispose();

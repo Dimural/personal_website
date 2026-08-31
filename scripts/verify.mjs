@@ -136,6 +136,18 @@ async function startFramePump(page) {
  * spreading the further into an animated session it starts, so the budget
  * below leaves real headroom rather than chasing the measured minimum.
  */
+/** Polls the debug surface until `predicate` holds, or gives up. */
+async function waitUntil(page, predicate, timeout = 90000) {
+  const started = Date.now();
+  let state = null;
+  while (Date.now() - started < timeout) {
+    state = await debugState(page);
+    if (predicate(state)) return { ok: true, state };
+    await sleep(250);
+  }
+  return { ok: false, state };
+}
+
 async function waitForMode(page, target, timeout = 90000) {
   const deadline = Date.now() + timeout;
   let last = null;
@@ -278,12 +290,53 @@ async function main() {
     await sleep(600);
     const readingState = await debugState(carousel);
     check(
-      "carousel: readingOpen stays false (Task 10/11's to flip)",
+      "carousel: book arrives closed",
       readingState?.readingOpen === false,
       `got ${readingState?.readingOpen}`,
     );
-    check("carousel: spread stays 0", readingState?.spread === 0, `got ${readingState?.spread}`);
+    check("carousel: spread starts at 0", readingState?.spread === 0, `got ${readingState?.spread}`);
     await shootStage(carousel, `${SHOTS}wide-reading.png`);
+
+    // Space swings the cover; the arrows then turn spreads. Both are the
+    // keyboard route to what dragging the cover and pages does by pointer.
+    await carousel.keyboard.press(" ");
+    const opened = await waitUntil(carousel, (s) => s?.readingOpen === true);
+    check("carousel: Space opens the cover", opened.ok, `readingOpen ${opened.state?.readingOpen}`);
+    await sleep(900);
+    await shootStage(carousel, `${SHOTS}wide-reading-open.png`);
+
+    await carousel.keyboard.press("ArrowRight");
+    await carousel.keyboard.press("ArrowRight");
+    const turned = await waitUntil(carousel, (s) => s?.spread === 2);
+    check("carousel: arrows turn two spreads", turned.ok, `spread ${turned.state?.spread}`);
+    await sleep(900);
+    await shootStage(carousel, `${SHOTS}wide-reading-spread.png`);
+
+    const panelText = await carousel.evaluate(() => ({
+      title: document.getElementById("detail-title")?.textContent ?? "",
+      binding: document.getElementById("detail-binding")?.textContent ?? "",
+      folio: document.getElementById("page-label")?.textContent ?? "",
+      live: document.getElementById("live")?.textContent ?? "",
+    }));
+    check(
+      "carousel: detail panel carries the volume",
+      panelText.title.length > 0 && panelText.binding.length > 0,
+      JSON.stringify(panelText),
+    );
+    check(
+      "carousel: folio tracks the spread",
+      panelText.folio === "Spread 03",
+      `got "${panelText.folio}"`,
+    );
+    check(
+      "carousel: live region announces",
+      panelText.live.length > 0,
+      `got "${panelText.live}"`,
+    );
+
+    await carousel.keyboard.press("ArrowLeft");
+    const turnedBack = await waitUntil(carousel, (s) => s?.spread === 1);
+    check("carousel: arrows turn back", turnedBack.ok, `spread ${turnedBack.state?.spread}`);
 
     await carousel.keyboard.press("Escape");
     const backToBrowse = await waitForMode(carousel, "browse");
