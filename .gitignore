@@ -32,3 +32,6 @@ Dimural_Murat.pdf
 # agent scratch — SDD ledger, briefs, review packages
 .superpowers/
 shots/
+
+# exact ThreeUI source bundle, kept locally for reference
+.threeui-src/

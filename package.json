@@ -1,19 +1,24 @@
 {
-  "name": "dimural-library",
+  "name": "dimural-personal-website",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "verify": "tsc --noEmit && vite build && node scripts/verify.mjs"
+    "preview": "vite preview"
   },
   "dependencies": {
-    "three": "^0.165.0"
+    "@designcodeio/threeui": "1.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "0.165.0"
   },
   "devDependencies": {
-    "@types/three": "^0.165.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/three": "0.165.0",
+    "@vitejs/plugin-react": "^4.3.1",
     "typescript": "^5.5.4",
     "vite": "^5.4.0"
   }
