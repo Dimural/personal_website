@@ -1,15 +1,22 @@
 export const INK = "#111";
 
-const FONT_PX = 12;
-const LINE_PX = FONT_PX * 1.2;
-const FONT = `${FONT_PX}px ui-monospace, Menlo, Consolas, monospace`;
+export const FONT_PX = 12;
+export const FAMILY = "ui-monospace, Menlo, Consolas, monospace";
+export const FONT = `bold ${FONT_PX}px ${FAMILY}`;
 
-/** A monospace character grid over a canvas. Everything outside this file speaks in cells, not pixels. */
+/**
+ * The character grid. Cells are a whole number of device pixels so the GPU glyph pass (ascii.ts) stays
+ * crisp. This class also draws overlay text (labels, Zs, hints) on its own transparent canvas.
+ * Everything outside this file speaks in cells, not pixels.
+ */
 export class Grid {
   cols = 0;
   rows = 0;
+  dpr = 1;
+  /** Cell size in CSS pixels (a whole number of device pixels). */
+  cellW = 0;
+  cellH = 0;
   private ctx: CanvasRenderingContext2D;
-  private cellW = 0;
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext("2d")!;
@@ -17,17 +24,18 @@ export class Grid {
   }
 
   resize() {
-    const dpr = window.devicePixelRatio || 1;
+    this.dpr = window.devicePixelRatio || 1;
     const { width, height } = this.canvas.getBoundingClientRect();
-    this.canvas.width = Math.round(width * dpr);
-    this.canvas.height = Math.round(height * dpr);
+    this.canvas.width = Math.round(width * this.dpr);
+    this.canvas.height = Math.round(height * this.dpr);
     // Resizing the canvas resets its context state, so the font goes back on after.
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.ctx.font = FONT;
     this.ctx.textBaseline = "top";
-    this.cellW = this.ctx.measureText("M").width;
+    this.cellW = Math.round(this.ctx.measureText("M").width * this.dpr) / this.dpr;
+    this.cellH = Math.round(FONT_PX * 1.2 * this.dpr) / this.dpr;
     this.cols = Math.floor(width / this.cellW);
-    this.rows = Math.floor(height / LINE_PX);
+    this.rows = Math.floor(height / this.cellH);
   }
 
   clear() {
@@ -43,7 +51,7 @@ export class Grid {
     for (let i = 0; i < text.length; i++) {
       const x = col + i;
       if (text[i] !== " " && x >= 0 && x < this.cols) {
-        this.ctx.fillText(text[i], x * this.cellW, row * LINE_PX);
+        this.ctx.fillText(text[i], x * this.cellW, row * this.cellH);
       }
     }
   }
@@ -58,9 +66,19 @@ export class Grid {
     });
   }
 
-  /** Paint cells back to the page background. */
+  /** Paint cells white, hiding the world beneath. */
   blank(col: number, row: number, length: number) {
     this.ctx.fillStyle = "#fff";
-    this.ctx.fillRect(Math.round(col) * this.cellW, Math.round(row) * LINE_PX, length * this.cellW, LINE_PX);
+    this.ctx.fillRect(Math.round(col) * this.cellW, Math.round(row) * this.cellH, length * this.cellW, this.cellH);
+  }
+
+  /** Larger bold text centred on a cell, for things that must read instantly (Zs, alerts). */
+  big(col: number, row: number, text: string, color: string, scale: number) {
+    this.ctx.font = `bold ${FONT_PX * scale}px ${FAMILY}`;
+    this.ctx.fillStyle = color;
+    this.ctx.textAlign = "center";
+    this.ctx.fillText(text, col * this.cellW, row * this.cellH);
+    this.ctx.textAlign = "start";
+    this.ctx.font = FONT;
   }
 }

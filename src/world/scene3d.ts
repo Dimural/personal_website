@@ -4,7 +4,7 @@ import * as THREE from "three";
 // and ascii.ts turns each pixel into a character. World units: 1 ≈ one person-width; y is up.
 
 const SUPERSAMPLE = 2; // render pixels per character cell, per axis
-const CAMERA_OFFSET = new THREE.Vector3(0, 14, 10);
+const CAMERA_OFFSET = new THREE.Vector3(0, 20, 14);
 const NEAR = 5;
 const FAR = 120;
 const WAKE_SECONDS = 0.9;
@@ -94,22 +94,19 @@ function river() {
   return { mesh, update };
 }
 
-function tree(random: () => number) {
-  const group = new THREE.Group();
-  const h = 2.5 + random() * 2;
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, h, 6), mat("#6b513c"));
-  trunk.position.y = h / 2;
-  trunk.castShadow = true;
-  group.add(trunk);
-  const r = 2.6 + random() * 1.2;
-  const shade = ["#2d5233", "#36603b", "#284a2e"][Math.floor(random() * 3)];
-  const leaves = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), mat(shade, LEAF_GRAIN));
-  leaves.position.y = h + r * 0.7;
-  leaves.scale.y = 0.85;
-  leaves.castShadow = true;
-  leaves.receiveShadow = true;
-  group.add(leaves);
-  return group;
+type Placement = { position: THREE.Vector3; rotation: THREE.Euler; scale: THREE.Vector3; color?: string };
+
+/** Many copies of one shape drawn in a single call; per-copy colour tints a white material. */
+function instanced(geo: THREE.BufferGeometry, material: THREE.Material, items: Placement[]) {
+  const mesh = new THREE.InstancedMesh(geo, material, items.length);
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  items.forEach((it, i) => {
+    mesh.setMatrixAt(i, m.compose(it.position, q.setFromEuler(it.rotation), it.scale));
+    if (it.color) mesh.setColorAt(i, new THREE.Color(it.color));
+  });
+  mesh.castShadow = mesh.receiveShadow = true;
+  return mesh;
 }
 
 function cabin() {
@@ -161,16 +158,13 @@ function butterfly(color: string) {
   return { group, left, right };
 }
 
-export function createScene() {
-  const renderer = new THREE.WebGLRenderer({ antialias: false });
+/** The 3D world. `canvas` is the visible canvas: ascii.ts draws the final characters onto it. */
+export function createScene(canvas: HTMLCanvasElement) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  const target = new THREE.WebGLRenderTarget(1, 1);
-  // A second pass records depth (packed into RGBA for full precision) so ascii.ts can outline shapes.
-  const depthTarget = new THREE.WebGLRenderTarget(1, 1);
-  const depthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
-  let pixels = new Uint8Array(4);
-  let depth = new Uint8Array(4);
+  // The scene renders small and off-screen; its depth comes along so ascii.ts can outline shapes.
+  const target = new THREE.WebGLRenderTarget(1, 1, { depthTexture: new THREE.DepthTexture(1, 1) });
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#ffffff");
@@ -189,41 +183,57 @@ export function createScene() {
   const water = river();
   scene.add(water.mesh);
 
+  // Trees, bushes and rocks are instanced: hundreds of separate meshes cost a draw call each, per pass.
   const random = rng(42);
-  const trees: { group: THREE.Group; phase: number }[] = [];
-  while (trees.length < 220) {
+  const crowns: (Placement & { phase: number })[] = [];
+  const trunks: Placement[] = [];
+  while (crowns.length < 220) {
     const x = (random() - 0.5) * 160;
     const z = (random() - 0.5) * 130;
     if (Math.hypot(x * 0.9, z * 1.8) < 7 || Math.abs(z - riverZ(x)) < RIVER_HALF_WIDTH + 4) continue;
     if (Math.hypot(x + 15, z + 9) < 8) continue; // the cabin's yard
-    const t = tree(random);
-    t.position.set(x, 0, z);
-    t.rotation.y = random() * Math.PI * 2;
-    scene.add(t);
-    trees.push({ group: t, phase: random() * 10 });
+    const h = 2.5 + random() * 2;
+    const r = 2.6 + random() * 1.2;
+    trunks.push({ position: new THREE.Vector3(x, h / 2, z), rotation: new THREE.Euler(), scale: new THREE.Vector3(1, h, 1) });
+    crowns.push({
+      position: new THREE.Vector3(x, h + r * 0.7, z),
+      rotation: new THREE.Euler(0, random() * Math.PI * 2, 0),
+      scale: new THREE.Vector3(r, r * 0.85, r),
+      color: ["#2d5233", "#36603b", "#284a2e"][Math.floor(random() * 3)],
+      phase: random() * 10,
+    });
   }
-  const bushGreens = ["#4d7d49", "#5b8a58", "#426f40"];
+  scene.add(instanced(new THREE.CylinderGeometry(0.35, 0.5, 1, 6), mat("#6b513c"), trunks));
+  const crownMesh = instanced(new THREE.IcosahedronGeometry(1, 1), mat("#ffffff", LEAF_GRAIN), crowns);
+  scene.add(crownMesh);
+  const crownMatrix = new THREE.Matrix4();
+  const crownTurn = new THREE.Quaternion();
+  const crownSway = new THREE.Vector3();
+
+  const bushes: Placement[] = [];
   for (let i = 0; i < 120; i++) {
     const x = (random() - 0.5) * 120;
     const z = (random() - 0.5) * 100;
     if (Math.hypot(x, z * 1.6) < 6 || Math.abs(z - riverZ(x)) < RIVER_HALF_WIDTH + 0.5 || Math.hypot(x + 15, z + 9) < 6) continue;
     const r = 0.6 + random() * 1;
-    const bush = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), mat(bushGreens[i % 3], LEAF_GRAIN));
-    bush.position.set(x, r * 0.6, z);
-    bush.rotation.set(random() * 3, random() * 3, 0);
-    bush.castShadow = bush.receiveShadow = true;
-    scene.add(bush);
+    bushes.push({
+      position: new THREE.Vector3(x, r * 0.6, z),
+      rotation: new THREE.Euler(random() * 3, random() * 3, 0),
+      scale: new THREE.Vector3(r, r, r),
+      color: ["#4d7d49", "#5b8a58", "#426f40"][i % 3],
+    });
   }
+  scene.add(instanced(new THREE.IcosahedronGeometry(1, 0), mat("#ffffff", LEAF_GRAIN), bushes));
+
+  const rocks: Placement[] = [];
   for (let i = 0; i < 30; i++) {
     const x = (random() - 0.5) * 160;
     const z = (random() - 0.5) * 140;
     if (Math.hypot(x, z) < 8 || Math.abs(z - riverZ(x)) < RIVER_HALF_WIDTH + 1) continue;
-    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.6 + random() * 1.4, 0), mat("#9a9c98"));
-    rock.position.set(x, 0.3, z);
-    rock.rotation.set(random() * 3, random() * 3, 0);
-    rock.castShadow = rock.receiveShadow = true;
-    scene.add(rock);
+    const r = 0.6 + random() * 1.4;
+    rocks.push({ position: new THREE.Vector3(x, 0.3, z), rotation: new THREE.Euler(random() * 3, random() * 3, 0), scale: new THREE.Vector3(r, r, r) });
   }
+  scene.add(instanced(new THREE.DodecahedronGeometry(1, 0), mat("#9a9c98"), rocks));
 
   const house = cabin();
   house.position.set(-15, 0, -9);
@@ -248,10 +258,22 @@ export function createScene() {
   const tuftAxis = new THREE.Vector3(0, 0, 1);
   const one = new THREE.Vector3(1, 1, 1);
 
-  const log = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1, 7, 10), mat("#8a6a4c"));
+  // Dark bark with pale cut ends and a ring, so it reads as a log rather than a brown box.
+  const log = new THREE.Group();
+  const bark = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1, 7, 12), mat("#6e5038", LEAF_GRAIN));
+  bark.castShadow = bark.receiveShadow = true;
+  log.add(bark);
+  for (const end of [-1, 1]) {
+    const face = new THREE.Mesh(new THREE.CircleGeometry(end > 0 ? 0.88 : 0.98, 12), mat("#e2c595"));
+    face.position.y = end * 3.51;
+    face.rotation.x = -end * (Math.PI / 2);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.5, 12), mat("#9b7650"));
+    ring.position.y = end * 3.52;
+    ring.rotation.x = face.rotation.x;
+    log.add(face, ring);
+  }
   log.rotation.z = Math.PI / 2;
   log.position.y = 0.9;
-  log.castShadow = log.receiveShadow = true;
   scene.add(log);
 
   const sleeper = person();
@@ -259,27 +281,34 @@ export function createScene() {
   scene.add(sleeper.group);
 
   const butterflies = ["#e0a040", "#b070d0", "#5aa0d0"].map((color, i) => ({ ...butterfly(color), phase: i * 2.1 }));
-  for (const b of butterflies) scene.add(b.group);
+  for (const b of butterflies) {
+    b.group.scale.setScalar(0.65);
+    scene.add(b.group);
+  }
 
   const focus = new THREE.Vector3();
   const headWorld = new THREE.Vector3();
 
   return {
-    /** Size the off-screen render to the character grid. `aspect` is the canvas's real width/height. */
-    resize(cols: number, rows: number, aspect: number) {
-      renderer.setSize(cols * SUPERSAMPLE, rows * SUPERSAMPLE, false);
+    renderer,
+
+    /** Size the visible canvas, and the off-screen render to the character grid. `aspect` is the grid's width/height. */
+    resize(width: number, height: number, dpr: number, cols: number, rows: number, aspect: number) {
+      renderer.setPixelRatio(dpr);
+      renderer.setSize(width, height, false);
       target.setSize(cols * SUPERSAMPLE, rows * SUPERSAMPLE);
-      depthTarget.setSize(cols * SUPERSAMPLE, rows * SUPERSAMPLE);
-      pixels = new Uint8Array(cols * rows * SUPERSAMPLE * SUPERSAMPLE * 4);
-      depth = new Uint8Array(pixels.length);
       camera.aspect = aspect;
       camera.updateProjectionMatrix();
     },
 
-    /** Advance the world to time t and render it. Returns RGBA pixels, bottom row first. */
+    /** Advance the world to time t and render it off-screen. Returns the colour and depth textures. */
     render(now: number, t: number, wokeAt: number | null) {
       water.update(t);
-      for (const tr of trees) tr.group.rotation.z = Math.sin(t * 1.2 + tr.phase) * 0.025;
+      crowns.forEach((c, i) => {
+        crownSway.set(Math.sin(t * 1.2 + c.phase) * 0.12, 0, 0).add(c.position);
+        crownMesh.setMatrixAt(i, crownMatrix.compose(crownSway, crownTurn.setFromEuler(c.rotation), c.scale));
+      });
+      crownMesh.instanceMatrix.needsUpdate = true;
       LEAF_GRAIN.offset.set(t * 0.03, Math.sin(t * 0.8) * 0.02); // leaves shimmer in the wind
       tuftSpots.forEach((p, i) => {
         tuftTurn.setFromAxisAngle(tuftAxis, Math.sin(t * 2.2 + p.x * 0.3 + p.z * 0.2) * 0.35);
@@ -305,13 +334,7 @@ export function createScene() {
       camera.lookAt(focus);
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
-      renderer.readRenderTargetPixels(target, 0, 0, target.width, target.height, pixels);
-      scene.overrideMaterial = depthMaterial;
-      renderer.setRenderTarget(depthTarget);
-      renderer.render(scene, camera);
-      scene.overrideMaterial = null;
-      renderer.readRenderTargetPixels(depthTarget, 0, 0, target.width, target.height, depth);
-      return { pixels, depth, width: target.width, height: target.height, near: NEAR, far: FAR };
+      return { color: target.texture, depth: target.depthTexture!, near: NEAR, far: FAR };
     },
 
     /** Where the figure's head is on the character grid, for labels and Zs. */
@@ -322,12 +345,9 @@ export function createScene() {
 
     dispose() {
       target.dispose();
-      depthTarget.dispose();
-      depthMaterial.dispose();
       renderer.dispose();
     },
   };
 }
 
 export type World3D = ReturnType<typeof createScene>;
-export { SUPERSAMPLE };

@@ -15,6 +15,11 @@ canvas {
   height: 100%;
 }
 
+/* The second canvas carries text over the world and lets clicks through to the page. */
+canvas + canvas {
+  pointer-events: none;
+}
+
 h1 {
   position: fixed;
   top: 1.5rem;

@@ -10,11 +10,13 @@ wake-up on any input.
 ## Scope
 
 - "Dimural Murat" heading at the top, normal HTML text.
-- Full-screen canvas, heading floating over it. A low-poly 3D world (Three.js) rendered to ASCII each
-  frame (see `architecture.md`): a forest, a river, bushes, rocks, a cabin, grass tufts, shadows.
+- Full-screen canvas, heading floating over it. A low-poly 3D world (Three.js) turned into ASCII each
+  frame by a GPU shader (see `architecture.md`): a forest, a river, bushes, rocks, a cabin, grass tufts,
+  shadows. Object cells get a soft tint of their colour so shapes read at a glance.
+- The log has dark bark and pale cut ends with a ring.
 - Figure lying on a log in a clearing at the centre.
 - Motion: trees sway and their leaves shimmer, the river ripples, grass tufts sway, 3 coloured
-  butterflies flap around the clearing, the sleeper breathes, Zs rise from the head and fade.
+  butterflies flap around the clearing, the sleeper breathes, big bold Zs rise from the head and fade.
 - Hint text "press any key" that pulses gently.
 - Any `keydown` or `pointerdown`: Zs stop, a `!` pops over the head, the figure rolls up off the log to
   stand beside it, and a "dimural" name label fades in above them.
