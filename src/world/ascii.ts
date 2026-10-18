@@ -6,21 +6,27 @@ import { FONT, type Grid } from "./grid";
 // depth straight from the scene's render target and stamps a glyph from a pre-drawn font atlas.
 
 // Every glyph the world can use. BANDS and outline strokes index into this.
-const GLYPHS = " .:-=+*o%#&$@Q|\\_/";
+const GLYPHS = " .:-=+*o%#&$@Q|\\_/8N";
 const g = (ch: string) => GLYPHS.indexOf(ch);
-// Light mode: darker spots get denser glyphs. Each band holds 4 slots (repeats allowed); a per-cell
-// hash picks one so solid masses look textured.
-const BANDS = [" ", ".", ":.:.", "-=-=", "+*+*", "o%#o", "&$@Q"];
+// Pure ASCII: no cell fills. Objects are always built from heavy glyphs and the ground stays sparse;
+// that contrast, not lighting, is what makes shapes readable (as in the reference). Each band holds
+// 4 slots (repeats allowed); a per-cell hash picks one so masses look textured.
+const BANDS = [
+  // ground, by density: bare, then faint dots for shadows
+  " ", ".", ":.:.",
+  // objects, lit to shadowed
+  "*o+*", "o%#o", "#&$%", "&$@Q", "@QN8",
+];
 
 const SETTINGS = {
   outline: 0.35, // relative depth jump between neighbouring cells that draws an outline
   glyphMin: 0.12, // density below this is bare ground: nothing drawn
-  fillMin: 0.4, // below this (ground shadows) faint glyphs only, no fill, so only objects look solid
-  fillFull: 0.6, // density where a fill reaches full strength
-  fillLift: 0.18, // fills are the scene colour lifted toward white by this much
-  fillSaturate: 1.5,
-  glyphShade: 0.42, // glyph = scene colour × this
-  outlineShade: 0.22, // outlines darker still
+  objectMin: 0.4, // density from here up counts as an object: heavy glyphs in its own colour
+  inkSaturate: 1.6,
+  inkLit: 0.95, // object ink = saturated colour × this on lit faces...
+  inkShadow: 0.68, // ...down to this in shadow
+  groundShade: 0.7, // ground dots: muted colour × this
+  outlineShade: 0.3,
 };
 
 const vertexShader = /* glsl */ `
@@ -39,9 +45,9 @@ const fragmentShader = /* glsl */ `
   uniform vec2 cellPx;    // device pixels per cell
   uniform float canvasH;  // device pixels
   uniform float glyphCount;
-  uniform float bands[28];
+  uniform float bands[32];
   uniform float near, far;
-  uniform float outline, glyphMin, fillMin, fillFull, fillLift, fillSaturate, glyphShade, outlineShade;
+  uniform float outline, glyphMin, objectMin, inkSaturate, inkLit, inkShadow, groundShade, outlineShade;
 
   vec2 cellUv(vec2 cell) { return vec2((cell.x + 0.5) / grid.x, 1.0 - (cell.y + 0.5) / grid.y); }
   float dist(vec2 cell) {
@@ -60,12 +66,6 @@ const fragmentShader = /* glsl */ `
     float lum = dot(c, vec3(0.299, 0.587, 0.114));
     float density = 1.0 - lum;
 
-    vec3 bg = vec3(1.0);
-    if (density >= fillMin) {
-      vec3 fill = (lum + (c - lum) * fillSaturate) * (1.0 - fillLift) + fillLift;
-      bg = mix(bg, fill, clamp((density - fillMin) / (fillFull - fillMin), 0.0, 1.0));
-    }
-
     // Sobel on depth: a big relative jump is a silhouette. Only the nearer side draws it, one cell thick.
     float d = dist(cell);
     float tl = dist(cell + vec2(-1, -1)), t = dist(cell + vec2(0, -1)), tr = dist(cell + vec2(1, -1));
@@ -75,19 +75,26 @@ const fragmentShader = /* glsl */ `
     float gy = bl + 2.0 * b + br - tl - 2.0 * t - tr;
 
     float glyph = -1.0;
-    vec3 ink = c * glyphShade;
+    vec3 ink = vec3(0.0);
+    // Well-mixed hash; plain multiplies leave low bits periodic and glyphs repeat in stripes.
+    uint h = uint(cell.x) * 0x27d4eb2du ^ uint(cell.y) * 0x165667b1u;
+    h = (h ^ (h >> 15u)) * 0x2c1b3c6du;
+    h ^= h >> 12u;
+    int slot = int(h % 4u);
+    vec3 saturated = clamp(lum + (c - lum) * inkSaturate, 0.0, 1.0);
+
     if (d < (l + r + t + b) / 4.0 && length(vec2(gx, gy)) / d > outline) {
       // The stroke runs perpendicular to the gradient (screen y points down).
       float angle = mod(degrees(atan(gy, gx)) + 180.0, 180.0);
       glyph = angle < 22.5 || angle >= 157.5 ? ${g("|")}.0 : angle < 67.5 ? ${g("\\")}.0 : angle < 112.5 ? ${g("_")}.0 : ${g("/")}.0;
-      ink = c * outlineShade;
+      ink = saturated * outlineShade;
+    } else if (density >= objectMin) {
+      float shadow = clamp((density - objectMin) / (1.0 - objectMin), 0.0, 1.0);
+      glyph = bands[(3 + min(4, int(shadow * 5.0))) * 4 + slot];
+      ink = saturated * mix(inkLit, inkShadow, shadow);
     } else if (density >= glyphMin) {
-      // Well-mixed hash; plain multiplies leave low bits periodic and glyphs repeat in stripes.
-      uint h = uint(cell.x) * 0x27d4eb2du ^ uint(cell.y) * 0x165667b1u;
-      h = (h ^ (h >> 15u)) * 0x2c1b3c6du;
-      h ^= h >> 12u;
-      int band = min(6, int(density * 7.0));
-      glyph = bands[band * 4 + int(h % 4u)];
+      glyph = bands[(density < (glyphMin + objectMin) * 0.5 ? 1 : 2) * 4 + slot];
+      ink = mix(c, vec3(lum), 0.4) * groundShade;
     }
 
     float coverage = 0.0;
@@ -96,7 +103,7 @@ const fragmentShader = /* glsl */ `
       vec2 uv = vec2((glyph * cellPx.x + local.x) / (glyphCount * cellPx.x), 1.0 - local.y / cellPx.y);
       coverage = texture(tGlyphs, uv).r;
     }
-    fragColor = vec4(mix(bg, ink, coverage), 1.0);
+    fragColor = vec4(mix(vec3(1.0), ink, coverage), 1.0);
   }
 `;
 

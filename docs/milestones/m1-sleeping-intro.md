@@ -12,7 +12,7 @@ wake-up on any input.
 - "Dimural Murat" heading at the top, normal HTML text.
 - Full-screen canvas, heading floating over it. A low-poly 3D world (Three.js) turned into ASCII each
   frame by a GPU shader (see `architecture.md`): a forest, a river, bushes, rocks, a cabin, grass tufts,
-  shadows. Object cells get a soft tint of their colour so shapes read at a glance.
+  shadows. Pure characters on white: objects in heavy glyphs of their own colour, ground sparse.
 - The log has dark bark and pale cut ends with a ring.
 - Figure lying on a log in a clearing at the centre.
 - Motion: trees sway and their leaves shimmer, the river ripples, grass tufts sway, 3 coloured

@@ -38,12 +38,12 @@ Planned (add when the milestone needs it, not before):
    depth texture attached. Nothing is read back to the CPU.
 3. `ascii.ts` draws one full-screen quad onto the world canvas. Per screen pixel, the shader finds its
    cell, samples the cell's colour (linear filtering averages the 2×2 pixels) and its neighbours' depth:
-   - **fill:** cells dense enough to be an object get a soft, saturated tint of their own colour
-     (`fillMin` → `fillFull`); ground shadows and open ground stay white. This is what makes shapes
-     readable at a glance;
+   - pure ASCII: characters on white, no cell fills (fills were tried; they read as pixel art);
    - **outline:** a Sobel filter on depth finds silhouettes; the nearer object draws a `| \ _ /` stroke;
-   - **glyph:** otherwise a glyph from the density band (`BANDS`), picked per cell by a hash so masses look
-     textured; drawn in a darker shade of the cell's own colour (`glyphShade`);
+   - **object** (density ≥ `objectMin`): always heavy glyphs, lit `* o +` through shadowed `@ Q N 8`,
+     in the object's own saturated colour, lighter on lit faces (`inkLit` → `inkShadow`);
+   - **ground** (below `objectMin`): sparse `.` and `:` in a muted tone, nothing on bare ground;
+   - glyphs within a band are picked per cell by a hash so masses look textured;
    - glyph shapes come from an atlas canvas drawn once per resize in the same bold font as the grid.
 4. `intro.ts` draws text on the transparent overlay canvas via `grid` (`put`, `art`, `big`). Positions
    come from projecting 3D points (`world.headCell`).
@@ -52,7 +52,10 @@ Planned (add when the milestone needs it, not before):
 
 The look comes from the 3D scene first, the shader second. Legibility rules learned the hard way:
 
-- **Filled bodies, not scattered letters.** Thin glyphs on white read as faint; tinted cell fills fixed it.
+- **Objects heavy, ground sparse.** Shapes read by the contrast between dense glyphs and empty ground,
+  so objects never drop to light glyphs even when sunlit; light only changes glyph choice and ink shade.
+  (Letting lit faces turn into dots made everything faint; tinted cell fills fixed that but stopped it
+  looking like ASCII. Don't bring fills back.)
 - **Few, big, simple shapes.** One round crown per tree; small things become noise. If you can't name a
   shape at a glance in a screenshot, it's too small or busy.
 - **Make states obvious with overlay text.** Big drifting Zs say "asleep" better than any pose.

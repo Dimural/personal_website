@@ -26,6 +26,8 @@ must be an actual lit 3D scene so it has real shapes, shadows and depth.
 - **Dense, shaded masses.** Trees and other solid things are filled with characters picked by how dark
   each spot is: light `. : ; - =` on lit faces, heavy `% # $ & Q @ 8 N` in shadow, mixed so masses are
   textured. Strong edges draw as `/ \ | -` strokes.
+- **Pure characters.** No filled cell backgrounds: objects stay readable because they're always drawn
+  in heavy glyphs in their own colour, against sparse ground.
 - **Quiet open ground.** Between masses: mostly white, with sparse scatter (`. o Q`) and soft grass patches.
 - **Line work for structure.** Paths, water and built things use `/ \ - = ~ |`.
 - **A name label** floats over the player once awake ("dimural").
