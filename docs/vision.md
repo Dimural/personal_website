@@ -18,12 +18,14 @@ The site is a tiny ASCII world. Everything is drawn with text characters.
 
 ## Look
 
-Think of a top-down game scene converted to ASCII, in light mode. The owner's reference was a dark
-version of this (pale green characters on navy); this site is its light-mode counterpart.
+A real 3D open world rendered as ASCII, in light mode. The owner's reference was a dark version of
+this (pale green characters on navy, a 3D game scene converted to characters); this site is its
+light-mode counterpart. Procedural 2D ASCII art was tried and rejected as "poorly done": the world
+must be an actual lit 3D scene so it has real shapes, shadows and depth.
 
 - **Dense, shaded masses.** Trees and other solid things are filled with characters picked by how dark
-  each cell should be: light `: ; = +` at lit edges, heavy `% $ & Q @` in shadow. Light comes from the
-  top-left, so the bottom-right of each mass is darker. Edges are ragged, not outlined.
+  each spot is: light `. : ; - =` on lit faces, heavy `% # $ & Q @ 8 N` in shadow, mixed so masses are
+  textured. Strong edges draw as `/ \ | -` strokes.
 - **Quiet open ground.** Between masses: mostly white, with sparse scatter (`. o Q`) and soft grass patches.
 - **Line work for structure.** Paths, water and built things use `/ \ - = ~ |`.
 - **A name label** floats over the player once awake ("dimural").

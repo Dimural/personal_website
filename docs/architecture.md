@@ -1,7 +1,8 @@
 # Architecture
 
-Vite + React + TypeScript. React only owns the page shell (heading, canvas element, and later the popup
-window). The world itself is drawn by plain TypeScript onto one `<canvas>`.
+Vite + React + TypeScript + Three.js. React only owns the page shell (heading, canvas element, and
+later the popup window). The world is a real low-poly **3D scene** that is never shown directly: each
+frame it renders small and off-screen, and every pixel becomes a character on a 2D canvas.
 
 ## Folders
 
@@ -12,36 +13,57 @@ src/
   index.css         page styles: full-screen canvas, floating heading
   world/
     index.ts        startWorld(canvas): resize handling, input, the frame loop
-    grid.ts         the character grid: measures the monospace cell, draws text; art() draws opaque rows
-    terrain.ts      the endless ground: trees, stream, grass, scatter, as a pure function of (x, y, t)
-    intro.ts        milestone 1 scene: terrain + sleeper on a log, butterflies, Zs, name label
+    scene3d.ts      the 3D world (Three.js): ground, river, trees, bushes, rocks, cabin, log, person,
+                    butterflies, lighting/shadows, camera; renders to an off-screen target, returns pixels
+    ascii.ts        pixels -> characters: brightness picks glyph density, edges become / \ | - strokes,
+                    each glyph keeps a darkened version of the scene colour
+    grid.ts         the character grid on the visible canvas: cell metrics, put() and opaque art()
+    intro.ts        text drawn over the world: Zs, "!", name label, hint
 ```
 
 Planned (add when the milestone needs it, not before):
 
 ```
-  world/player.ts   milestone 2: position, WASD input, walking animation, blocked cells
-  world/camera.ts   milestone 2: keeps the player centred, clamped to the map bounds
-  world/objects.ts  milestones 3-4: floating logos and project objects, bobbing, proximity
+  world/player.ts   milestone 2: WASD input, moving the person in scene3d, collisions
+  world/objects.ts  milestones 3-4: floating logos and project objects (3D meshes), proximity
   content/          milestone 3: typed resume data (experience, projects)
   ui/Popup.tsx      milestone 3: the HTML window that opens near an object
 ```
 
 ## How a frame is drawn
 
-1. `index.ts` runs a `requestAnimationFrame` loop with `t` = seconds since start (frozen at 0 under
-   `prefers-reduced-motion`).
-2. The grid is cleared, `drawTerrain(grid, camX, camY, t)` fills every visible cell, then the scene
-   draws its art on top with `grid.art(...)`, which blanks the cells under each row first so art never
-   tangles with terrain. `grid.put(...)` draws transparently (spaces show what's beneath).
-3. Everything is in **cell coordinates**. Never use pixels outside `grid.ts`.
-4. **World coordinates:** cells, origin at the log. Screen cell `(cols/2, rows/2)` (floored) shows the
-   camera's world cell. Cells are about twice as tall as wide, so round shapes scale `y` by 2.
-5. Font is 12px monospace. At 1920×1080 that's ~16k cells redrawn every frame at a steady 60fps; keep
-   per-cell work to a few noise lookups.
+1. `index.ts` runs a `requestAnimationFrame` loop. `now` = real seconds (drives waking); `ambient` =
+   the clock for motion, frozen at 0 under `prefers-reduced-motion`.
+2. `scene3d.render()` animates the world (river ripples, tree sway, grass tufts, leaf-texture shimmer,
+   butterflies, the person's pose), renders at `SUPERSAMPLE`× the grid size (2 pixels per cell per axis)
+   into a render target, and reads the pixels back.
+3. `ascii.drawAscii()` averages each cell's pixels, then:
+   - light-mode density = `1 - brightness`; near-white cells stay empty;
+   - a Sobel filter finds strong edges and draws them as strokes along the edge;
+   - otherwise a glyph is picked from the density band, mixing several glyphs per band by a per-cell
+     hash so solid masses look textured;
+   - colour = the pixel's hue, darkened (`INK_LIGHTNESS`, `INK_SATURATE`).
+4. `intro.ts` draws overlay text with `grid.art(...)`, which blanks the cells under each row first.
+   Positions come from projecting 3D points (`world.headCell`).
 
-Motion comes from pure functions of `t` and position (e.g. grass blade = `sin(x * 0.3 + t * 2)`), so
-there is no per-tile state to keep in sync.
+## Making the ASCII look right
+
+The look comes from the 3D scene, not the converter. If it reads flat or empty, fix the scene:
+camera distance (`CAMERA_OFFSET`), object density, light intensities, surface colours (lighter = sparser
+glyphs), and the grain textures that break faces into light and dark. Converter knobs: `BANDS`, `EDGE`,
+`INK_LIGHTNESS`, `INK_SATURATE` in `ascii.ts`, and `FONT_PX` in `grid.ts` (smaller = more detail, more cost).
+
+## Coordinates
+
+- 3D world: Three.js units, y up. The log is at the origin, the cabin at (-15, 0, -9), the river follows
+  `riverZ(x)`. The camera sits at `focus + CAMERA_OFFSET` looking at `focus`; M2 moves `focus` with the player.
+- Grid: cells. Never use pixels outside `grid.ts`. Project 3D points to cells the way `headCell` does.
+
+## Performance
+
+At 1920×1080 with 10px glyphs: median 16.7ms/frame, p95 ~33ms (occasional dropped frame). The cost
+is mostly `fillText`/`fillStyle` per cell. If it needs to be faster: batch cells by colour, or move the
+glyph drawing into a WebGL shader with a glyph atlas.
 
 ## Input
 

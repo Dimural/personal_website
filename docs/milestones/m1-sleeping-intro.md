@@ -10,14 +10,14 @@ wake-up on any input.
 ## Scope
 
 - "Dimural Murat" heading at the top, normal HTML text.
-- Full-screen canvas, heading floating over it. Dense shaded terrain (see "Look" in `vision.md`):
-  tree crowns, a stream, grass patches, scatter.
+- Full-screen canvas, heading floating over it. A low-poly 3D world (Three.js) rendered to ASCII each
+  frame (see `architecture.md`): a forest, a river, bushes, rocks, a cabin, grass tufts, shadows.
 - Figure lying on a log in a clearing at the centre.
-- Motion: crowns shimmer in the wind, the stream flows, grass sways, 3 coloured butterflies flap on
-  looping paths, Zs rise from the head and fade.
+- Motion: trees sway and their leaves shimmer, the river ripples, grass tufts sway, 3 coloured
+  butterflies flap around the clearing, the sleeper breathes, Zs rise from the head and fade.
 - Hint text "press any key" that pulses gently.
-- Any `keydown` or `pointerdown`: Zs stop, a `!` pops over the head, then the figure stands on the log
-  and a "dimural" name label fades in above them.
+- Any `keydown` or `pointerdown`: Zs stop, a `!` pops over the head, the figure rolls up off the log to
+  stand beside it, and a "dimural" name label fades in above them.
 - `prefers-reduced-motion`: ambient motion is frozen; waking still works.
 
 ## Done when
@@ -29,10 +29,11 @@ wake-up on any input.
 
 ## Files
 
-`src/App.tsx`, `src/index.css`, `src/world/index.ts`, `src/world/grid.ts`, `src/world/terrain.ts`, `src/world/intro.ts`.
+`src/App.tsx`, `src/index.css`, `src/world/index.ts`, `src/world/scene3d.ts`, `src/world/ascii.ts`,
+`src/world/grid.ts`, `src/world/intro.ts`.
 
 ## Handoff to M2
 
 The awake state currently ends with a standing figure that can't move. M2 replaces that ending: once
-awake, hand control to the player with the camera on the log; `drawTerrain` already takes a camera
-position, so the world is ready to scroll.
+awake, hand control to the player: move the person mesh in `scene3d.ts` and move the camera `focus`
+with them.
