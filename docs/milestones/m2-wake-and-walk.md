@@ -8,15 +8,15 @@ After waking, the visitor walks a small, living map with WASD while the camera f
 
 ## Scope
 
-- `world/map.ts`: one hand-drawn map as an array of strings (roughly 160 × 60 cells). Includes the
-  log from the intro, a stream or pond, grass fields, a few trees, paths, and a soft border (cliffs, fence or
-  water) so the edge feels natural. Mark which characters block movement.
-- `world/ambient.ts`: animated tiles keyed by map character, e.g. `~` water flows sideways, `"` grass
-  sways. Pure functions of `(x, y, t)`.
+- Build on `world/terrain.ts` (already animated: crowns, stream, grass). Add map bounds (roughly
+  160 × 60 cells around the log) with a natural edge: dense forest closing in, which the terrain can do by
+  forcing trees outside the bounds. Add paths (line work, see `vision.md`) linking the clearings.
+- Movement is blocked by tree crowns' dense cores and the stream (except at a bridge or stepping stones).
 - `world/player.ts`: WASD (and arrow keys) move one cell at a fixed speed while held; diagonal allowed.
   Two-frame walk cycle; facing left/right. Blocked cells stop movement.
 - `world/camera.ts`: player stays centred; camera clamps at map edges.
-- Wake transition: the intro's log is the map's log; after the stand-up, the scene switches to the map without a jump.
+- Wake transition: the intro's log is the map's log; after the stand-up, the camera starts following
+  without a jump. The "dimural" label follows the player.
 - Reserve open clearings for 3 logos and 3 project objects (see `content.md`). Leave them empty for now.
 
 ## Done when

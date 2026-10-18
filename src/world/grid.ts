@@ -1,7 +1,7 @@
 export const INK = "#111";
 
-const FONT_PX = 16;
-const LINE_PX = FONT_PX * 1.25;
+const FONT_PX = 12;
+const LINE_PX = FONT_PX * 1.2;
 const FONT = `${FONT_PX}px ui-monospace, Menlo, Consolas, monospace`;
 
 /** A monospace character grid over a canvas. Everything outside this file speaks in cells, not pixels. */
@@ -48,8 +48,19 @@ export class Grid {
     }
   }
 
-  /** Draw several rows of art with its top-left at a cell. */
+  /** Draw rows of art with its top-left at a cell. Each row hides whatever is under its non-space span. */
   art(col: number, row: number, lines: string[], color = INK) {
-    lines.forEach((line, i) => this.put(col, row + i, line, color));
+    lines.forEach((line, i) => {
+      const start = line.search(/\S/);
+      if (start < 0) return;
+      this.blank(col + start, row + i, line.trimEnd().length - start);
+      this.put(col, row + i, line, color);
+    });
+  }
+
+  /** Paint cells back to the page background. */
+  blank(col: number, row: number, length: number) {
+    this.ctx.fillStyle = "#fff";
+    this.ctx.fillRect(Math.round(col) * this.cellW, Math.round(row) * LINE_PX, length * this.cellW, LINE_PX);
   }
 }

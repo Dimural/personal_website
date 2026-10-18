@@ -9,20 +9,19 @@ window). The world itself is drawn by plain TypeScript onto one `<canvas>`.
 src/
   main.tsx          mounts <App />
   App.tsx           heading + canvas; starts the world on mount, stops it on unmount
-  index.css         page styles (white ground, black ink)
+  index.css         page styles: full-screen canvas, floating heading
   world/
     index.ts        startWorld(canvas): resize handling, input, the frame loop
-    grid.ts         the character grid: measures the monospace cell, draws text at cell coordinates
-    intro.ts        milestone 1 scene: sleeper on a log, butterflies, Zs, grass
+    grid.ts         the character grid: measures the monospace cell, draws text; art() draws opaque rows
+    terrain.ts      the endless ground: trees, stream, grass, scatter, as a pure function of (x, y, t)
+    intro.ts        milestone 1 scene: terrain + sleeper on a log, butterflies, Zs, name label
 ```
 
 Planned (add when the milestone needs it, not before):
 
 ```
-  world/map.ts      milestone 2: the static map (string rows) and which cells block movement
-  world/player.ts   milestone 2: position, WASD input, walking animation
-  world/camera.ts   milestone 2: keeps the player centred, clamped to map edges
-  world/ambient.ts  milestone 2: animated tiles (water, grass) drawn from time + position
+  world/player.ts   milestone 2: position, WASD input, walking animation, blocked cells
+  world/camera.ts   milestone 2: keeps the player centred, clamped to the map bounds
   world/objects.ts  milestones 3-4: floating logos and project objects, bobbing, proximity
   content/          milestone 3: typed resume data (experience, projects)
   ui/Popup.tsx      milestone 3: the HTML window that opens near an object
@@ -32,9 +31,14 @@ Planned (add when the milestone needs it, not before):
 
 1. `index.ts` runs a `requestAnimationFrame` loop with `t` = seconds since start (frozen at 0 under
    `prefers-reduced-motion`).
-2. The grid is cleared, then the current scene draws into it with `grid.put(col, row, text, colour?)`.
-   Spaces in `text` are transparent, so art can overlap.
+2. The grid is cleared, `drawTerrain(grid, camX, camY, t)` fills every visible cell, then the scene
+   draws its art on top with `grid.art(...)`, which blanks the cells under each row first so art never
+   tangles with terrain. `grid.put(...)` draws transparently (spaces show what's beneath).
 3. Everything is in **cell coordinates**. Never use pixels outside `grid.ts`.
+4. **World coordinates:** cells, origin at the log. Screen cell `(cols/2, rows/2)` (floored) shows the
+   camera's world cell. Cells are about twice as tall as wide, so round shapes scale `y` by 2.
+5. Font is 12px monospace. At 1920×1080 that's ~16k cells redrawn every frame at a steady 60fps; keep
+   per-cell work to a few noise lookups.
 
 Motion comes from pure functions of `t` and position (e.g. grass blade = `sin(x * 0.3 + t * 2)`), so
 there is no per-tile state to keep in sync.
