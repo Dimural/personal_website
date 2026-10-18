@@ -4,7 +4,9 @@ import * as THREE from "three";
 // and ascii.ts turns each pixel into a character. World units: 1 ≈ one person-width; y is up.
 
 const SUPERSAMPLE = 2; // render pixels per character cell, per axis
-const CAMERA_OFFSET = new THREE.Vector3(0, 19, 13);
+const CAMERA_OFFSET = new THREE.Vector3(0, 14, 10);
+const NEAR = 5;
+const FAR = 120;
 const WAKE_SECONDS = 0.9;
 
 const riverZ = (x: number) => 11 + 4 * Math.sin(x * 0.06);
@@ -41,8 +43,6 @@ function grain(seed: number, contrast: number) {
   return tex;
 }
 const LEAF_GRAIN = grain(3, 120);
-const GROUND_GRAIN = grain(5, 28);
-GROUND_GRAIN.repeat.set(40, 40);
 
 const mat = (color: string, map: THREE.Texture | null = null) =>
   new THREE.MeshStandardMaterial({ color, map, flatShading: true, roughness: 1 });
@@ -58,7 +58,7 @@ function ground() {
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
     const z = pos.getZ(i);
-    const hills = 1.6 * Math.sin(x * 0.07) * Math.cos(z * 0.06) + 0.8 * Math.sin(x * 0.15 + z * 0.11);
+    const hills = 0.5 * Math.sin(x * 0.07) * Math.cos(z * 0.06);
     const flat = smoothstep(8, 20, Math.hypot(x, z));
     const bed = 1 - smoothstep(RIVER_HALF_WIDTH - 1, RIVER_HALF_WIDTH + 3, Math.abs(z - riverZ(x)));
     pos.setY(i, hills * flat * (1 - bed) - bed * 1.2);
@@ -67,7 +67,7 @@ function ground() {
   }
   geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
   geo.computeVertexNormals();
-  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, map: GROUND_GRAIN, flatShading: true, roughness: 1 }));
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 }));
   mesh.receiveShadow = true;
   return mesh;
 }
@@ -101,16 +101,14 @@ function tree(random: () => number) {
   trunk.position.y = h / 2;
   trunk.castShadow = true;
   group.add(trunk);
-  const greens = ["#6f9a6c", "#5a8660", "#7fa877"];
-  for (let i = 0; i < 3; i++) {
-    const r = 2 + random() * 1.6;
-    const leaves = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), mat(greens[i], LEAF_GRAIN));
-    leaves.position.set((random() - 0.5) * 2.4, h + r * 0.6 + i * 0.9, (random() - 0.5) * 2.4);
-    leaves.rotation.set(random() * 3, random() * 3, 0);
-    leaves.castShadow = true;
-    leaves.receiveShadow = true;
-    group.add(leaves);
-  }
+  const r = 2.6 + random() * 1.2;
+  const shade = ["#2d5233", "#36603b", "#284a2e"][Math.floor(random() * 3)];
+  const leaves = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), mat(shade, LEAF_GRAIN));
+  leaves.position.y = h + r * 0.7;
+  leaves.scale.y = 0.85;
+  leaves.castShadow = true;
+  leaves.receiveShadow = true;
+  group.add(leaves);
   return group;
 }
 
@@ -143,7 +141,7 @@ function person() {
   };
   add(new THREE.CapsuleGeometry(0.22, 1, 2, 6), "#2e3540", 0.7, -0.25);
   add(new THREE.CapsuleGeometry(0.22, 1, 2, 6), "#2e3540", 0.7, 0.25);
-  const body = add(new THREE.CapsuleGeometry(0.5, 0.9, 2, 8), "#3e5a78", 1.9);
+  const body = add(new THREE.CapsuleGeometry(0.5, 0.9, 2, 8), "#b5523b", 1.9);
   const head = add(new THREE.IcosahedronGeometry(0.45, 1), "#d9b28c", 3);
   return { group, body, head };
 }
@@ -168,16 +166,20 @@ export function createScene() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const target = new THREE.WebGLRenderTarget(1, 1);
+  // A second pass records depth (packed into RGBA for full precision) so ascii.ts can outline shapes.
+  const depthTarget = new THREE.WebGLRenderTarget(1, 1);
+  const depthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
   let pixels = new Uint8Array(4);
+  let depth = new Uint8Array(4);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#ffffff");
-  scene.fog = new THREE.Fog("#ffffff", 45, 110);
-  const camera = new THREE.PerspectiveCamera(40, 1, 1, 300);
+  scene.fog = new THREE.Fog("#ffffff", 55, 115);
+  const camera = new THREE.PerspectiveCamera(40, 1, NEAR, FAR);
 
   scene.add(new THREE.HemisphereLight("#ffffff", "#9aa88f", 2.2));
   const sun = new THREE.DirectionalLight("#ffffff", 3.2);
-  sun.position.set(-30, 45, -10);
+  sun.position.set(-14, 60, -6);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, far: 150 });
@@ -189,10 +191,10 @@ export function createScene() {
 
   const random = rng(42);
   const trees: { group: THREE.Group; phase: number }[] = [];
-  while (trees.length < 420) {
+  while (trees.length < 220) {
     const x = (random() - 0.5) * 160;
     const z = (random() - 0.5) * 130;
-    if (Math.hypot(x * 0.8, z * 1.5) < 9 || Math.abs(z - riverZ(x)) < RIVER_HALF_WIDTH + 4) continue;
+    if (Math.hypot(x * 0.9, z * 1.8) < 7 || Math.abs(z - riverZ(x)) < RIVER_HALF_WIDTH + 4) continue;
     if (Math.hypot(x + 15, z + 9) < 8) continue; // the cabin's yard
     const t = tree(random);
     t.position.set(x, 0, z);
@@ -200,8 +202,8 @@ export function createScene() {
     scene.add(t);
     trees.push({ group: t, phase: random() * 10 });
   }
-  const bushGreens = ["#6f9a64", "#5b8a58", "#86ad74"];
-  for (let i = 0; i < 260; i++) {
+  const bushGreens = ["#4d7d49", "#5b8a58", "#426f40"];
+  for (let i = 0; i < 120; i++) {
     const x = (random() - 0.5) * 120;
     const z = (random() - 0.5) * 100;
     if (Math.hypot(x, z * 1.6) < 6 || Math.abs(z - riverZ(x)) < RIVER_HALF_WIDTH + 0.5 || Math.hypot(x + 15, z + 9) < 6) continue;
@@ -229,9 +231,9 @@ export function createScene() {
   scene.add(house);
 
   // Grass tufts sway in the wind; one instanced mesh keeps it cheap.
-  const tuftGeo = new THREE.ConeGeometry(0.18, 1.1, 3);
+  const tuftGeo = new THREE.ConeGeometry(0.3, 1.6, 3);
   tuftGeo.translate(0, 0.55, 0);
-  const tufts = new THREE.InstancedMesh(tuftGeo, mat("#9cbf8a"), 900);
+  const tufts = new THREE.InstancedMesh(tuftGeo, mat("#9cbf8a"), 350);
   const tuftSpots: THREE.Vector3[] = [];
   while (tuftSpots.length < tufts.count) {
     const x = (random() - 0.5) * 100;
@@ -267,7 +269,9 @@ export function createScene() {
     resize(cols: number, rows: number, aspect: number) {
       renderer.setSize(cols * SUPERSAMPLE, rows * SUPERSAMPLE, false);
       target.setSize(cols * SUPERSAMPLE, rows * SUPERSAMPLE);
+      depthTarget.setSize(cols * SUPERSAMPLE, rows * SUPERSAMPLE);
       pixels = new Uint8Array(cols * rows * SUPERSAMPLE * SUPERSAMPLE * 4);
+      depth = new Uint8Array(pixels.length);
       camera.aspect = aspect;
       camera.updateProjectionMatrix();
     },
@@ -302,7 +306,12 @@ export function createScene() {
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
       renderer.readRenderTargetPixels(target, 0, 0, target.width, target.height, pixels);
-      return { pixels, width: target.width, height: target.height };
+      scene.overrideMaterial = depthMaterial;
+      renderer.setRenderTarget(depthTarget);
+      renderer.render(scene, camera);
+      scene.overrideMaterial = null;
+      renderer.readRenderTargetPixels(depthTarget, 0, 0, target.width, target.height, depth);
+      return { pixels, depth, width: target.width, height: target.height, near: NEAR, far: FAR };
     },
 
     /** Where the figure's head is on the character grid, for labels and Zs. */
@@ -313,6 +322,8 @@ export function createScene() {
 
     dispose() {
       target.dispose();
+      depthTarget.dispose();
+      depthMaterial.dispose();
       renderer.dispose();
     },
   };

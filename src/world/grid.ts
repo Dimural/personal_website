@@ -1,6 +1,6 @@
 export const INK = "#111";
 
-const FONT_PX = 10;
+const FONT_PX = 12;
 const LINE_PX = FONT_PX * 1.2;
 const FONT = `${FONT_PX}px ui-monospace, Menlo, Consolas, monospace`;
 
