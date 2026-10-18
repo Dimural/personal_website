@@ -23,7 +23,7 @@ build/
 .claude/settings.local.json
 
 # personal documents — never commit
-Dimural_Murat.pdf
+Dimural_Murat*.pdf
 *resume*.pdf
 *Resume*.pdf
 *CV*.pdf
