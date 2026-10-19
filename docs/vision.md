@@ -11,7 +11,7 @@ The site is a tiny ASCII world. Everything is drawn with text characters.
    up. Walking back to the log and pressing space puts them back to sleep and the card returns.
 3. **Walk.** WASD moves the figure. The camera follows them, so the map scrolls as they walk.
 4. **Explore.** The map is small and bounded, not open world: a few minutes of wandering covers it.
-   It is always moving: flowing water, swaying grass, and the like.
+   It is always moving: flowing water, swaying grass, birds gliding over, rabbits hopping (and fleeing you).
 5. **Experience.** Floating ASCII company logos, one per job on the resume, drawn in each company's
    real brand colours. Walking close opens a window with the job title, the company's full name,
    dates, location and what was done there.

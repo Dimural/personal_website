@@ -1,6 +1,6 @@
 # M2.5 — Title card
 
-**Status:** in progress
+**Status:** done (2026-10-19)
 
 Design: [title-card landing](../superpowers/specs/2026-10-19-title-card-landing-design.md).
 Plan: [plan](../superpowers/plans/2026-10-19-title-card-landing.md).
@@ -21,5 +21,5 @@ scenery is a world you can walk in; the log is where you go back to sleep and th
 
 - [x] Card shows over the sleeping scene; only space (or the button) wakes; card fades out; phone layout stacks.
 - [x] Space at the log (after walking away) puts the figure back to sleep and brings the card back; mashing space is safe.
-- [ ] Birds and rabbits move calmly; rabbits flee; still 60fps.
-- [ ] `npm run build` passes.
+- [x] Birds and rabbits move calmly; rabbits flee; still 60fps.
+- [x] `npm run build` passes.

@@ -57,6 +57,7 @@ export function startWorld(worldCanvas: HTMLCanvasElement, overlayCanvas: HTMLCa
     ascii.resize(grid, world.renderer.domElement.height);
   };
   resize();
+  if (import.meta.env.DEV) Object.assign(window, { __critters: { rabbits: world.critters.rabbits, player: player.pose }, __head: () => world.headCell(1, 1), __logCell: () => world.logCell(1, 1) }); // for the e2e check
   addEventListener("keydown", keydown);
   addEventListener("keyup", keyup);
   addEventListener("blur", release);

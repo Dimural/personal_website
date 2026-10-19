@@ -20,6 +20,7 @@ src/
     index.ts        startWorld(worldCanvas, overlayCanvas): resize, input, the frame loop
     scene3d.ts      the 3D world: castle, meadow of grass blades, pond, trees, torches, fireflies, log,
                     figure, butterflies; MAP, COLLIDERS + blocked(), SPOTS; camera follow
+    critters.ts     birds gliding over the meadow, rabbits that hop, sit and flee the walker
     player.ts       held keys → Pose (position, heading, stride); movement with sliding collisions
     ascii.ts        the GPU passes: scene → eased per-cell colour/stroke → glyphs on the world canvas
     grid.ts         cell metrics (whole device pixels) + overlay text drawing on the overlay canvas
@@ -41,7 +42,7 @@ Planned (add when the milestone needs it, not before):
    started. Once awake and the stand-up (`WAKE_SECONDS`) is over, `player.update(dt, world.blocked)` moves the Pose.
    Space wakes; at the log (`player.atLog`, only after walking away) space lies the figure back down.
 3. `scene3d.render()` animates the world (grass wind in its vertex shader, pond glints, torch glow,
-   fireflies, butterflies, the figure from `rest` and the Pose: the stand-up, or the same motion reversed), eases the camera
+   fireflies, butterflies, birds and rabbits (`critters.update`), the figure from `rest` and the Pose: the stand-up, or the same motion reversed), eases the camera
    (asleep: the intro framing, which keeps the sleeper below the title card), and renders into a
    **multisampled** target of 3×3 pixels per character cell.
 4. `ascii.ts`, pass 1 (one fragment per cell): averages the cell's 3×3 pixels (sRGB) and measures its

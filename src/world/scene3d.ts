@@ -1,5 +1,7 @@
 import * as THREE from "three";
 
+import { createCritters } from "./critters";
+
 // The world is a detailed 3D scene at dusk. It is never shown directly: it renders small and off-screen,
 // and ascii.ts turns each cell into a character coloured by the scene. Detail lives HERE: thousands of
 // grass blades, textured stone, lights. The ASCII pass only translates. World units: 1 ≈ a person's width.
@@ -441,6 +443,14 @@ export function createScene(canvas: HTMLCanvasElement) {
   const sleeper = person();
   scene.add(sleeper.group);
 
+  /** True if a walker of radius r can't stand at (x, z): map edge, pond, or something solid. */
+  const blocked = (x: number, z: number, r: number) => {
+    if (x - r < MAP.minX || x + r > MAP.maxX || z - r < MAP.minZ || z + r > MAP.maxZ) return true;
+    if (inPond(x, z, r * 0.75)) return true;
+    return COLLIDERS.some((c) => Math.hypot(x - c.x, z - c.z) < c.r + r);
+  };
+  const critters = createCritters(scene, blocked);
+
   const butterflies = ["#ffb03a", "#d68cff", "#7cc8ff"].map((color, i) => ({ ...butterfly(color), phase: i * 2.1 }));
   for (const b of butterflies) {
     b.group.scale.setScalar(0.55);
@@ -453,6 +463,7 @@ export function createScene(canvas: HTMLCanvasElement) {
   const lastFocus = new THREE.Vector3();
   const projected = new THREE.Vector3();
   let lastNow = 0;
+  let lastT = 0;
 
   return {
     renderer,
@@ -466,12 +477,8 @@ export function createScene(canvas: HTMLCanvasElement) {
       camera.updateProjectionMatrix();
     },
 
-    /** True if a walker of radius r can't stand at (x, z): map edge, pond, or something solid. */
-    blocked(x: number, z: number, r: number) {
-      if (x - r < MAP.minX || x + r > MAP.maxX || z - r < MAP.minZ || z + r > MAP.maxZ) return true;
-      if (inPond(x, z, r * 0.75)) return true;
-      return COLLIDERS.some((c) => Math.hypot(x - c.x, z - c.z) < c.r + r);
-    },
+    blocked,
+    critters,
 
     /** Advance the world to time t and render it off-screen. `pose` drives the figure once it's up. */
     render(now: number, t: number, rest: Rest, pose: Pose) {
@@ -487,7 +494,7 @@ export function createScene(canvas: HTMLCanvasElement) {
       });
 
       // Lying along the log, rolling up to stand where `pose` is, walking; going to sleep plays it in reverse.
-      const turn = rest.since === null ? 0 : smoothstep(0, WAKE_SECONDS, now - rest.since);
+      const turn = rest.since === null ? 1 : smoothstep(0, WAKE_SECONDS, now - rest.since); // null: asleep since load
       const up = rest.asleep ? 1 - turn : turn;
       if (up < 1) {
         sleeper.group.rotation.set(0, up * pose.heading, (1 - up) * (Math.PI / 2));
@@ -502,6 +509,8 @@ export function createScene(canvas: HTMLCanvasElement) {
         sleeper.legs[1].rotation.x = -swing;
       }
       grass.uniforms.uPush.value.copy(sleeper.group.position);
+      critters.update(t, Math.min(0.1, Math.max(0, t - lastT)), rest.asleep ? null : pose);
+      lastT = t;
 
       butterflies.forEach((b, i) => {
         b.group.position.set(6 * Math.sin(t * (0.2 + i * 0.05) + b.phase), 2.2 + 0.6 * Math.sin(t * 0.7 + b.phase), 4 * Math.sin(t * 0.35 + b.phase * 1.7));
