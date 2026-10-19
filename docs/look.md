@@ -28,6 +28,22 @@ ASCII characters on night navy, like the "Making the ASCII MMORPG of my dreams" 
 5. **Text that must be read** in the world (Zs, hints) is drawn crisp on the overlay canvas in
    small white monospace, game-style. The title card and popups are HTML.
 
+## Motion (approved 2026-10-19: "this is perfect. matches exactly what i said")
+
+The locked grid is the norm for anything that moves the view: walking, a camera glide to a popup or
+logo (M3–M4), a new area, a cutscene. Every such motion must:
+
+- **keep the flat camera and snap it to whole cells**, with the glyphs slid by the rest (`shift`, whole
+  device pixels). Never add perspective, camera rotation or zoom while moving: each breaks the lock and the
+  grass boils again. A zoom or angle change is a new framing, set once, not animated.
+- **keep easing on and reprojected.** Never fix shimmer by switching easing off, or ghosting by easing
+  the unmoved history. Both were tried and both gave the owner headaches.
+- **leave static things rigid.** Only things that really move (wind, the figure, critters) may change their
+  characters while the view moves.
+- **be checked by measurement, not screenshots** (a still image can't show flicker): capture consecutive
+  frames while walking and compare each to the previous one slid by the exact pixel shift. With wind off,
+  static scenery must change by 0; with wind on, walking stays within ~2.5× of standing still.
+
 ## Rules
 
 - **Calm, never loud.** Slow broad motion: wind is one slow wave across the field, torches glow softly,
