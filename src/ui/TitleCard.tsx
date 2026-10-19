@@ -1,9 +1,18 @@
+import { useEffect, useRef } from "react";
+
 import { BIO, EXPERIENCE, PROJECTS } from "../content/resume";
 
 /** The landing: name, bio, experience and projects over the sleeping scene. Fades out while the visitor walks. */
 export function TitleCard({ asleep, onWake }: { asleep: boolean; onWake: () => void }) {
+  // While walking, the faded card is inert: hidden from screen readers, unfocusable, and focus leaves it.
+  // (Set on the element: React 18 doesn't pass `inert` through as a boolean.)
+  const card = useRef<HTMLElement>(null);
+  useEffect(() => {
+    card.current!.inert = !asleep;
+  }, [asleep]);
+
   return (
-    <main className="card" data-state={asleep ? "asleep" : "awake"} aria-hidden={!asleep}>
+    <main ref={card} className="card" data-state={asleep ? "asleep" : "awake"}>
       <div className="veil" />
       <div className="content">
         <h1>Dimural Murat</h1>
@@ -48,7 +57,7 @@ export function TitleCard({ asleep, onWake }: { asleep: boolean; onWake: () => v
           </section>
         </div>
       </div>
-      <button className="wake" onClick={onWake} tabIndex={asleep ? 0 : -1}>
+      <button className="wake" onClick={onWake}>
         press <kbd>space</kbd> to wake up
       </button>
     </main>

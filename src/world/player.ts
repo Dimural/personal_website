@@ -30,7 +30,7 @@ export function createPlayer() {
       return leftLog && Math.hypot(pose.x, pose.z) < SLEEP_RADIUS;
     },
 
-    /** Back to where the stand-up ends, as on first load (called once the figure is lying on the log). */
+    /** Back to where the stand-up ends, as on first load (called on waking, before the stand-up plays). */
     reset() {
       Object.assign(pose, { x: 0, z: 2.2, heading: 0, stride: 0, moving: 0 });
       held.clear();
@@ -71,6 +71,7 @@ export function createPlayer() {
       // Turn smoothly toward the direction of travel, the short way round.
       const turn = Math.atan2(dx, dz) - pose.heading;
       pose.heading += Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-dt * 12));
+      pose.heading = Math.atan2(Math.sin(pose.heading), Math.cos(pose.heading)); // stay in ±π, so lying down never spins
       pose.stride += dt * SPEED * 1.5;
       if (Math.hypot(pose.x, pose.z) > SLEEP_RADIUS + 1) leftLog = true;
     },

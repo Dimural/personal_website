@@ -31,7 +31,7 @@ function bird() {
     pivot.add(wing);
     pivot.scale.x = side;
     group.add(pivot);
-    return pivot;
+    return { pivot, side };
   });
   return { group, wings };
 }
@@ -119,7 +119,7 @@ export function createCritters(scene: THREE.Scene, blocked: (x: number, z: numbe
         b.group.rotation.y = Math.atan2(dir * BIRD_SPAN, drift);
         const beating = Math.max(0, Math.sin(t * 0.45 + i * 2.3) - 0.55) / 0.45;
         const flap = 0.15 + beating * 0.5 * Math.sin(t * 5 + i);
-        for (const w of b.wings) w.rotation.z = flap;
+        for (const w of b.wings) w.pivot.rotation.z = flap * w.side; // the mirrored wing turns the other way, so both lift together
       });
 
       // Rabbits: sit, hop a few times, sit. Bolt away from the walker.
