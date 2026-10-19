@@ -3,10 +3,9 @@ import * as THREE from "three";
 // The world is a real low-poly 3D scene. It is never shown directly: it renders small and off-screen,
 // and ascii.ts turns each pixel into a character. World units: 1 ≈ one person-width; y is up.
 
-const SUPERSAMPLE = 2; // render pixels per character cell, per axis
-const CAMERA_OFFSET = new THREE.Vector3(0, 20, 14);
+const CAMERA_OFFSET = new THREE.Vector3(0, 34, 24);
 const NEAR = 5;
-const FAR = 120;
+const FAR = 170;
 const WAKE_SECONDS = 0.9;
 
 const riverZ = (x: number) => 11 + 4 * Math.sin(x * 0.06);
@@ -53,8 +52,8 @@ function ground() {
   const pos = geo.attributes.position;
   const colors: number[] = [];
   const random = rng(7);
-  const light = new THREE.Color("#f4f7ef");
-  const dark = new THREE.Color("#dbe7cf");
+  const light = new THREE.Color("#f2f5ec");
+  const dark = new THREE.Color("#a9c095");
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
     const z = pos.getZ(i);
@@ -62,7 +61,9 @@ function ground() {
     const flat = smoothstep(8, 20, Math.hypot(x, z));
     const bed = 1 - smoothstep(RIVER_HALF_WIDTH - 1, RIVER_HALF_WIDTH + 3, Math.abs(z - riverZ(x)));
     pos.setY(i, hills * flat * (1 - bed) - bed * 1.2);
-    const c = light.clone().lerp(dark, random() * 0.8);
+    // Patches of longer grass: they become sparse stipple (. , ' :) instead of blank paper.
+    const patch = 0.5 + 0.5 * Math.sin(x * 0.21 + z * 0.13) * Math.cos(z * 0.27 - x * 0.09);
+    const c = light.clone().lerp(dark, Math.min(1, Math.max(0, patch * 0.7 + (random() - 0.5) * 0.5)));
     colors.push(c.r, c.g, c.b);
   }
   geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
@@ -72,24 +73,46 @@ function ground() {
   return mesh;
 }
 
+// Water is drawn, not shaded: short dark dashes on pale blue, so it turns into rows of - ~ _ like
+// water in ASCII art. The texture scrolls downstream.
+function dashes() {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#c4d9ea";
+  ctx.fillRect(0, 0, 128, 128);
+  ctx.fillStyle = "#2f5f8a";
+  const random = rng(11);
+  for (let y = 4; y < 128; y += 16) {
+    for (let x = random() * 20; x < 128; x += 20 + random() * 26) ctx.fillRect(x, y + random() * 4, 10 + random() * 16, 4);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(13, 1);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 function river() {
-  const geo = new THREE.PlaneGeometry(260, RIVER_HALF_WIDTH * 2, 160, 6);
+  const geo = new THREE.PlaneGeometry(260, RIVER_HALF_WIDTH * 2, 260, 24);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   const base = Float32Array.from(pos.array as Float32Array);
   for (let i = 0; i < pos.count; i++) pos.setZ(i, base[i * 3 + 2] + riverZ(base[i * 3]));
-  const mesh = new THREE.Mesh(geo, mat("#7d9fc0"));
+  const map = dashes();
+  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map }));
   mesh.position.y = -0.4;
   mesh.receiveShadow = true;
-  // Ripples travel downstream, so the facets (and their characters) keep changing.
+  // Ripples are long crests across the current that wobble downstream: on screen they are horizontal
+  // strokes (~ - _), not vertical bars, and they keep moving.
   const update = (t: number) => {
     for (let i = 0; i < pos.count; i++) {
       const x = base[i * 3];
       const z = pos.getZ(i);
-      pos.setY(i, 0.25 * Math.sin(x * 0.6 - t * 3 + z * 0.8) + 0.15 * Math.sin(x * 1.3 - t * 4.5));
+      pos.setY(i, 0.3 * Math.sin(z * 2.2 + 1.5 * Math.sin(x * 0.25 - t * 1.6)) + 0.1 * Math.sin(x * 0.9 - t * 3));
     }
     pos.needsUpdate = true;
-    geo.computeVertexNormals();
+    map.offset.x = -t * 0.04;
   };
   return { mesh, update };
 }
@@ -168,11 +191,11 @@ export function createScene(canvas: HTMLCanvasElement) {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#ffffff");
-  scene.fog = new THREE.Fog("#ffffff", 55, 115);
+  scene.fog = new THREE.Fog("#ffffff", 80, 165);
   const camera = new THREE.PerspectiveCamera(40, 1, NEAR, FAR);
 
-  scene.add(new THREE.HemisphereLight("#ffffff", "#9aa88f", 2.2));
-  const sun = new THREE.DirectionalLight("#ffffff", 3.2);
+  scene.add(new THREE.HemisphereLight("#ffffff", "#9aa88f", 1.7));
+  const sun = new THREE.DirectionalLight("#ffffff", 2.6);
   sun.position.set(-14, 60, -6);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -199,7 +222,7 @@ export function createScene(canvas: HTMLCanvasElement) {
       position: new THREE.Vector3(x, h + r * 0.7, z),
       rotation: new THREE.Euler(0, random() * Math.PI * 2, 0),
       scale: new THREE.Vector3(r, r * 0.85, r),
-      color: ["#2d5233", "#36603b", "#284a2e"][Math.floor(random() * 3)],
+      color: ["#4a7a45", "#578a50", "#3f6b3c"][Math.floor(random() * 3)],
       phase: random() * 10,
     });
   }
@@ -274,29 +297,33 @@ export function createScene(canvas: HTMLCanvasElement) {
   }
   log.rotation.z = Math.PI / 2;
   log.position.y = 0.9;
+  // The log, sleeper and butterflies are hand-drawn sprites (sprites.ts); these meshes stay hidden.
+  log.visible = false;
   scene.add(log);
 
   const sleeper = person();
   sleeper.group.scale.setScalar(1.5);
+  sleeper.group.visible = false;
   scene.add(sleeper.group);
 
   const butterflies = ["#e0a040", "#b070d0", "#5aa0d0"].map((color, i) => ({ ...butterfly(color), phase: i * 2.1 }));
   for (const b of butterflies) {
     b.group.scale.setScalar(0.65);
+    b.group.visible = false;
     scene.add(b.group);
   }
 
   const focus = new THREE.Vector3();
-  const headWorld = new THREE.Vector3();
+  const projected = new THREE.Vector3();
 
   return {
     renderer,
 
-    /** Size the visible canvas, and the off-screen render to the character grid. `aspect` is the grid's width/height. */
-    resize(width: number, height: number, dpr: number, cols: number, rows: number, aspect: number) {
+    /** Size the visible canvas and the off-screen render (`targetW`×`targetH` pixels). `aspect` is the grid's width/height. */
+    resize(width: number, height: number, dpr: number, targetW: number, targetH: number, aspect: number) {
       renderer.setPixelRatio(dpr);
       renderer.setSize(width, height, false);
-      target.setSize(cols * SUPERSAMPLE, rows * SUPERSAMPLE);
+      target.setSize(targetW, targetH);
       camera.aspect = aspect;
       camera.updateProjectionMatrix();
     },
@@ -337,10 +364,10 @@ export function createScene(canvas: HTMLCanvasElement) {
       return { color: target.texture, depth: target.depthTexture!, near: NEAR, far: FAR };
     },
 
-    /** Where the figure's head is on the character grid, for labels and Zs. */
-    headCell(cols: number, rows: number) {
-      sleeper.head.getWorldPosition(headWorld).project(camera);
-      return { col: ((headWorld.x + 1) / 2) * cols, row: ((1 - headWorld.y) / 2) * rows };
+    /** Where a world point lands on the character grid, for the hand-drawn sprites and labels. */
+    toCell(x: number, y: number, z: number, cols: number, rows: number) {
+      projected.set(x, y, z).project(camera);
+      return { col: ((projected.x + 1) / 2) * cols, row: ((1 - projected.y) / 2) * rows };
     },
 
     dispose() {

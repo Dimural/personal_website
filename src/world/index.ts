@@ -1,4 +1,4 @@
-import { createAsciiPass } from "./ascii";
+import { createAsciiPass, SUB } from "./ascii";
 import { Grid } from "./grid";
 import { drawIntroOverlay } from "./intro";
 import { createScene } from "./scene3d";
@@ -27,7 +27,7 @@ export function startWorld(worldCanvas: HTMLCanvasElement, overlayCanvas: HTMLCa
   const resize = () => {
     grid.resize();
     const { width, height } = worldCanvas.getBoundingClientRect();
-    world.resize(width, height, grid.dpr, grid.cols, grid.rows, (grid.cols * grid.cellW) / (grid.rows * grid.cellH));
+    world.resize(width, height, grid.dpr, grid.cols * SUB.x, grid.rows * SUB.y, (grid.cols * grid.cellW) / (grid.rows * grid.cellH));
     ascii.resize(grid, world.renderer.domElement.height);
   };
   resize();
@@ -39,7 +39,7 @@ export function startWorld(worldCanvas: HTMLCanvasElement, overlayCanvas: HTMLCa
   const frame = () => {
     const t = now();
     const ambient = reduceMotion ? 0 : t;
-    ascii.render(world.renderer, world.render(t, ambient, wokeAt));
+    ascii.render(world.renderer, world.render(t, ambient, wokeAt), ambient);
     grid.clear();
     drawIntroOverlay(grid, world, t, ambient, wokeAt);
     raf = requestAnimationFrame(frame);

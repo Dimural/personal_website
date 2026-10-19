@@ -66,6 +66,18 @@ export class Grid {
     });
   }
 
+  /** Draw a hand-drawn sprite (sprites.ts) with its top-left at a cell; mask letters pick colours from `palette`. */
+  sprite(col: number, row: number, sprite: { art: string[]; mask: string[] }, palette: Record<string, string>) {
+    col = Math.round(col);
+    row = Math.round(row);
+    sprite.art.forEach((line, i) => {
+      const start = line.search(/\S/);
+      if (start < 0) return;
+      this.blank(col + start - 1, row + i, line.trimEnd().length - start + 2); // a cell of paper around it
+      [...line].forEach((ch, j) => ch !== " " && this.put(col + j, row + i, ch, palette[sprite.mask[i][j]] ?? INK));
+    });
+  }
+
   /** Paint cells white, hiding the world beneath. */
   blank(col: number, row: number, length: number) {
     this.ctx.fillStyle = "#fff";
