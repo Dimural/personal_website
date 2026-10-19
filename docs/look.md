@@ -34,6 +34,10 @@ ASCII characters on night navy, like the "Making the ASCII MMORPG of my dreams" 
   water. Brand colours appear only on company logos (M3), and still go through the same conversion.
 - **Small characters.** `FONT_PX = 9` (about 260 columns on a laptop). Bigger cells lose the detail.
 - **Antialiased render.** The off-screen target is multisampled; thin things must not pop on and off.
+- **The camera moves in whole-cell steps** (`scene3d.ts`, `cellsPer`/`step`), and the cell history is
+  shifted by the same step (`shift` in `ascii.ts`). The world slides as a block, one character at a time,
+  like a terminal scrolling, instead of every character re-picking as the view creeps. Keep it that way
+  for anything that moves the camera.
 - **Mark the player like a game:** a small white name tag ("Dimural") above them.
 
 ## What was tried and rejected (don't repeat)
