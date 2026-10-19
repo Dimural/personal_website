@@ -71,7 +71,8 @@ export function startWorld(worldCanvas: HTMLCanvasElement, overlayCanvas: HTMLCa
     last = t;
     const ambient = reduceMotion ? 0 : t;
     if (!rest.asleep && settled()) player.update(dt, world.blocked);
-    ascii.render(world.renderer, world.render(t, ambient, rest, player.pose));
+    const blend = ascii.render(world.renderer, world.render(t, ambient, rest, player.pose));
+    if (import.meta.env.DEV) Object.assign(window, { __blend: blend }); // for the e2e check
     grid.clear();
     drawIntroOverlay(grid, world, t, ambient, rest, player.walked, !rest.asleep && settled() && player.atLog);
     raf = requestAnimationFrame(frame);

@@ -461,6 +461,7 @@ export function createScene(canvas: HTMLCanvasElement) {
   const focus = new THREE.Vector3(0, 0, -11);
   const focusTarget = new THREE.Vector3();
   const lastFocus = new THREE.Vector3();
+  const lastFigure = new THREE.Vector3();
   const projected = new THREE.Vector3();
   let lastNow = 0;
   let lastT = 0;
@@ -525,12 +526,14 @@ export function createScene(canvas: HTMLCanvasElement) {
       else focusTarget.set(0, 0, -11);
       lastFocus.copy(focus);
       focus.lerp(focusTarget, 1 - Math.exp(-dt * 3));
-      const cameraSpeed = dt > 0 ? lastFocus.distanceTo(focus) / dt : 0;
+      // How fast anything big moves on screen: the camera, or the figure walking within the frame.
+      const motion = dt > 0 ? Math.max(lastFocus.distanceTo(focus), lastFigure.distanceTo(sleeper.group.position)) / dt : 0;
+      lastFigure.copy(sleeper.group.position);
       camera.position.copy(focus).add(CAMERA_OFFSET);
       camera.lookAt(focus);
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
-      return { color: target.texture, cameraSpeed };
+      return { color: target.texture, motion };
     },
 
     /** Where the figure's head is on the character grid, for the Zs. */

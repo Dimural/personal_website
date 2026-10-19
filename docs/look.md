@@ -17,8 +17,9 @@ ASCII characters on night navy, like the "Making the ASCII MMORPG of my dreams" 
      where the cell holds a clear edge (a grass blade, a wall edge).
 3. **Ease small changes only.** A cell that wobbles a little (grass swaying in place) blends toward the
    new frame (`SETTINGS.ease`), so it fades instead of flickering. A cell whose content really changes
-   (`snapLo`/`snapHi`), and every cell while the camera moves (`easeMoving`), switches at once. Easing
-   everything smeared the whole screen while walking ("blur… i get a headache"); never ease motion.
+   (`snapLo`/`snapHi`), and every cell while the camera or the figure moves (`stillBelow`), switches at once.
+   Easing everything smeared the whole screen while walking ("blur… i get a headache"), and even partial
+   easing while walking left a ghost ("a little blurry… fuzzy", 2026-10-19); never ease motion at all.
 4. **Text that must be read** in the world (Zs, hints) is drawn crisp on the overlay canvas in
    small white monospace, game-style. The title card and popups are HTML.
 
@@ -54,8 +55,8 @@ ASCII characters on night navy, like the "Making the ASCII MMORPG of my dreams" 
 ## Knobs
 
 - Shader (`ascii.ts` `SETTINGS`): `density` (how fast brightness climbs the ramp), `ink`, `inkFloor`,
-  `muted`, `stroke` (edge clarity needed for a line), `ease` (smoothing of small wobbles), `easeMoving`
-  (how much faster cells follow while the camera moves), `snapLo`/`snapHi` (change size that skips easing).
+  `muted`, `stroke` (edge clarity needed for a line), `ease` (smoothing of small wobbles), `stillBelow`
+  (camera/figure speed above which easing is off), `snapLo`/`snapHi` (change size that skips easing).
 - Scene (`scene3d.ts`): lights (moon, sky fill, torches), grass count/height/colours, wind in the grass
   vertex shader, `CAMERA_OFFSET`, fog.
 - When something looks wrong, render the raw 3D target to the screen and look at that first.

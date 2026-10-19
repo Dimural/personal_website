@@ -23,7 +23,7 @@ const SETTINGS = {
   muted: 0.25, // pull colours this far toward grey, for a calm palette
   stroke: 0.3, // how clear a cell's stroke must be to draw a line instead of a ramp glyph
   ease: 7, // per second; how fast cells follow small changes (lower = smoother, laggier)
-  easeMoving: 12, // extra per second, per world unit/s of camera speed: scrolling must stay crisp, not smear
+  stillBelow: 0.5, // world units/s of camera or figure motion above which easing stops entirely: motion never smears
   snapLo: 0.05, // colour change (0-1) where a cell starts skipping the ease...
   snapHi: 0.15, // ...and where it switches at once: real changes are crisp, tiny wobbles stay smooth
 };
@@ -194,16 +194,17 @@ export function createAsciiPass() {
       u.cellPx.value.set(Math.round(grid.cellW * grid.dpr), Math.round(grid.cellH * grid.dpr));
       u.canvasH.value = canvasH;
     },
-    /** `frame.cameraSpeed` is in world units per second; while the camera moves, cells follow faster. */
-    render(renderer: THREE.WebGLRenderer, frame: { color: THREE.Texture; cameraSpeed: number }) {
+    /** `frame.motion` is how fast the camera or the figure moves (world units/s); any real motion turns easing off. */
+    render(renderer: THREE.WebGLRenderer, frame: { color: THREE.Texture; motion: number }) {
       const now = performance.now();
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       cell.uniforms.tColor.value = frame.color;
       cell.uniforms.tPrevColor.value = prev.textures[0];
       cell.uniforms.tPrevStroke.value = prev.textures[1];
-      const rate = SETTINGS.ease + SETTINGS.easeMoving * frame.cameraSpeed;
-      cell.uniforms.blend.value = fresh ? 1 : 1 - Math.exp(-dt * rate);
+      const eased = 1 - Math.exp(-dt * SETTINGS.ease);
+      const moving = Math.min(1, frame.motion / SETTINGS.stillBelow);
+      cell.uniforms.blend.value = fresh ? 1 : eased + (1 - eased) * moving;
       fresh = false;
       renderer.setRenderTarget(next);
       renderer.render(cellScene, camera);
@@ -213,6 +214,7 @@ export function createAsciiPass() {
       renderer.setRenderTarget(null);
       renderer.render(drawScene, camera);
       [prev, next] = [next, prev];
+      return cell.uniforms.blend.value as number;
     },
   };
 }
