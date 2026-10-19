@@ -17,7 +17,7 @@ Read in this order:
 | 1 | [Sleeping intro](milestones/m1-sleeping-intro.md) | done |
 | 2 | [Wake and walk](milestones/m2-wake-and-walk.md) | done |
 | 2.5 | [Title card](milestones/m2-5-title-card.md) | done |
-| 3 | [Experience logos](milestones/m3-experience-logos.md) | not started |
+| 3 | [Experience logos](milestones/m3-experience-logos.md) | in progress |
 | 4 | [Project landmarks](milestones/m4-project-landmarks.md) | not started |
 | 5 | [Polish and access](milestones/m5-polish-and-access.md) | not started |
 

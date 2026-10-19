@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { createCritters } from "./critters";
+import { createLogos } from "./logos";
 
 // The world is a detailed 3D scene at dusk. It is never shown directly: it renders small and off-screen,
 // and ascii.ts turns each cell into a character coloured by the scene. Detail lives HERE: thousands of
@@ -458,6 +459,7 @@ export function createScene(canvas: HTMLCanvasElement) {
     return COLLIDERS.some((c) => Math.hypot(x - c.x, z - c.z) < c.r + r);
   };
   const critters = createCritters(scene, blocked);
+  createLogos(scene);
 
   const butterflies = ["#ffb03a", "#d68cff", "#7cc8ff"].map((color, i) => ({ ...butterfly(color), phase: i * 2.1 }));
   for (const b of butterflies) {

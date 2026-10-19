@@ -1,6 +1,6 @@
 # M3 — Experience logos
 
-**Status:** not started
+**Status:** in progress — logos placed for the owner's review (2026-10-19); popups not started
 
 ## Goal
 

@@ -21,6 +21,7 @@ src/
     scene3d.ts      the 3D world: castle, meadow of grass blades, pond, trees, torches, fireflies, log,
                     figure, butterflies; MAP, COLLIDERS + blocked(), SPOTS; camera follow
     critters.ts     birds gliding over the meadow, rabbits that hop, sit and flee the walker
+    logos.ts        company/project logos (public/logos/) as flat signs: background keyed out, dark colours lifted
     player.ts       held keys → Pose (position, heading, stride); movement with sliding collisions
     ascii.ts        the GPU passes: scene → eased per-cell colour/stroke → glyphs on the world canvas
     grid.ts         cell metrics (whole device pixels) + overlay text drawing on the overlay canvas
