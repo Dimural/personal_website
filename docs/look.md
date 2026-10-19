@@ -19,8 +19,8 @@ ASCII characters on night navy, like the "Making the ASCII MMORPG of my dreams" 
    new frame (`SETTINGS.ease`), so it fades instead of flickering. A cell whose content really changes
    (`snapLo`/`snapHi`), and every cell while the camera moves (`easeMoving`), switches at once. Easing
    everything smeared the whole screen while walking ("blur… i get a headache"); never ease motion.
-4. **Text that must be read** (name tags, Zs, hints) is drawn crisp on the overlay canvas in
-   small white monospace, game-style. Popups and the heading are HTML.
+4. **Text that must be read** in the world (Zs, hints) is drawn crisp on the overlay canvas in
+   small white monospace, game-style. The title card and popups are HTML.
 
 ## Rules
 
@@ -34,7 +34,9 @@ ASCII characters on night navy, like the "Making the ASCII MMORPG of my dreams" 
   water. Brand colours appear only on company logos (M3), and still go through the same conversion.
 - **Small characters.** `FONT_PX = 9` (about 260 columns on a laptop). Bigger cells lose the detail.
 - **Antialiased render.** The off-screen target is multisampled; thin things must not pop on and off.
-- **Mark the player like a game:** a small white name tag ("Dimural") above them.
+- **No name tag** above the figure (removed 2026-10-19 with the title card: the landing must not look like a game).
+- **The title card** (landing) is HTML over the scene, styled by the design in
+  `docs/superpowers/specs/2026-10-19-title-card-landing-design.md`, not by this file.
 
 ## What was tried and rejected (don't repeat)
 

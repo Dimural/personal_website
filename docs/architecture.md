@@ -1,6 +1,6 @@
 # Architecture
 
-Vite + React + TypeScript + Three.js. React only owns the page shell (heading, two canvases, and later
+Vite + React + TypeScript + Three.js. React only owns the page shell (the title card, two canvases, and later
 the popup window). The world is a detailed **3D scene** that is never shown directly: each frame it
 renders small and off-screen, and GPU shaders turn it into coloured characters on the visible canvas.
 How it must look is in [look.md](look.md); this file is how the code does it.
@@ -10,8 +10,12 @@ How it must look is in [look.md](look.md); this file is how the code does it.
 ```
 src/
   main.tsx          mounts <App />
-  App.tsx           heading + two stacked canvases (world, overlay); starts/stops the world
-  index.css         page styles: night-navy page, full-screen canvases, floating heading
+  App.tsx           two stacked canvases (world, overlay) + the title card; starts/stops the world
+  index.css         page styles: night-navy page, full-screen canvases, the title card
+  content/
+    resume.ts       experience, projects and bio as typed data (docs/content.md is the readable copy)
+  ui/
+    TitleCard.tsx   the landing: name, bio, experience, projects, the "press space" button
   world/
     index.ts        startWorld(worldCanvas, overlayCanvas): resize, input, the frame loop
     scene3d.ts      the 3D world: castle, meadow of grass blades, pond, trees, torches, fireflies, log,
@@ -19,14 +23,13 @@ src/
     player.ts       held keys → Pose (position, heading, stride); movement with sliding collisions
     ascii.ts        the GPU passes: scene → eased per-cell colour/stroke → glyphs on the world canvas
     grid.ts         cell metrics (whole device pixels) + overlay text drawing on the overlay canvas
-    intro.ts        overlay text: name tag, Zs, "!", hints
+    intro.ts        overlay text: Zs, "!", hints
 ```
 
 Planned (add when the milestone needs it, not before):
 
 ```
   world/objects.ts  milestones 3-4: floating logos and project objects (3D meshes at SPOTS), proximity
-  content/          milestone 3: typed resume data (experience, projects)
   ui/Popup.tsx      milestone 3: the HTML window that opens near an object
 ```
 
@@ -63,10 +66,11 @@ things are `InstancedMesh`es (one draw call each); grass wind runs in the vertex
 
 ## Input
 
-`index.ts` owns all listeners. Any `keydown` or `pointerdown` wakes the sleeper. `keydown`/`keyup` feed
+`index.ts` owns all listeners. Only Space wakes the sleeper (so reading or selecting the card never does). `keydown`/`keyup` feed
 `player.key()` (WASD and arrows; those and space don't scroll the page); `blur` releases held keys.
 
 ## Communicating with React
 
-Milestone 3 needs the canvas to tell React "the player is near object X". Use one callback passed into
-`startWorld(..., { onNear })`. Do not add a state library.
+`startWorld(world, overlay, { onAsleep })` returns `{ wake, stop }`. The world calls `onAsleep(true|false)`
+so React shows or fades the title card; the card's button calls `wake()`. Milestone 3 adds `onNear` to the
+same options object. Do not add a state library.

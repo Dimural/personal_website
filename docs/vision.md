@@ -4,9 +4,11 @@ The site is a tiny ASCII world. Everything is drawn with text characters.
 
 ## The experience, start to finish
 
-1. **Landing.** The world fills the screen. "Dimural Murat" floats at the top as a normal heading.
-   In the middle, a clearing in an ASCII forest, where a figure sleeps on a log. Butterflies flutter around them, Zs drift up, grass sways.
-2. **Wake.** Pressing any key, or clicking/tapping anywhere, wakes the figure. They stand up.
+1. **Landing.** A title card, like a calm personal website: "Dimural Murat" in a large serif, a one-line
+   bio, then experience and projects in two columns. Behind it, as scenery, the world: a figure sleeps on
+   a log in a dusk meadow, Zs drift up, grass sways. It should not look like a game yet.
+2. **Wake.** Pressing space (or the small "press space" button) fades the card out; the figure stands
+   up. Walking back to the log and pressing space puts them back to sleep and the card returns.
 3. **Walk.** WASD moves the figure. The camera follows them, so the map scrolls as they walk.
 4. **Explore.** The map is small and bounded, not open world: a few minutes of wandering covers it.
    It is always moving: flowing water, swaying grass, and the like.

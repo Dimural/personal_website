@@ -1,21 +1,27 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { TitleCard } from "./ui/TitleCard";
 import { startWorld } from "./world";
 
 export function App() {
   const world = useRef<HTMLCanvasElement>(null);
   const overlay = useRef<HTMLCanvasElement>(null);
-  useEffect(() => startWorld(world.current!, overlay.current!), []);
+  const handle = useRef<ReturnType<typeof startWorld>>();
+  const [asleep, setAsleep] = useState(true);
+  useEffect(() => {
+    handle.current = startWorld(world.current!, overlay.current!, { onAsleep: setAsleep });
+    return handle.current.stop;
+  }, []);
 
   return (
     <>
-      <h1>Dimural Murat</h1>
       <canvas
         ref={world}
         role="img"
-        aria-label="An ASCII figure asleep on a log in a forest clearing, butterflies around them. Press any key to wake them."
+        aria-label="An ASCII figure asleep on a log in a dusk meadow before a ruined castle. Press space to wake them and walk around."
       />
       <canvas ref={overlay} aria-hidden="true" />
+      <TitleCard asleep={asleep} onWake={() => handle.current?.wake()} />
     </>
   );
 }

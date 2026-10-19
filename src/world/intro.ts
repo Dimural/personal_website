@@ -3,12 +3,9 @@ import { WAKE_SECONDS, type World3D } from "./scene3d";
 
 const white = (alpha = 1) => `rgba(240, 243, 250, ${alpha.toFixed(2)})`;
 
-/** Text over the world, game-style: a name tag above the figure, small Zs while asleep, "!" on waking, hints. */
+/** Text over the world, game-style: small Zs while asleep, "!" on waking, the walking hint. */
 export function drawIntroOverlay(grid: Grid, world: World3D, now: number, ambient: number, wokeAt: number | null, walked: boolean) {
   const head = world.headCell(grid.cols, grid.rows);
-
-  const name = "Dimural";
-  grid.put(head.col - Math.floor(name.length / 2), head.row - 4, name, white(0.95));
 
   if (wokeAt === null) {
     for (let i = 0; i < 3; i++) {
@@ -20,8 +17,8 @@ export function drawIntroOverlay(grid: Grid, world: World3D, now: number, ambien
     grid.big(head.col + 1, head.row - 6, "!", white(), 2);
   }
 
-  // One hint at a time: how to wake, then how to walk, then nothing once they've walked.
-  const hint = wokeAt === null ? " press any key to wake up " : !walked ? " WASD or arrow keys to walk " : "";
+  // How to walk, until they have. (Waking is the title card's "press space" button.)
+  const hint = wokeAt !== null && !walked ? " WASD or arrow keys to walk " : "";
   const pulse = white(0.55 + 0.3 * Math.sin(ambient * 2));
   if (hint) grid.art(Math.floor((grid.cols - hint.length) / 2), grid.rows - 4, [hint], pulse);
 }
