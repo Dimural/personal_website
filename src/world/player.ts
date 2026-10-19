@@ -1,6 +1,6 @@
 import { SLEEP_RADIUS, type Pose } from "./scene3d";
 
-const SPEED = 7; // world units per second
+const SPEED = 5; // world units per second: a calm stroll
 const RADIUS = 0.6; // the walker's footprint, for collisions
 
 // World directions per key: W/up goes north (toward the castle, up the screen).
