@@ -22,6 +22,17 @@ Each job is a floating company logo in its real brand colours. Walking close ope
   small monospace text in the light ink. Shows title, company full name, dates, location, bullet
   points. Closes when walking away or pressing Esc.
 
+## Owner's direction (2026-10-19)
+
+- **Placement:** logos are small (they sit *in* the meadow, never over it), far from the log, in the south
+  of the meadow (z > 16), clear of trees and the pond. **None may be visible on the title card screen.**
+- **Animals perched on each logo** (the goal): a little group of animals sits on and around each logo,
+  partly hiding it. When the walker comes near, they all scatter (like the rabbits flee), revealing the
+  logo fully, and the popup opens. Walking away lets them drift back.
+- **Logos placed so far** (`world/logos.ts`, images in `public/logos/`): UofT, an unknown crimson sprout,
+  FinalDose, CIBC (white chevron kept by keying only the border-connected background), Beau.
+  Still unknown: what the sprout belongs to, and the CIBC role/dates/details for its popup.
+
 ## Done when
 
 - [ ] `npm run build` passes.
