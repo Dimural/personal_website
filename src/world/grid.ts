@@ -1,6 +1,7 @@
-export const INK = "#111";
+export const INK = "#e8ecf4";
+export const PAPER = "#0a0d18";
 
-export const FONT_PX = 12;
+export const FONT_PX = 9;
 export const FAMILY = "ui-monospace, Menlo, Consolas, monospace";
 export const FONT = `bold ${FONT_PX}px ${FAMILY}`;
 
@@ -66,9 +67,9 @@ export class Grid {
     });
   }
 
-  /** Paint cells white, hiding the world beneath. */
+  /** Paint cells with the night paper, hiding the world beneath. */
   blank(col: number, row: number, length: number) {
-    this.ctx.fillStyle = "#fff";
+    this.ctx.fillStyle = PAPER;
     this.ctx.fillRect(Math.round(col) * this.cellW, Math.round(row) * this.cellH, length * this.cellW, this.cellH);
   }
 

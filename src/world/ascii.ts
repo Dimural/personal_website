@@ -1,32 +1,25 @@
 import * as THREE from "three";
 
 import { FONT, type Grid } from "./grid";
+import { SUPERSAMPLE } from "./scene3d";
 
-// The rendered scene becomes characters on the GPU: a full-screen shader reads each cell's colour and
-// depth straight from the scene's render target and stamps a glyph from a pre-drawn font atlas.
+// The rendered scene becomes coloured characters on a night-navy page, all on the GPU. Per cell:
+//   - colour: the scene's own colour under the cell, brightened so dim things still show;
+//   - glyph: if the cell's 3×3 pixels hold a strong stroke (a grass blade, a wall edge), the matching
+//     line / \ | - ; otherwise a character from RAMP, denser the brighter the cell.
+// Detail comes from the 3D scene (scene3d.ts); this pass only translates.
 
-// Every glyph the world can use. BANDS and outline strokes index into this.
-const GLYPHS = " .:-=+*o%#&$@Q|\\_/8N";
-const g = (ch: string) => GLYPHS.indexOf(ch);
-// Pure ASCII: no cell fills. Objects are always built from heavy glyphs and the ground stays sparse;
-// that contrast, not lighting, is what makes shapes readable (as in the reference). Each band holds
-// 4 slots (repeats allowed); a per-cell hash picks one so masses look textured.
-const BANDS = [
-  // ground, by density: bare, then faint dots for shadows
-  " ", ".", ":.:.",
-  // objects, lit to shadowed
-  "*o+*", "o%#o", "#&$%", "&$@Q", "@QN8",
-];
+// Sparse to dense. Kept free of the stroke glyphs so strokes only appear where the scene has them.
+const RAMP = " .`',:;~=+*il1tfjrxnuvczXYUJCLQ0OZmwqpdbkhao#MW&8%B@$";
+const STROKES = "|/-\\";
+const GLYPHS = RAMP + STROKES;
 
 const SETTINGS = {
-  outline: 0.35, // relative depth jump between neighbouring cells that draws an outline
-  glyphMin: 0.12, // density below this is bare ground: nothing drawn
-  objectMin: 0.4, // density from here up counts as an object: heavy glyphs in its own colour
-  inkSaturate: 1.6,
-  inkLit: 0.95, // object ink = saturated colour × this on lit faces...
-  inkShadow: 0.68, // ...down to this in shadow
-  groundShade: 0.7, // ground dots: muted colour × this
-  outlineShade: 0.3,
+  paper: [0.039, 0.051, 0.094], // #0a0d18, same as the scene's night
+  density: 2.9, // brightness → ramp position gain
+  ink: 2.4, // brightness gain on the glyph's colour
+  inkFloor: 0.18, // even the darkest drawn glyph keeps this much of its hue
+  stroke: 0.22, // luminance gradient inside a cell that counts as a stroke
 };
 
 const vertexShader = /* glsl */ `
@@ -34,67 +27,45 @@ const vertexShader = /* glsl */ `
 `;
 
 const fragmentShader = /* glsl */ `
-  #include <packing>
   precision highp float;
   out highp vec4 fragColor;
 
   uniform sampler2D tColor;
-  uniform sampler2D tDepth;
   uniform sampler2D tGlyphs;
   uniform vec2 grid;      // cols, rows
   uniform vec2 cellPx;    // device pixels per cell
   uniform float canvasH;  // device pixels
   uniform float glyphCount;
-  uniform float bands[32];
-  uniform float near, far;
-  uniform float outline, glyphMin, objectMin, inkSaturate, inkLit, inkShadow, groundShade, outlineShade;
-
-  vec2 cellUv(vec2 cell) { return vec2((cell.x + 0.5) / grid.x, 1.0 - (cell.y + 0.5) / grid.y); }
-  float dist(vec2 cell) {
-    cell = clamp(cell, vec2(0.0), grid - 1.0);
-    return -perspectiveDepthToViewZ(texture(tDepth, cellUv(cell)).x, near, far);
-  }
+  uniform vec3 paper;
+  uniform float density, ink, inkFloor, stroke;
 
   void main() {
-    // Cells count from the top-left; gl_FragCoord counts from the bottom-left.
+    // Cells count from the top-left; gl_FragCoord and textures from the bottom-left.
     vec2 px = vec2(gl_FragCoord.x, canvasH - gl_FragCoord.y);
     vec2 cell = floor(px / cellPx);
-    if (cell.x >= grid.x || cell.y >= grid.y) { fragColor = vec4(1.0); return; }
+    if (cell.x >= grid.x || cell.y >= grid.y) { fragColor = vec4(paper, 1.0); return; }
 
-    // Linear filtering at the cell centre averages the 2×2 rendered pixels under it.
-    vec3 c = texture(tColor, cellUv(cell)).rgb;
+    // The cell's ${SUPERSAMPLE}×${SUPERSAMPLE} rendered pixels (sRGB), index = y * 3 + x with y up.
+    ivec2 base = ivec2(int(cell.x) * ${SUPERSAMPLE}, int(grid.y - 1.0 - cell.y) * ${SUPERSAMPLE});
+    float L[9];
+    vec3 sum = vec3(0.0);
+    for (int y = 0; y < 3; y++) for (int x = 0; x < 3; x++) {
+      vec3 c = pow(texelFetch(tColor, base + ivec2(x, y), 0).rgb, vec3(1.0 / 2.2));
+      L[y * 3 + x] = dot(c, vec3(0.299, 0.587, 0.114));
+      sum += c;
+    }
+    vec3 c = sum / 9.0;
     float lum = dot(c, vec3(0.299, 0.587, 0.114));
-    float density = 1.0 - lum;
+    float gx = (L[2] + 2.0 * L[5] + L[8]) - (L[0] + 2.0 * L[3] + L[6]);
+    float gy = (L[6] + 2.0 * L[7] + L[8]) - (L[0] + 2.0 * L[1] + L[2]);
 
-    // Sobel on depth: a big relative jump is a silhouette. Only the nearer side draws it, one cell thick.
-    float d = dist(cell);
-    float tl = dist(cell + vec2(-1, -1)), t = dist(cell + vec2(0, -1)), tr = dist(cell + vec2(1, -1));
-    float l = dist(cell + vec2(-1, 0)), r = dist(cell + vec2(1, 0));
-    float bl = dist(cell + vec2(-1, 1)), b = dist(cell + vec2(0, 1)), br = dist(cell + vec2(1, 1));
-    float gx = tr + 2.0 * r + br - tl - 2.0 * l - bl;
-    float gy = bl + 2.0 * b + br - tl - 2.0 * t - tr;
-
-    float glyph = -1.0;
-    vec3 ink = vec3(0.0);
-    // Well-mixed hash; plain multiplies leave low bits periodic and glyphs repeat in stripes.
-    uint h = uint(cell.x) * 0x27d4eb2du ^ uint(cell.y) * 0x165667b1u;
-    h = (h ^ (h >> 15u)) * 0x2c1b3c6du;
-    h ^= h >> 12u;
-    int slot = int(h % 4u);
-    vec3 saturated = clamp(lum + (c - lum) * inkSaturate, 0.0, 1.0);
-
-    if (d < (l + r + t + b) / 4.0 && length(vec2(gx, gy)) / d > outline) {
-      // The stroke runs perpendicular to the gradient (screen y points down).
-      float angle = mod(degrees(atan(gy, gx)) + 180.0, 180.0);
-      glyph = angle < 22.5 || angle >= 157.5 ? ${g("|")}.0 : angle < 67.5 ? ${g("\\")}.0 : angle < 112.5 ? ${g("_")}.0 : ${g("/")}.0;
-      ink = saturated * outlineShade;
-    } else if (density >= objectMin) {
-      float shadow = clamp((density - objectMin) / (1.0 - objectMin), 0.0, 1.0);
-      glyph = bands[(3 + min(4, int(shadow * 5.0))) * 4 + slot];
-      ink = saturated * mix(inkLit, inkShadow, shadow);
-    } else if (density >= glyphMin) {
-      glyph = bands[(density < (glyphMin + objectMin) * 0.5 ? 1 : 2) * 4 + slot];
-      ink = mix(c, vec3(lum), 0.4) * groundShade;
+    float level = clamp(lum * density, 0.0, 1.0);
+    float glyph = floor(level * ${RAMP.length - 1}.0 + 0.5);
+    if (length(vec2(gx, gy)) > stroke && glyph > 0.0) {
+      // The stroke runs across the gradient. y is up here, so a gradient at 45° means a "\\" stroke.
+      float a = mod(degrees(atan(gy, gx)) + 180.0, 180.0);
+      int s = a < 22.5 || a >= 157.5 ? 0 : a < 67.5 ? 3 : a < 112.5 ? 2 : 1;
+      glyph = ${RAMP.length}.0 + float(s);
     }
 
     float coverage = 0.0;
@@ -103,11 +74,14 @@ const fragmentShader = /* glsl */ `
       vec2 uv = vec2((glyph * cellPx.x + local.x) / (glyphCount * cellPx.x), 1.0 - local.y / cellPx.y);
       coverage = texture(tGlyphs, uv).r;
     }
-    fragColor = vec4(mix(vec3(1.0), ink, coverage), 1.0);
+    float peak = max(max(c.r, c.g), c.b);
+    vec3 hue = c / max(peak, 1e-3);
+    vec3 col = clamp(max(c * ink, hue * inkFloor), 0.0, 1.0);
+    fragColor = vec4(mix(paper, col, coverage), 1.0);
   }
 `;
 
-/** Draw every glyph white-on-black in one row, one cell each, at device resolution. */
+/** Every glyph white-on-black in one row, one cell each, at device resolution. */
 function glyphAtlas(grid: Grid) {
   const w = Math.round(grid.cellW * grid.dpr);
   const h = Math.round(grid.cellH * grid.dpr);
@@ -136,16 +110,16 @@ export function createAsciiPass() {
     depthWrite: false,
     uniforms: {
       tColor: { value: null },
-      tDepth: { value: null },
       tGlyphs: { value: null },
       grid: { value: new THREE.Vector2() },
       cellPx: { value: new THREE.Vector2() },
       canvasH: { value: 0 },
       glyphCount: { value: GLYPHS.length },
-      bands: { value: BANDS.flatMap((band) => [...band.padEnd(4, band)].map(g)) },
-      near: { value: 0 },
-      far: { value: 0 },
-      ...Object.fromEntries(Object.entries(SETTINGS).map(([k, v]) => [k, { value: v }])),
+      paper: { value: new THREE.Vector3(...SETTINGS.paper) },
+      density: { value: SETTINGS.density },
+      ink: { value: SETTINGS.ink },
+      inkFloor: { value: SETTINGS.inkFloor },
+      stroke: { value: SETTINGS.stroke },
     },
   });
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
@@ -163,12 +137,8 @@ export function createAsciiPass() {
       u.cellPx.value.set(Math.round(grid.cellW * grid.dpr), Math.round(grid.cellH * grid.dpr));
       u.canvasH.value = canvasH;
     },
-    render(renderer: THREE.WebGLRenderer, frame: { color: THREE.Texture; depth: THREE.Texture; near: number; far: number }) {
-      const u = material.uniforms;
-      u.tColor.value = frame.color;
-      u.tDepth.value = frame.depth;
-      u.near.value = frame.near;
-      u.far.value = frame.far;
+    render(renderer: THREE.WebGLRenderer, frame: { color: THREE.Texture }) {
+      material.uniforms.tColor.value = frame.color;
       renderer.setRenderTarget(null);
       renderer.render(scene, camera);
     },

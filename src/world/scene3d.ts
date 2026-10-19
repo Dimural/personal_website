@@ -1,16 +1,15 @@
 import * as THREE from "three";
 
-// The world is a real low-poly 3D scene. It is never shown directly: it renders small and off-screen,
-// and ascii.ts turns each pixel into a character. World units: 1 ≈ one person-width; y is up.
+// The world is a detailed 3D scene at dusk. It is never shown directly: it renders small and off-screen,
+// and ascii.ts turns each cell into a character coloured by the scene. Detail lives HERE: thousands of
+// grass blades, textured stone, lights. The ASCII pass only translates. World units: 1 ≈ a person's width.
 
-const SUPERSAMPLE = 2; // render pixels per character cell, per axis
-const CAMERA_OFFSET = new THREE.Vector3(0, 20, 14);
+export const SUPERSAMPLE = 3; // render pixels per character cell, per axis (ascii.ts reads 3×3 per cell)
+const CAMERA_OFFSET = new THREE.Vector3(0, 24, 24);
 const NEAR = 5;
-const FAR = 120;
+const FAR = 140;
 const WAKE_SECONDS = 0.9;
-
-const riverZ = (x: number) => 11 + 4 * Math.sin(x * 0.06);
-const RIVER_HALF_WIDTH = 4;
+const NIGHT = "#0a0d18"; // background and fog; ascii.ts uses the same navy as paper
 
 function rng(seed: number) {
   return () => {
@@ -20,111 +19,284 @@ function rng(seed: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+const random = rng(42);
 
 const smoothstep = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
 };
 
-// Fine grain on surfaces, so each face breaks into lighter and darker characters instead of one flat tone.
-function grain(seed: number, contrast: number) {
-  const size = 64;
-  const data = new Uint8Array(size * size * 4);
-  const random = rng(seed);
-  for (let i = 0; i < size * size; i++) {
-    const v = 255 - random() * contrast;
-    data.set([v, v, v, 255], i * 4);
+const mat = (color: string, map: THREE.Texture | null = null) =>
+  new THREE.MeshStandardMaterial({ color, map, roughness: 1 });
+
+// Layout: castle wall across the north, pond to the south-east, forest around, clearing in the middle.
+const WALL_Z = -16;
+const POND = { x: 13, z: 12, r: 8 };
+const inClearing = (x: number, z: number) => Math.hypot(x * 0.8, z) < 5;
+const inPond = (x: number, z: number, pad = 0) => Math.hypot((x - POND.x) * 0.75, z - POND.z) < POND.r + pad;
+
+/** Canvas-painted texture: stones in mortar, lighter tops, so walls turn into dense varied glyphs. */
+function stoneTexture() {
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#2a2d36";
+  ctx.fillRect(0, 0, size, size);
+  const r = rng(5);
+  const rowH = 32;
+  for (let y = 0; y < size; y += rowH) {
+    let x = (y / rowH) % 2 ? -24 : 0;
+    while (x < size) {
+      const w = 36 + r() * 30;
+      const g = 95 + r() * 60;
+      ctx.fillStyle = `rgb(${g}, ${g + 4}, ${g + 14})`;
+      ctx.fillRect(x + 3, y + 3, w - 6, rowH - 6);
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.fillRect(x + 3, y + 3, w - 6, 5);
+      x += w;
+    }
   }
-  const tex = new THREE.DataTexture(data, size, size);
+  const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.magFilter = THREE.NearestFilter;
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.needsUpdate = true;
   return tex;
 }
-const LEAF_GRAIN = grain(3, 120);
 
-const mat = (color: string, map: THREE.Texture | null = null) =>
-  new THREE.MeshStandardMaterial({ color, map, flatShading: true, roughness: 1 });
-
-function ground() {
-  const geo = new THREE.PlaneGeometry(260, 260, 130, 130);
-  geo.rotateX(-Math.PI / 2);
-  const pos = geo.attributes.position;
-  const colors: number[] = [];
-  const random = rng(7);
-  const light = new THREE.Color("#f4f7ef");
-  const dark = new THREE.Color("#dbe7cf");
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i);
-    const z = pos.getZ(i);
-    const hills = 0.5 * Math.sin(x * 0.07) * Math.cos(z * 0.06);
-    const flat = smoothstep(8, 20, Math.hypot(x, z));
-    const bed = 1 - smoothstep(RIVER_HALF_WIDTH - 1, RIVER_HALF_WIDTH + 3, Math.abs(z - riverZ(x)));
-    pos.setY(i, hills * flat * (1 - bed) - bed * 1.2);
-    const c = light.clone().lerp(dark, random() * 0.8);
-    colors.push(c.r, c.g, c.b);
+/** Speckled leaves: crowns become dense, shimmering clusters instead of flat blobs. */
+function leafTexture() {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#3d4f3a";
+  ctx.fillRect(0, 0, size, size);
+  const r = rng(9);
+  for (let i = 0; i < 900; i++) {
+    const g = r();
+    ctx.fillStyle = g < 0.5 ? "#22301f" : g < 0.85 ? "#5d7a4f" : "#8aa874";
+    ctx.fillRect(r() * size, r() * size, 2 + r() * 4, 2 + r() * 4);
   }
-  geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-  geo.computeVertexNormals();
-  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 }));
-  mesh.receiveShadow = true;
-  return mesh;
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
 }
 
-function river() {
-  const geo = new THREE.PlaneGeometry(260, RIVER_HALF_WIDTH * 2, 160, 6);
-  geo.rotateX(-Math.PI / 2);
-  const pos = geo.attributes.position;
-  const base = Float32Array.from(pos.array as Float32Array);
-  for (let i = 0; i < pos.count; i++) pos.setZ(i, base[i * 3 + 2] + riverZ(base[i * 3]));
-  const mesh = new THREE.Mesh(geo, mat("#7d9fc0"));
-  mesh.position.y = -0.4;
-  mesh.receiveShadow = true;
-  // Ripples travel downstream, so the facets (and their characters) keep changing.
-  const update = (t: number) => {
-    for (let i = 0; i < pos.count; i++) {
-      const x = base[i * 3];
-      const z = pos.getZ(i);
-      pos.setY(i, 0.25 * Math.sin(x * 0.6 - t * 3 + z * 0.8) + 0.15 * Math.sin(x * 1.3 - t * 4.5));
-    }
-    pos.needsUpdate = true;
-    geo.computeVertexNormals();
-  };
-  return { mesh, update };
-}
+const STONE = stoneTexture();
+const LEAVES = leafTexture();
 
-type Placement = { position: THREE.Vector3; rotation: THREE.Euler; scale: THREE.Vector3; color?: string };
-
-/** Many copies of one shape drawn in a single call; per-copy colour tints a white material. */
-function instanced(geo: THREE.BufferGeometry, material: THREE.Material, items: Placement[]) {
-  const mesh = new THREE.InstancedMesh(geo, material, items.length);
-  const m = new THREE.Matrix4();
-  const q = new THREE.Quaternion();
-  items.forEach((it, i) => {
-    mesh.setMatrixAt(i, m.compose(it.position, q.setFromEuler(it.rotation), it.scale));
-    if (it.color) mesh.setColorAt(i, new THREE.Color(it.color));
-  });
+function stoneBox(w: number, h: number, d: number) {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  // Scale UVs per face so stones keep one size on every box.
+  const uv = geo.attributes.uv;
+  const normal = geo.attributes.normal;
+  for (let i = 0; i < uv.count; i++) {
+    const nx = Math.abs(normal.getX(i));
+    const ny = Math.abs(normal.getY(i));
+    const [su, sv] = nx > 0.5 ? [d, h] : ny > 0.5 ? [w, d] : [w, h];
+    uv.setXY(i, (uv.getX(i) * su) / 4, (uv.getY(i) * sv) / 4);
+  }
+  const mesh = new THREE.Mesh(geo, mat("#c8ccd8", STONE));
   mesh.castShadow = mesh.receiveShadow = true;
   return mesh;
 }
 
-function cabin() {
+/** Ruined castle front: wall with battlements, a dark arched gate, towers at the ends and by the gate. */
+function castle() {
   const group = new THREE.Group();
-  const walls = new THREE.Mesh(new THREE.BoxGeometry(7, 4, 5.5), mat("#a88a68"));
-  walls.position.y = 2;
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(5.6, 3.2, 4), mat("#6e4f3a"));
-  roof.position.y = 5.6;
-  roof.rotation.y = Math.PI / 4;
-  roof.scale.set(1.3, 1, 1);
-  const door = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.4, 0.2), mat("#4a3628"));
-  door.position.set(0, 1.2, 2.8);
-  for (const m of [walls, roof, door]) {
-    m.castShadow = true;
-    m.receiveShadow = true;
+  const add = (w: number, h: number, d: number, x: number, y: number, z: number) => {
+    const m = stoneBox(w, h, d);
+    m.position.set(x, y, z);
     group.add(m);
+    return m;
+  };
+  const H = 7;
+  // Wall in two halves either side of the gate, crenellated.
+  for (const side of [-1, 1]) {
+    add(18, H, 2, side * 12, H / 2, 0);
+    for (let x = 3.5; x < 21; x += 1.6) {
+      if (random() < 0.12) continue; // a few merlons have fallen
+      add(0.9, 1.1, 2.1, side * x, H + 0.55, 0);
+    }
   }
+  // Gate: lintel over a dark passage.
+  add(6, 2.2, 2.2, 0, H - 1.1, 0);
+  const passage = new THREE.Mesh(new THREE.BoxGeometry(5.9, H - 2.2, 0.3), new THREE.MeshBasicMaterial({ color: "#05060a" }));
+  passage.position.set(0, (H - 2.2) / 2, -0.6);
+  group.add(passage);
+  const arch = new THREE.Mesh(new THREE.CylinderGeometry(2.95, 2.95, 2.2, 16, 1, false, 0, Math.PI), mat("#05060a"));
+  arch.rotation.set(Math.PI / 2, 0, Math.PI / 2);
+  arch.position.set(0, H - 2.2, 0.05);
+  group.add(arch);
+  // Towers.
+  for (const x of [-4.2, 4.2, -21, 21]) {
+    const h = x === -21 ? 8.5 : 10.5; // the west tower is broken
+    add(3.4, h, 3.4, x, h / 2, 0.3);
+    for (const [dx, dz] of [[-1.2, -1.2], [1.2, -1.2], [-1.2, 1.2], [1.2, 1.2]]) add(1, 1.2, 1, x + dx, h + 0.6, 0.3 + dz);
+  }
+  // Fallen blocks in the grass.
+  for (let i = 0; i < 9; i++) {
+    const b = add(0.8 + random(), 0.6 + random() * 0.6, 0.8 + random(), (random() - 0.5) * 40, 0.3, 2.5 + random() * 3);
+    b.rotation.y = random() * 3;
+  }
+  group.position.z = WALL_Z;
   return group;
+}
+
+/** A torch on a post: warm flickering light that colours the stone and grass around it. */
+function torch(x: number, z: number) {
+  const group = new THREE.Group();
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 2.4, 6), mat("#3a2a1e"));
+  post.position.y = 1.2;
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.8, 6), new THREE.MeshBasicMaterial({ color: "#ffb347" }));
+  flame.position.y = 2.7;
+  const light = new THREE.PointLight("#ff9a3c", 40, 14, 1.6);
+  light.position.y = 2.9;
+  group.add(post, flame, light);
+  group.position.set(x, 0, z);
+  return { group, light, flame };
+}
+
+/**
+ * Grass: tens of thousands of single blades in one draw call. They lean with the wind (a wave that rolls
+ * across the field) and part around `uPush` (the player, later). Base dark, tips light, like the reference.
+ */
+function grassField(count: number) {
+  const geo = new THREE.BufferGeometry();
+  // One blade: a thin, slightly bent strip, 3 segments high.
+  const pos: number[] = [];
+  const uv: number[] = [];
+  const idx: number[] = [];
+  const W = 0.07;
+  for (let s = 0; s <= 3; s++) {
+    const t = s / 3;
+    const w = W * (1 - t * 0.85);
+    pos.push(-w, t, 0, w, t, 0);
+    uv.push(0, t, 1, t);
+    if (s < 3) idx.push(s * 2, s * 2 + 1, s * 2 + 2, s * 2 + 1, s * 2 + 3, s * 2 + 2);
+  }
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  geo.setAttribute("normal", new THREE.Float32BufferAttribute(pos.map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
+  geo.setIndex(idx);
+
+  const material = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide });
+  const uniforms = { uTime: { value: 0 }, uPush: { value: new THREE.Vector3(0, 0, 999) } };
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nuniform float uTime;\nuniform vec3 uPush;\nvarying float vTip;")
+      .replace(
+        "#include <project_vertex>",
+        `vTip = uv.y;
+        vec4 wp = modelMatrix * instanceMatrix * vec4(transformed, 1.0);
+        float bend = uv.y * uv.y;
+        float gust = sin(uTime * 1.3 - wp.x * 0.18 - wp.z * 0.1);
+        wp.x += (0.35 + 0.3 * gust) * bend + 0.06 * sin(uTime * 4.0 + wp.z * 3.0) * bend;
+        wp.z += 0.08 * sin(uTime * 2.1 + wp.x) * bend;
+        vec2 away = wp.xz - uPush.xz;
+        float near = smoothstep(1.8, 0.0, length(away));
+        wp.xz += normalize(away + 1e-4) * near * bend * 0.9;
+        wp.y -= near * bend * 0.4;
+        vec4 mvPosition = viewMatrix * wp;
+        gl_Position = projectionMatrix * mvPosition;`,
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying float vTip;")
+      .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= mix(0.3, 1.5, vTip);");
+  };
+
+  const mesh = new THREE.InstancedMesh(geo, material, count);
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const up = new THREE.Vector3(0, 1, 0);
+  const shades = ["#5a9e45", "#6cb04e", "#7fc25a", "#4b8c3c", "#93d066"].map((c) => new THREE.Color(c));
+  let i = 0;
+  while (i < count) {
+    const x = (random() - 0.5) * 90;
+    const z = WALL_Z + 1.5 + random() * 46;
+    if (inPond(x, z, 0.5) || (Math.abs(x) < 2.6 && Math.abs(z) < 0.9)) continue; // not under the log
+    const h = 0.35 + random() * 0.5;
+    m.compose(new THREE.Vector3(x, 0, z), q.setFromAxisAngle(up, random() * Math.PI), new THREE.Vector3(1, h, 1));
+    mesh.setMatrixAt(i, m);
+    mesh.setColorAt(i, shades[Math.floor(random() * shades.length)].clone().multiplyScalar(0.8 + random() * 0.4));
+    i++;
+  }
+  mesh.frustumCulled = false;
+  return { mesh, uniforms };
+}
+
+function trees() {
+  const crowns: THREE.Matrix4[] = [];
+  const trunks: THREE.Matrix4[] = [];
+  const q = new THREE.Quaternion();
+  let tries = 0;
+  while (crowns.length < 140 && tries++ < 5000) {
+    const x = (random() - 0.5) * 120;
+    const z = (random() - 0.5) * 100;
+    // Forest everywhere except the field in front of the castle and the pond.
+    const field = Math.abs(x) < 24 && z > WALL_Z - 1 && z < 24;
+    if (field || inPond(x, z, 2)) continue;
+    const h = 2 + random() * 2;
+    const r = 2.4 + random() * 1.6;
+    trunks.push(new THREE.Matrix4().compose(new THREE.Vector3(x, h / 2, z), q, new THREE.Vector3(1, h, 1)));
+    crowns.push(new THREE.Matrix4().compose(new THREE.Vector3(x, h + r * 0.6, z), q.setFromEuler(new THREE.Euler(0, random() * 6, 0)), new THREE.Vector3(r, r * 0.9, r)));
+  }
+  const trunkMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.3, 0.45, 1, 6), mat("#3b2c22"), trunks.length);
+  trunks.forEach((t, i) => trunkMesh.setMatrixAt(i, t));
+  const crownMesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 2), mat("#9fb595", LEAVES), crowns.length);
+  crowns.forEach((c, i) => crownMesh.setMatrixAt(i, c));
+  for (const mesh of [trunkMesh, crownMesh]) mesh.castShadow = mesh.receiveShadow = true;
+  return { trunkMesh, crownMesh, crowns };
+}
+
+function ground() {
+  const geo = new THREE.PlaneGeometry(220, 220, 110, 110);
+  geo.rotateX(-Math.PI / 2);
+  const p = geo.attributes.position;
+  const colors: number[] = [];
+  const soil = new THREE.Color("#1e2a1b");
+  const moss = new THREE.Color("#2f4527");
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i);
+    const z = p.getZ(i);
+    const bed = 1 - smoothstep(POND.r - 2, POND.r + 0.5, Math.hypot((x - POND.x) * 0.75, z - POND.z));
+    p.setY(i, -bed * 1.2 + 0.25 * Math.sin(x * 0.2) * Math.cos(z * 0.17) * smoothstep(6, 14, Math.hypot(x, z)));
+    const c = soil.clone().lerp(moss, random());
+    colors.push(c.r, c.g, c.b);
+  }
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+/** Dark still water with a moving moon-glint, so it reads as water and keeps moving. */
+function pond() {
+  const geo = new THREE.CircleGeometry(POND.r + 0.3, 48);
+  geo.rotateX(-Math.PI / 2);
+  geo.scale(1 / 0.75, 1, 1);
+  const material = new THREE.MeshStandardMaterial({ color: "#0f2236", roughness: 0.15, metalness: 0.6 });
+  const uniforms = { uTime: { value: 0 } };
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 vWorld;")
+      .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform float uTime;\nvarying vec3 vWorld;")
+      .replace(
+        "#include <dithering_fragment>",
+        `float ripple = sin(vWorld.z * 3.0 + sin(vWorld.x * 0.7 + uTime) * 1.5 - uTime * 1.2);
+        gl_FragColor.rgb += vec3(0.35, 0.45, 0.6) * smoothstep(0.82, 1.0, ripple) * 0.6;
+        #include <dithering_fragment>`,
+      );
+  };
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.position.set(POND.x, -0.25, POND.z);
+  return { mesh, uniforms };
 }
 
 function person() {
@@ -136,17 +308,17 @@ function person() {
     group.add(m);
     return m;
   };
-  add(new THREE.CapsuleGeometry(0.22, 1, 2, 6), "#2e3540", 0.7, -0.25);
-  add(new THREE.CapsuleGeometry(0.22, 1, 2, 6), "#2e3540", 0.7, 0.25);
-  const body = add(new THREE.CapsuleGeometry(0.5, 0.9, 2, 8), "#b5523b", 1.9);
-  const head = add(new THREE.IcosahedronGeometry(0.45, 1), "#d9b28c", 3);
+  add(new THREE.CapsuleGeometry(0.2, 0.9, 2, 6), "#3a4250", 0.65, -0.22);
+  add(new THREE.CapsuleGeometry(0.2, 0.9, 2, 6), "#3a4250", 0.65, 0.22);
+  const body = add(new THREE.CapsuleGeometry(0.45, 0.8, 2, 8), "#9a5a3c", 1.75);
+  const head = add(new THREE.IcosahedronGeometry(0.4, 1), "#d9b28c", 2.75);
   return { group, body, head };
 }
 
 function butterfly(color: string) {
   const group = new THREE.Group();
-  const wingGeo = new THREE.PlaneGeometry(0.9, 0.7);
-  wingGeo.translate(0.45, 0, 0);
+  const wingGeo = new THREE.PlaneGeometry(0.6, 0.5);
+  wingGeo.translate(0.3, 0, 0);
   const material = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
   const left = new THREE.Mesh(wingGeo, material);
   const right = new THREE.Mesh(wingGeo, material);
@@ -158,136 +330,82 @@ function butterfly(color: string) {
   return { group, left, right };
 }
 
+/** Fireflies: tiny bright points drifting over the grass (the white specks in the reference). */
+function fireflies(count: number) {
+  const base = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) base.set([(random() - 0.5) * 50, 0.6 + random() * 2, WALL_Z + 2 + random() * 34], i * 3);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(base.slice(), 3));
+  const points = new THREE.Points(geo, new THREE.PointsMaterial({ color: "#b8b48e", size: 1.5, sizeAttenuation: false }));
+  const update = (t: number) => {
+    const p = geo.attributes.position;
+    for (let i = 0; i < count; i++) {
+      p.setXYZ(i, base[i * 3] + Math.sin(t * 0.5 + i) * 1.2, base[i * 3 + 1] + Math.sin(t * 1.1 + i * 1.7) * 0.4, base[i * 3 + 2] + Math.cos(t * 0.4 + i * 0.7) * 1.2);
+    }
+    p.needsUpdate = true;
+  };
+  return { points, update };
+}
+
 /** The 3D world. `canvas` is the visible canvas: ascii.ts draws the final characters onto it. */
 export function createScene(canvas: HTMLCanvasElement) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  // The scene renders small and off-screen; its depth comes along so ascii.ts can outline shapes.
   const target = new THREE.WebGLRenderTarget(1, 1, { depthTexture: new THREE.DepthTexture(1, 1) });
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color("#ffffff");
-  scene.fog = new THREE.Fog("#ffffff", 55, 115);
+  scene.background = new THREE.Color(NIGHT);
+  scene.fog = new THREE.Fog(NIGHT, 45, 110);
   const camera = new THREE.PerspectiveCamera(40, 1, NEAR, FAR);
 
-  scene.add(new THREE.HemisphereLight("#ffffff", "#9aa88f", 2.2));
-  const sun = new THREE.DirectionalLight("#ffffff", 3.2);
-  sun.position.set(-14, 60, -6);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, far: 150 });
-  scene.add(sun, sun.target);
+  // Dusk: cool moonlight from the upper left, a dim blue sky fill, warm torches by the gate.
+  scene.add(new THREE.HemisphereLight("#8fa2d0", "#1a2018", 1.7));
+  const moon = new THREE.DirectionalLight("#dfe6ff", 2.8);
+  moon.position.set(-20, 40, 10);
+  moon.castShadow = true;
+  moon.shadow.mapSize.set(2048, 2048);
+  Object.assign(moon.shadow.camera, { left: -50, right: 50, top: 50, bottom: -50, far: 120 });
+  scene.add(moon, moon.target);
 
   scene.add(ground());
-  const water = river();
+  const water = pond();
   scene.add(water.mesh);
+  const grass = grassField(110000);
+  scene.add(grass.mesh);
+  const forest = trees();
+  scene.add(forest.trunkMesh, forest.crownMesh);
+  scene.add(castle());
+  const torches = [torch(-3.4, WALL_Z + 2.2), torch(3.4, WALL_Z + 2.2), torch(-14, WALL_Z + 2)];
+  for (const t of torches) scene.add(t.group);
+  const flies = fireflies(70);
+  scene.add(flies.points);
 
-  // Trees, bushes and rocks are instanced: hundreds of separate meshes cost a draw call each, per pass.
-  const random = rng(42);
-  const crowns: (Placement & { phase: number })[] = [];
-  const trunks: Placement[] = [];
-  while (crowns.length < 220) {
-    const x = (random() - 0.5) * 160;
-    const z = (random() - 0.5) * 130;
-    if (Math.hypot(x * 0.9, z * 1.8) < 7 || Math.abs(z - riverZ(x)) < RIVER_HALF_WIDTH + 4) continue;
-    if (Math.hypot(x + 15, z + 9) < 8) continue; // the cabin's yard
-    const h = 2.5 + random() * 2;
-    const r = 2.6 + random() * 1.2;
-    trunks.push({ position: new THREE.Vector3(x, h / 2, z), rotation: new THREE.Euler(), scale: new THREE.Vector3(1, h, 1) });
-    crowns.push({
-      position: new THREE.Vector3(x, h + r * 0.7, z),
-      rotation: new THREE.Euler(0, random() * Math.PI * 2, 0),
-      scale: new THREE.Vector3(r, r * 0.85, r),
-      color: ["#2d5233", "#36603b", "#284a2e"][Math.floor(random() * 3)],
-      phase: random() * 10,
-    });
-  }
-  scene.add(instanced(new THREE.CylinderGeometry(0.35, 0.5, 1, 6), mat("#6b513c"), trunks));
-  const crownMesh = instanced(new THREE.IcosahedronGeometry(1, 1), mat("#ffffff", LEAF_GRAIN), crowns);
-  scene.add(crownMesh);
-  const crownMatrix = new THREE.Matrix4();
-  const crownTurn = new THREE.Quaternion();
-  const crownSway = new THREE.Vector3();
-
-  const bushes: Placement[] = [];
-  for (let i = 0; i < 120; i++) {
-    const x = (random() - 0.5) * 120;
-    const z = (random() - 0.5) * 100;
-    if (Math.hypot(x, z * 1.6) < 6 || Math.abs(z - riverZ(x)) < RIVER_HALF_WIDTH + 0.5 || Math.hypot(x + 15, z + 9) < 6) continue;
-    const r = 0.6 + random() * 1;
-    bushes.push({
-      position: new THREE.Vector3(x, r * 0.6, z),
-      rotation: new THREE.Euler(random() * 3, random() * 3, 0),
-      scale: new THREE.Vector3(r, r, r),
-      color: ["#4d7d49", "#5b8a58", "#426f40"][i % 3],
-    });
-  }
-  scene.add(instanced(new THREE.IcosahedronGeometry(1, 0), mat("#ffffff", LEAF_GRAIN), bushes));
-
-  const rocks: Placement[] = [];
-  for (let i = 0; i < 30; i++) {
-    const x = (random() - 0.5) * 160;
-    const z = (random() - 0.5) * 140;
-    if (Math.hypot(x, z) < 8 || Math.abs(z - riverZ(x)) < RIVER_HALF_WIDTH + 1) continue;
-    const r = 0.6 + random() * 1.4;
-    rocks.push({ position: new THREE.Vector3(x, 0.3, z), rotation: new THREE.Euler(random() * 3, random() * 3, 0), scale: new THREE.Vector3(r, r, r) });
-  }
-  scene.add(instanced(new THREE.DodecahedronGeometry(1, 0), mat("#9a9c98"), rocks));
-
-  const house = cabin();
-  house.position.set(-15, 0, -9);
-  house.rotation.y = 0.4;
-  scene.add(house);
-
-  // Grass tufts sway in the wind; one instanced mesh keeps it cheap.
-  const tuftGeo = new THREE.ConeGeometry(0.3, 1.6, 3);
-  tuftGeo.translate(0, 0.55, 0);
-  const tufts = new THREE.InstancedMesh(tuftGeo, mat("#9cbf8a"), 350);
-  const tuftSpots: THREE.Vector3[] = [];
-  while (tuftSpots.length < tufts.count) {
-    const x = (random() - 0.5) * 100;
-    const z = (random() - 0.5) * 80;
-    if (Math.abs(z - riverZ(x)) < RIVER_HALF_WIDTH + 0.5 || (Math.abs(x) < 5 && Math.abs(z) < 2)) continue;
-    tuftSpots.push(new THREE.Vector3(x, 0, z));
-  }
-  tufts.castShadow = true;
-  scene.add(tufts);
-  const tuftMatrix = new THREE.Matrix4();
-  const tuftTurn = new THREE.Quaternion();
-  const tuftAxis = new THREE.Vector3(0, 0, 1);
-  const one = new THREE.Vector3(1, 1, 1);
-
-  // Dark bark with pale cut ends and a ring, so it reads as a log rather than a brown box.
   const log = new THREE.Group();
-  const bark = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1, 7, 12), mat("#6e5038", LEAF_GRAIN));
+  const bark = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.58, 3.6, 10), mat("#5a4030"));
   bark.castShadow = bark.receiveShadow = true;
   log.add(bark);
   for (const end of [-1, 1]) {
-    const face = new THREE.Mesh(new THREE.CircleGeometry(end > 0 ? 0.88 : 0.98, 12), mat("#e2c595"));
-    face.position.y = end * 3.51;
+    const face = new THREE.Mesh(new THREE.CircleGeometry(end > 0 ? 0.49 : 0.57, 10), mat("#c9a878"));
+    face.position.y = end * 1.81;
     face.rotation.x = -end * (Math.PI / 2);
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.5, 12), mat("#9b7650"));
-    ring.position.y = end * 3.52;
-    ring.rotation.x = face.rotation.x;
-    log.add(face, ring);
+    log.add(face);
   }
   log.rotation.z = Math.PI / 2;
-  log.position.y = 0.9;
+  log.position.y = 0.5;
   scene.add(log);
 
   const sleeper = person();
-  sleeper.group.scale.setScalar(1.5);
   scene.add(sleeper.group);
 
-  const butterflies = ["#e0a040", "#b070d0", "#5aa0d0"].map((color, i) => ({ ...butterfly(color), phase: i * 2.1 }));
+  const butterflies = ["#ffb03a", "#d68cff", "#7cc8ff"].map((color, i) => ({ ...butterfly(color), phase: i * 2.1 }));
   for (const b of butterflies) {
-    b.group.scale.setScalar(0.65);
+    b.group.scale.setScalar(0.55);
     scene.add(b.group);
   }
 
-  const focus = new THREE.Vector3();
-  const headWorld = new THREE.Vector3();
+  const focus = new THREE.Vector3(0, 0, -7);
+  const projected = new THREE.Vector3();
 
   return {
     renderer,
@@ -303,27 +421,24 @@ export function createScene(canvas: HTMLCanvasElement) {
 
     /** Advance the world to time t and render it off-screen. Returns the colour and depth textures. */
     render(now: number, t: number, wokeAt: number | null) {
-      water.update(t);
-      crowns.forEach((c, i) => {
-        crownSway.set(Math.sin(t * 1.2 + c.phase) * 0.12, 0, 0).add(c.position);
-        crownMesh.setMatrixAt(i, crownMatrix.compose(crownSway, crownTurn.setFromEuler(c.rotation), c.scale));
+      grass.uniforms.uTime.value = t;
+      water.uniforms.uTime.value = t;
+      flies.update(t);
+      torches.forEach((torch, i) => {
+        const flicker = 0.8 + 0.2 * Math.sin(t * 13 + i * 5) * Math.sin(t * 7.3 + i);
+        torch.light.intensity = 40 * flicker;
+        torch.flame.scale.y = 0.8 + 0.4 * flicker;
       });
-      crownMesh.instanceMatrix.needsUpdate = true;
-      LEAF_GRAIN.offset.set(t * 0.03, Math.sin(t * 0.8) * 0.02); // leaves shimmer in the wind
-      tuftSpots.forEach((p, i) => {
-        tuftTurn.setFromAxisAngle(tuftAxis, Math.sin(t * 2.2 + p.x * 0.3 + p.z * 0.2) * 0.35);
-        tufts.setMatrixAt(i, tuftMatrix.compose(p, tuftTurn, one));
-      });
-      tufts.instanceMatrix.needsUpdate = true;
 
       // Lying along the log, then rolling up to stand beside it.
       const up = wokeAt === null ? 0 : smoothstep(0, WAKE_SECONDS, now - wokeAt);
       sleeper.group.rotation.z = (1 - up) * (Math.PI / 2);
-      sleeper.group.position.set((1 - up) * 2.4, 2.2 * (1 - up), up * 3);
-      sleeper.body.scale.setScalar(1 + (1 - up) * 0.04 * Math.sin(t * 1.6)); // breathing
+      sleeper.group.position.set((1 - up) * 1.4, 1.3 * (1 - up), up * 2.2);
+      sleeper.body.scale.setScalar(1 + (1 - up) * 0.05 * Math.sin(t * 1.6)); // breathing
+      grass.uniforms.uPush.value.copy(sleeper.group.position);
 
       butterflies.forEach((b, i) => {
-        b.group.position.set(9 * Math.sin(t * (0.4 + i * 0.1) + b.phase), 3 + Math.sin(t * 1.3 + b.phase), 5 * Math.sin(t * 0.7 + b.phase * 1.7));
+        b.group.position.set(6 * Math.sin(t * (0.4 + i * 0.1) + b.phase), 2.2 + Math.sin(t * 1.3 + b.phase), 4 * Math.sin(t * 0.7 + b.phase * 1.7));
         b.group.rotation.y = t * 0.5 + b.phase;
         const flap = Math.sin(t * 14 + b.phase) * 0.9;
         b.left.rotation.y = flap;
@@ -337,10 +452,10 @@ export function createScene(canvas: HTMLCanvasElement) {
       return { color: target.texture, depth: target.depthTexture!, near: NEAR, far: FAR };
     },
 
-    /** Where the figure's head is on the character grid, for labels and Zs. */
+    /** Where the figure's head is on the character grid, for the name tag and Zs. */
     headCell(cols: number, rows: number) {
-      sleeper.head.getWorldPosition(headWorld).project(camera);
-      return { col: ((headWorld.x + 1) / 2) * cols, row: ((1 - headWorld.y) / 2) * rows };
+      sleeper.head.getWorldPosition(projected).project(camera);
+      return { col: ((projected.x + 1) / 2) * cols, row: ((1 - projected.y) / 2) * rows };
     },
 
     dispose() {

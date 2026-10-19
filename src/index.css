@@ -1,12 +1,12 @@
 html,
 body {
   margin: 0;
-  background: #fff;
-  color: #1c2228;
+  background: #0a0d18;
+  color: #e8ecf4;
   font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 
-/* The world fills the whole viewport; the heading floats over it on a white label. */
+/* The world fills the whole viewport; the heading floats over it on a night-navy label. */
 canvas {
   position: fixed;
   inset: 0;
@@ -28,7 +28,7 @@ h1 {
   margin: 0;
   padding: 0.25rem 0.75rem;
   transform: translateX(-50%);
-  background: #fff;
+  background: #0a0d18;
   font-size: 1.25rem;
   font-weight: 400;
   white-space: nowrap;
