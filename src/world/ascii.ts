@@ -23,7 +23,7 @@ const SETTINGS = {
   muted: 0.25, // pull colours this far toward grey, for a calm palette
   stroke: 0.3, // how clear a cell's stroke must be to draw a line instead of a ramp glyph
   ease: 7, // per second; how fast cells follow small changes (lower = smoother, laggier)
-  easeMoving: 3, // extra per second, per world unit/s of camera speed: scrolling must stay crisp, not smear
+  easeMoving: 12, // extra per second, per world unit/s of camera speed: scrolling must stay crisp, not smear
   snapLo: 0.05, // colour change (0-1) where a cell starts skipping the ease...
   snapHi: 0.15, // ...and where it switches at once: real changes are crisp, tiny wobbles stay smooth
 };
@@ -40,7 +40,6 @@ const cellShader = /* glsl */ `
   uniform sampler2D tColor, tPrevColor, tPrevStroke;
   uniform float blend; // 1 = take the new frame as is
   uniform float snapLo, snapHi;
-  uniform ivec2 shift; // cells the view stepped since last frame (x right, y toward the bottom of the screen)
 
   void main() {
     // One fragment per cell; the scene texture is ${SUPERSAMPLE}× larger, same bottom-left origin.
@@ -60,14 +59,10 @@ const cellShader = /* glsl */ `
 
     // Ease only small changes (grass swaying in place). A big change is something real arriving, and
     // easing it would smear it, so it switches at once.
-    // History is read where this cell's content was last frame, before the view stepped.
-    ivec2 from = cell + ivec2(shift.x, -shift.y);
-    bool known = all(greaterThanEqual(from, ivec2(0))) && all(lessThan(from, textureSize(tPrevColor, 0)));
-    vec3 prev = known ? texelFetch(tPrevColor, from, 0).rgb : sum / 9.0;
-    vec3 prevTensor = known ? texelFetch(tPrevStroke, from, 0).xyz : tensor;
+    vec3 prev = texelFetch(tPrevColor, cell, 0).rgb;
     float b = mix(blend, 1.0, smoothstep(snapLo, snapHi, length(sum / 9.0 - prev)));
     outColor = vec4(mix(prev, sum / 9.0, b), 1.0);
-    outStroke = vec4(mix(prevTensor, tensor, b), 1.0);
+    outStroke = vec4(mix(texelFetch(tPrevStroke, cell, 0).xyz, tensor, b), 1.0);
   }
 `;
 
@@ -163,7 +158,6 @@ export function createAsciiPass() {
       blend: { value: 1 },
       snapLo: { value: SETTINGS.snapLo },
       snapHi: { value: SETTINGS.snapHi },
-      shift: { value: new THREE.Vector2() },
     },
   });
   const draw = new THREE.ShaderMaterial({
@@ -200,9 +194,8 @@ export function createAsciiPass() {
       u.cellPx.value.set(Math.round(grid.cellW * grid.dpr), Math.round(grid.cellH * grid.dpr));
       u.canvasH.value = canvasH;
     },
-    /** `cameraSpeed`: world units/s (cells follow faster while moving). `shift`: whole cells the view stepped. */
-    render(renderer: THREE.WebGLRenderer, frame: { color: THREE.Texture; cameraSpeed: number; shift: { x: number; y: number } }) {
-      cell.uniforms.shift.value.set(frame.shift.x, frame.shift.y);
+    /** `frame.cameraSpeed` is in world units per second; while the camera moves, cells follow faster. */
+    render(renderer: THREE.WebGLRenderer, frame: { color: THREE.Texture; cameraSpeed: number }) {
       const now = performance.now();
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;

@@ -447,11 +447,6 @@ export function createScene(canvas: HTMLCanvasElement) {
   const focus = new THREE.Vector3(0, 0, -7);
   const focusTarget = new THREE.Vector3();
   const lastFocus = new THREE.Vector3();
-  // The camera moves in whole-cell steps on the ground: the world then slides as a block, one character
-  // at a time, instead of every character re-picking each frame as the view creeps (that crawl tires eyes).
-  const snapped = new THREE.Vector3();
-  const cellsPer = { x: 1, z: 1 }; // grid cells per world unit at the focus, measured on resize
-  let step: { x: number; z: number } | null = null;
   const projected = new THREE.Vector3();
   let lastNow = 0;
 
@@ -465,17 +460,6 @@ export function createScene(canvas: HTMLCanvasElement) {
       target.setSize(cols * SUPERSAMPLE, rows * SUPERSAMPLE);
       camera.aspect = aspect;
       camera.updateProjectionMatrix();
-      const cellOf = (x: number, z: number) => {
-        projected.set(x, 0, z).project(camera);
-        return { col: ((projected.x + 1) / 2) * cols, row: ((1 - projected.y) / 2) * rows };
-      };
-      camera.position.copy(CAMERA_OFFSET);
-      camera.lookAt(0, 0, 0);
-      camera.updateMatrixWorld();
-      const o = cellOf(0, 0);
-      cellsPer.x = cellOf(1, 0).col - o.col;
-      cellsPer.z = cellOf(0, 1).row - o.row;
-      step = null;
     },
 
     /** True if a walker of radius r can't stand at (x, z): map edge, pond, or something solid. */
@@ -526,16 +510,11 @@ export function createScene(canvas: HTMLCanvasElement) {
       lastFocus.copy(focus);
       focus.lerp(focusTarget, 1 - Math.exp(-dt * 3));
       const cameraSpeed = dt > 0 ? lastFocus.distanceTo(focus) / dt : 0;
-      const next = { x: Math.round(focus.x * cellsPer.x), z: Math.round(focus.z * cellsPer.z) };
-      // How many cells the view stepped this frame, so ascii.ts can slide its history along with it.
-      const shift = step ? { x: next.x - step.x, y: next.z - step.z } : { x: 0, y: 0 };
-      step = next;
-      snapped.set(next.x / cellsPer.x, 0, next.z / cellsPer.z);
-      camera.position.copy(snapped).add(CAMERA_OFFSET);
-      camera.lookAt(snapped);
+      camera.position.copy(focus).add(CAMERA_OFFSET);
+      camera.lookAt(focus);
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
-      return { color: target.texture, cameraSpeed, shift };
+      return { color: target.texture, cameraSpeed };
     },
 
     /** Where the figure's head is on the character grid, for the name tag and Zs. */

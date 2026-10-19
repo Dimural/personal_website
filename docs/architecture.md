@@ -52,9 +52,7 @@ Planned (add when the milestone needs it, not before):
 
 - 3D world: Three.js units, y up, 1 ≈ a person's width. The log is at the origin; north (−z) is the
   castle (wall at z −16), the pond is at (13, 12). W walks north, D walks east (+x).
-- The camera sits at `focus + CAMERA_OFFSET` looking at `focus`; `focus` eases after the player, and
-  the camera itself is snapped to whole grid cells on the ground (`cellsPer`, measured on resize).
-  `render()` returns the step it took as `shift`, and `ascii.ts` reads its history from there.
+- The camera sits at `focus + CAMERA_OFFSET` looking at `focus`; `focus` eases after the player.
 - Grid: cells, top-left origin. The rendered image spans exactly `cols × rows` cells, so a projected
   point's NDC maps straight to cells (see `headCell`).
 
