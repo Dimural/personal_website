@@ -47,8 +47,9 @@ Planned (add when the milestone needs it, not before):
    **multisampled** target of 3×3 pixels per character cell.
 4. `ascii.ts`, pass 1 (one fragment per cell): averages the cell's 3×3 pixels (sRGB) and measures its
    stroke direction as a structure tensor, then **eases small changes toward the previous frame's values**
-   (`SETTINGS.ease`, ping-pong targets) to stop flicker. Big changes switch at once, and while the camera or the
-   figure moves (`motion` from `scene3d.render`, above `stillBelow`) there is no easing at all, so walking never smears.
+   (`SETTINGS.ease`, ping-pong targets) to stop flicker. The previous values are **reprojected**: read from the
+   cell where the same patch of ground (y = 0) was last frame, using the camera `scene3d.render` returns, so the
+   history moves with the world and walking neither smears nor shimmers. Big changes (the figure, a rabbit) switch at once.
 5. `ascii.ts`, pass 2 (every screen pixel): a `/ \ | -` stroke if the cell's stroke is clear, otherwise
    a glyph from the quiet ramp by brightness; coloured with the cell's muted colour on navy; glyph shapes
    from an atlas drawn once per resize in the grid's font.

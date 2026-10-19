@@ -460,8 +460,6 @@ export function createScene(canvas: HTMLCanvasElement) {
   // The camera looks a little ahead (north) of the player, eases after them, and stops at the map edges.
   const focus = new THREE.Vector3(0, 0, -11);
   const focusTarget = new THREE.Vector3();
-  const lastFocus = new THREE.Vector3();
-  const lastFigure = new THREE.Vector3();
   const projected = new THREE.Vector3();
   let lastNow = 0;
   let lastT = 0;
@@ -524,16 +522,12 @@ export function createScene(canvas: HTMLCanvasElement) {
       // Asleep: the intro framing, looking a little north so the sleeper sits below the title card's lists.
       if (!rest.asleep) focusTarget.set(clamp(pose.x, -26, 26), 0, clamp(pose.z - 6, -10, 30));
       else focusTarget.set(0, 0, -11);
-      lastFocus.copy(focus);
       focus.lerp(focusTarget, 1 - Math.exp(-dt * 3));
-      // How fast anything big moves on screen: the camera, or the figure walking within the frame.
-      const motion = dt > 0 ? Math.max(lastFocus.distanceTo(focus), lastFigure.distanceTo(sleeper.group.position)) / dt : 0;
-      lastFigure.copy(sleeper.group.position);
       camera.position.copy(focus).add(CAMERA_OFFSET);
       camera.lookAt(focus);
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
-      return { color: target.texture, motion };
+      return { color: target.texture, camera };
     },
 
     /** Where the figure's head is on the character grid, for the Zs. */

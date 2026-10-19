@@ -17,9 +17,10 @@ ASCII characters on night navy, like the "Making the ASCII MMORPG of my dreams" 
      where the cell holds a clear edge (a grass blade, a wall edge).
 3. **Ease small changes only.** A cell that wobbles a little (grass swaying in place) blends toward the
    new frame (`SETTINGS.ease`), so it fades instead of flickering. A cell whose content really changes
-   (`snapLo`/`snapHi`), and every cell while the camera or the figure moves (`stillBelow`), switches at once.
-   Easing everything smeared the whole screen while walking ("blur… i get a headache"), and even partial
-   easing while walking left a ghost ("a little blurry… fuzzy", 2026-10-19); never ease motion at all.
+   (`snapLo`/`snapHi`) switches at once. Each cell eases toward **where its patch of ground was last
+   frame** (reprojected with the camera), never toward the same screen cell: easing the unmoved history
+   smeared and ghosted while walking ("blur… i get a headache", "a little blurry… fuzzy"), and switching
+   easing off while moving made the grass shimmer ("flickering… going haywire… i get a headache", 2026-10-19).
 4. **Text that must be read** in the world (Zs, hints) is drawn crisp on the overlay canvas in
    small white monospace, game-style. The title card and popups are HTML.
 
@@ -51,12 +52,14 @@ ASCII characters on night navy, like the "Making the ASCII MMORPG of my dreams" 
 | Coloured glyphs with letters, fast wind, strong flicker | "not clean and smooth… too loud" |
 | Easing every cell, also while walking | "blur… looks horrible… i get a headache" |
 | Camera snapped to whole-cell steps (terminal-style scrolling) | "horrible, go back. it was way better before" |
+| Easing off while anything moves | grass "flickering and going haywire… i get a headache" |
+| Reprojected history read between cells (interpolated) | smeared into `====` streaks while walking (caught before shipping) |
 
 ## Knobs
 
 - Shader (`ascii.ts` `SETTINGS`): `density` (how fast brightness climbs the ramp), `ink`, `inkFloor`,
-  `muted`, `stroke` (edge clarity needed for a line), `ease` (smoothing of small wobbles), `stillBelow`
-  (camera/figure speed above which easing is off), `snapLo`/`snapHi` (change size that skips easing).
+  `muted`, `stroke` (edge clarity needed for a line), `ease` (smoothing of small wobbles),
+  `snapLo`/`snapHi` (change size that skips easing).
 - Scene (`scene3d.ts`): lights (moon, sky fill, torches), grass count/height/colours, wind in the grass
   vertex shader, `CAMERA_OFFSET`, fog.
 - When something looks wrong, render the raw 3D target to the screen and look at that first.

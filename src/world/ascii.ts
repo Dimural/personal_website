@@ -5,7 +5,9 @@ import { SUPERSAMPLE } from "./scene3d";
 
 // The rendered scene becomes coloured characters on a night-navy page, all on the GPU, in two passes:
 //   1. cell pass (one pixel per cell): the cell's average colour and its stroke direction, EASED toward
-//      the new frame instead of replaced, so characters change smoothly and never flicker;
+//      the new frame instead of replaced, so characters change smoothly and never flicker. The history is
+//      reprojected first (read where the same patch of ground was last frame), so it moves with the world
+//      and walking neither smears nor shimmers;
 //   2. draw pass: a glyph per cell — a line / \ | - where the cell holds a clear stroke (a grass blade,
 //      a wall edge), otherwise a character from RAMP by brightness — in the cell's own, muted colour.
 // Detail and motion come from the 3D scene (scene3d.ts); this pass only translates, calmly.
@@ -23,7 +25,6 @@ const SETTINGS = {
   muted: 0.25, // pull colours this far toward grey, for a calm palette
   stroke: 0.3, // how clear a cell's stroke must be to draw a line instead of a ramp glyph
   ease: 7, // per second; how fast cells follow small changes (lower = smoother, laggier)
-  stillBelow: 0.5, // world units/s of camera or figure motion above which easing stops entirely: motion never smears
   snapLo: 0.05, // colour change (0-1) where a cell starts skipping the ease...
   snapHi: 0.15, // ...and where it switches at once: real changes are crisp, tiny wobbles stay smooth
 };
@@ -40,6 +41,7 @@ const cellShader = /* glsl */ `
   uniform sampler2D tColor, tPrevColor, tPrevStroke;
   uniform float blend; // 1 = take the new frame as is
   uniform float snapLo, snapHi;
+  uniform mat4 unproject, prevViewProj; // this frame's NDC → world, and world → last frame's NDC
 
   void main() {
     // One fragment per cell; the scene texture is ${SUPERSAMPLE}× larger, same bottom-left origin.
@@ -59,10 +61,24 @@ const cellShader = /* glsl */ `
 
     // Ease only small changes (grass swaying in place). A big change is something real arriving, and
     // easing it would smear it, so it switches at once.
-    vec3 prev = texelFetch(tPrevColor, cell, 0).rgb;
-    float b = mix(blend, 1.0, smoothstep(snapLo, snapHi, length(sum / 9.0 - prev)));
+    // The history to ease toward is where this cell's patch of ground was last frame. Ground (y = 0) stands
+    // in for depth: nearly everything is on it, and the camera only slides, so the error is a tiny parallax.
+    // Nearest cell, never interpolated: blending between cells smeared into streaks while walking.
+    vec2 cells = vec2(textureSize(tPrevColor, 0));
+    vec2 ndc = (vec2(cell) + 0.5) / cells * 2.0 - 1.0;
+    vec4 near = unproject * vec4(ndc, -1.0, 1.0);
+    vec4 far = unproject * vec4(ndc, 1.0, 1.0);
+    near /= near.w;
+    far /= far.w;
+    vec4 was = prevViewProj * vec4(mix(near.xyz, far.xyz, near.y / (near.y - far.y)), 1.0);
+    vec2 uv = was.xy / was.w * 0.5 + 0.5;
+    bool seen = near.y > far.y && all(greaterThanEqual(uv, vec2(0.0))) && all(lessThanEqual(uv, vec2(1.0)));
+
+    ivec2 from = ivec2(min(uv * cells, cells - 1.0));
+    vec3 prev = texelFetch(tPrevColor, from, 0).rgb;
+    float b = seen ? mix(blend, 1.0, smoothstep(snapLo, snapHi, length(sum / 9.0 - prev))) : 1.0;
     outColor = vec4(mix(prev, sum / 9.0, b), 1.0);
-    outStroke = vec4(mix(texelFetch(tPrevStroke, cell, 0).xyz, tensor, b), 1.0);
+    outStroke = vec4(mix(texelFetch(tPrevStroke, from, 0).xyz, tensor, b), 1.0);
   }
 `;
 
@@ -138,9 +154,10 @@ function fullScreen(material: THREE.ShaderMaterial) {
   return scene;
 }
 
-/** Cell history: colour + stroke per cell, two of them so each frame reads the last and writes the next. */
+/** Cell history: colour + stroke per cell, two of them so each frame reads the last and writes the next.
+ *  Linear filtering, because the reprojected history is read between cells. */
 const cellTarget = () =>
-  new THREE.WebGLRenderTarget(1, 1, { count: 2, type: THREE.HalfFloatType, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
+  new THREE.WebGLRenderTarget(1, 1, { count: 2, type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
 
 export function createAsciiPass() {
   let [prev, next] = [cellTarget(), cellTarget()];
@@ -158,8 +175,11 @@ export function createAsciiPass() {
       blend: { value: 1 },
       snapLo: { value: SETTINGS.snapLo },
       snapHi: { value: SETTINGS.snapHi },
+      unproject: { value: new THREE.Matrix4() },
+      prevViewProj: { value: new THREE.Matrix4() },
     },
   });
+  const viewProj = new THREE.Matrix4();
   const draw = new THREE.ShaderMaterial({
     glslVersion: THREE.GLSL3,
     vertexShader,
@@ -194,17 +214,18 @@ export function createAsciiPass() {
       u.cellPx.value.set(Math.round(grid.cellW * grid.dpr), Math.round(grid.cellH * grid.dpr));
       u.canvasH.value = canvasH;
     },
-    /** `frame.motion` is how fast the camera or the figure moves (world units/s); any real motion turns easing off. */
-    render(renderer: THREE.WebGLRenderer, frame: { color: THREE.Texture; motion: number }) {
+    /** `frame.camera` is the camera the scene was just rendered with; its motion reprojects the history. */
+    render(renderer: THREE.WebGLRenderer, frame: { color: THREE.Texture; camera: THREE.Camera }) {
       const now = performance.now();
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       cell.uniforms.tColor.value = frame.color;
       cell.uniforms.tPrevColor.value = prev.textures[0];
       cell.uniforms.tPrevStroke.value = prev.textures[1];
-      const eased = 1 - Math.exp(-dt * SETTINGS.ease);
-      const moving = Math.min(1, frame.motion / SETTINGS.stillBelow);
-      cell.uniforms.blend.value = fresh ? 1 : eased + (1 - eased) * moving;
+      cell.uniforms.prevViewProj.value.copy(viewProj);
+      viewProj.multiplyMatrices(frame.camera.projectionMatrix, frame.camera.matrixWorldInverse);
+      cell.uniforms.unproject.value.copy(viewProj).invert();
+      cell.uniforms.blend.value = fresh ? 1 : 1 - Math.exp(-dt * SETTINGS.ease);
       fresh = false;
       renderer.setRenderTarget(next);
       renderer.render(cellScene, camera);
