@@ -183,6 +183,12 @@ canvas + canvas {
   color: var(--ink);
 }
 
+.wake:focus-visible {
+  outline: 1px solid #5a6380;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 @keyframes float {
   from {
     transform: translate(-50%, 0);

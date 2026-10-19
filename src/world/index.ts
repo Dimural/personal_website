@@ -2,7 +2,7 @@ import { createAsciiPass } from "./ascii";
 import { Grid } from "./grid";
 import { drawIntroOverlay } from "./intro";
 import { createPlayer } from "./player";
-import { createScene, WAKE_SECONDS } from "./scene3d";
+import { createScene, WAKE_SECONDS, type Rest } from "./scene3d";
 
 /**
  * Starts the world: `worldCanvas` gets the ASCII world (WebGL), `overlayCanvas` the text on top.
@@ -24,16 +24,26 @@ export function startWorld(worldCanvas: HTMLCanvasElement, overlayCanvas: HTMLCa
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const start = performance.now();
   const now = () => (performance.now() - start) / 1000;
-  let wokeAt: number | null = null;
+  let rest: Rest = { asleep: true, since: null };
+  // Mid stand-up or lie-down, space is ignored, so mashing it can't flip the state back and forth.
+  const settled = () => rest.since === null || now() - rest.since >= WAKE_SECONDS;
   const wake = () => {
-    if (wokeAt !== null) return;
-    wokeAt = now();
+    if (!rest.asleep || !settled()) return;
+    rest = { asleep: false, since: now() };
+    player.reset(); // the stand-up ends where a fresh walk starts
     opts.onAsleep(false);
+  };
+  const sleep = () => {
+    if (rest.asleep || !settled() || !player.atLog) return;
+    rest = { asleep: true, since: now() };
+    player.release(); // stop walking at once; the lie-down starts where the figure stands
+    opts.onAsleep(true);
   };
   opts.onAsleep(true);
 
   const keydown = (e: KeyboardEvent) => {
-    if (e.code === "Space") wake(); // only space wakes, so reading or selecting the card never does
+    // Only space wakes, so reading or selecting the card never does. At the log, space goes back to sleep.
+    if (e.code === "Space" && !e.repeat) (rest.asleep ? wake : sleep)();
     if (player.key(e.code, true)) e.preventDefault(); // WASD/arrows/space must not scroll the page
   };
   const keyup = (e: KeyboardEvent) => {
@@ -59,10 +69,10 @@ export function startWorld(worldCanvas: HTMLCanvasElement, overlayCanvas: HTMLCa
     const dt = Math.min(0.1, t - last);
     last = t;
     const ambient = reduceMotion ? 0 : t;
-    if (wokeAt !== null && t - wokeAt >= WAKE_SECONDS) player.update(dt, world.blocked);
-    ascii.render(world.renderer, world.render(t, ambient, wokeAt, player.pose));
+    if (!rest.asleep && settled()) player.update(dt, world.blocked);
+    ascii.render(world.renderer, world.render(t, ambient, rest, player.pose));
     grid.clear();
-    drawIntroOverlay(grid, world, t, ambient, wokeAt, player.walked);
+    drawIntroOverlay(grid, world, t, ambient, rest, player.walked, !rest.asleep && settled() && player.atLog);
     raf = requestAnimationFrame(frame);
   };
   frame();

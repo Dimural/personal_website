@@ -8,7 +8,8 @@ export const SUPERSAMPLE = 3; // render pixels per character cell, per axis (asc
 const CAMERA_OFFSET = new THREE.Vector3(0, 24, 24);
 const NEAR = 5;
 const FAR = 140;
-export const WAKE_SECONDS = 0.9; // the stand-up; walking starts after it
+export const WAKE_SECONDS = 0.9; // the stand-up (and the lie-down); walking starts after it
+export const SLEEP_RADIUS = 2.5; // how close to the log (at the origin) space puts the figure back to sleep
 const NIGHT = "#0a0d18"; // background and fog; ascii.ts uses the same navy as paper
 
 function rng(seed: number) {
@@ -30,6 +31,9 @@ const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x
 
 /** Where the walking figure is and how it moves; player.ts owns it, render() poses the mesh from it. */
 export type Pose = { x: number; z: number; heading: number; stride: number; moving: number };
+
+/** Asleep or awake, and when the last stand-up or lie-down started (null: asleep since load). */
+export type Rest = { asleep: boolean; since: number | null };
 
 const mat = (color: string, map: THREE.Texture | null = null) =>
   new THREE.MeshStandardMaterial({ color, map, roughness: 1 });
@@ -444,7 +448,7 @@ export function createScene(canvas: HTMLCanvasElement) {
   }
 
   // The camera looks a little ahead (north) of the player, eases after them, and stops at the map edges.
-  const focus = new THREE.Vector3(0, 0, -7);
+  const focus = new THREE.Vector3(0, 0, -11);
   const focusTarget = new THREE.Vector3();
   const lastFocus = new THREE.Vector3();
   const projected = new THREE.Vector3();
@@ -470,7 +474,7 @@ export function createScene(canvas: HTMLCanvasElement) {
     },
 
     /** Advance the world to time t and render it off-screen. `pose` drives the figure once it's up. */
-    render(now: number, t: number, wokeAt: number | null, pose: Pose) {
+    render(now: number, t: number, rest: Rest, pose: Pose) {
       const dt = Math.min(0.1, now - lastNow);
       lastNow = now;
       grass.uniforms.uTime.value = t;
@@ -482,10 +486,12 @@ export function createScene(canvas: HTMLCanvasElement) {
         torch.flame.scale.y = flicker;
       });
 
-      // Lying along the log, then rolling up to stand beside it (where `pose` starts), then walking.
-      const up = wokeAt === null ? 0 : smoothstep(0, WAKE_SECONDS, now - wokeAt);
+      // Lying along the log, rolling up to stand where `pose` is, walking; going to sleep plays it in reverse.
+      const turn = rest.since === null ? 0 : smoothstep(0, WAKE_SECONDS, now - rest.since);
+      const up = rest.asleep ? 1 - turn : turn;
       if (up < 1) {
-        sleeper.group.rotation.set(0, 0, (1 - up) * (Math.PI / 2));
+        sleeper.group.rotation.set(0, up * pose.heading, (1 - up) * (Math.PI / 2));
+        for (const leg of sleeper.legs) leg.rotation.x = 0;
         sleeper.group.position.set((1 - up) * 1.4 + up * pose.x, 1.3 * (1 - up), up * pose.z);
         sleeper.body.scale.setScalar(1 + (1 - up) * 0.05 * Math.sin(t * 1.6)); // breathing
       } else {
@@ -505,8 +511,9 @@ export function createScene(canvas: HTMLCanvasElement) {
         b.right.rotation.y = Math.PI - flap;
       });
 
-      if (up > 0) focusTarget.set(clamp(pose.x, -26, 26), 0, clamp(pose.z - 6, -10, 30));
-      else focusTarget.set(0, 0, -7);
+      // Asleep: the intro framing, looking a little north so the sleeper sits below the title card's lists.
+      if (!rest.asleep) focusTarget.set(clamp(pose.x, -26, 26), 0, clamp(pose.z - 6, -10, 30));
+      else focusTarget.set(0, 0, -11);
       lastFocus.copy(focus);
       focus.lerp(focusTarget, 1 - Math.exp(-dt * 3));
       const cameraSpeed = dt > 0 ? lastFocus.distanceTo(focus) / dt : 0;
@@ -517,9 +524,15 @@ export function createScene(canvas: HTMLCanvasElement) {
       return { color: target.texture, cameraSpeed };
     },
 
-    /** Where the figure's head is on the character grid, for the name tag and Zs. */
+    /** Where the figure's head is on the character grid, for the Zs. */
     headCell(cols: number, rows: number) {
       sleeper.head.getWorldPosition(projected).project(camera);
+      return { col: ((projected.x + 1) / 2) * cols, row: ((1 - projected.y) / 2) * rows };
+    },
+
+    /** Where the top of the log is on the character grid, for the "press space to sleep" hint. */
+    logCell(cols: number, rows: number) {
+      projected.set(0, 1, 0).project(camera);
       return { col: ((projected.x + 1) / 2) * cols, row: ((1 - projected.y) / 2) * rows };
     },
 

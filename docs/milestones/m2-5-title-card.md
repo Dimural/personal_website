@@ -20,6 +20,6 @@ scenery is a world you can walk in; the log is where you go back to sleep and th
 ## Done when
 
 - [x] Card shows over the sleeping scene; only space (or the button) wakes; card fades out; phone layout stacks.
-- [ ] Space at the log (after walking away) puts the figure back to sleep and brings the card back; mashing space is safe.
+- [x] Space at the log (after walking away) puts the figure back to sleep and brings the card back; mashing space is safe.
 - [ ] Birds and rabbits move calmly; rabbits flee; still 60fps.
 - [ ] `npm run build` passes.

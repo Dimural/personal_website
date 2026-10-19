@@ -37,9 +37,12 @@ Planned (add when the milestone needs it, not before):
 
 1. `index.ts` runs a `requestAnimationFrame` loop. `now` = real seconds (drives waking and walking);
    `ambient` = the clock for scenery motion, frozen at 0 under `prefers-reduced-motion`.
-2. Once the stand-up (`WAKE_SECONDS`) is over, `player.update(dt, world.blocked)` moves the Pose.
+2. `rest` (`{ asleep, since }`) says whether the figure is asleep and when the last stand-up or lie-down
+   started. Once awake and the stand-up (`WAKE_SECONDS`) is over, `player.update(dt, world.blocked)` moves the Pose.
+   Space wakes; at the log (`player.atLog`, only after walking away) space lies the figure back down.
 3. `scene3d.render()` animates the world (grass wind in its vertex shader, pond glints, torch glow,
-   fireflies, butterflies, the figure from the Pose), eases the camera, and renders into a
+   fireflies, butterflies, the figure from `rest` and the Pose: the stand-up, or the same motion reversed), eases the camera
+   (asleep: the intro framing, which keeps the sleeper below the title card), and renders into a
    **multisampled** target of 3×3 pixels per character cell.
 4. `ascii.ts`, pass 1 (one fragment per cell): averages the cell's 3×3 pixels (sRGB) and measures its
    stroke direction as a structure tensor, then **eases small changes toward the previous frame's values**
@@ -49,7 +52,7 @@ Planned (add when the milestone needs it, not before):
    a glyph from the quiet ramp by brightness; coloured with the cell's muted colour on navy; glyph shapes
    from an atlas drawn once per resize in the grid's font.
 6. `intro.ts` draws text on the transparent overlay canvas via `grid` (`put`, `art`, `big`). Positions
-   come from projecting 3D points (`world.headCell`).
+   come from projecting 3D points (`world.headCell`, `world.logCell`).
 
 ## Coordinates
 
