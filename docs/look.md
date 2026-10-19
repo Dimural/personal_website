@@ -47,6 +47,7 @@ ASCII characters on night navy, like the "Making the ASCII MMORPG of my dreams" 
 | Hand-typed ASCII sprites + shape-matched glyphs | "absolutely horrible… stick figure animations" |
 | Coloured glyphs with letters, fast wind, strong flicker | "not clean and smooth… too loud" |
 | Easing every cell, also while walking | "blur… looks horrible… i get a headache" |
+| Camera snapped to whole-cell steps (terminal-style scrolling) | "horrible, go back. it was way better before" |
 
 ## Knobs
 
