@@ -22,7 +22,10 @@ const SETTINGS = {
   inkFloor: 0.14, // even the darkest drawn glyph keeps this much of its hue
   muted: 0.25, // pull colours this far toward grey, for a calm palette
   stroke: 0.3, // how clear a cell's stroke must be to draw a line instead of a ramp glyph
-  ease: 7, // per second; how fast cells follow the scene (lower = smoother, laggier)
+  ease: 7, // per second; how fast cells follow small changes (lower = smoother, laggier)
+  easeMoving: 12, // extra per second, per world unit/s of camera speed: scrolling must stay crisp, not smear
+  snapLo: 0.05, // colour change (0-1) where a cell starts skipping the ease...
+  snapHi: 0.15, // ...and where it switches at once: real changes are crisp, tiny wobbles stay smooth
 };
 
 const vertexShader = /* glsl */ `
@@ -36,6 +39,7 @@ const cellShader = /* glsl */ `
 
   uniform sampler2D tColor, tPrevColor, tPrevStroke;
   uniform float blend; // 1 = take the new frame as is
+  uniform float snapLo, snapHi;
 
   void main() {
     // One fragment per cell; the scene texture is ${SUPERSAMPLE}× larger, same bottom-left origin.
@@ -53,8 +57,12 @@ const cellShader = /* glsl */ `
     // Structure tensor: unlike the raw gradient it doesn't cancel when averaged over frames.
     vec3 tensor = vec3(gx * gx, gy * gy, gx * gy);
 
-    outColor = vec4(mix(texelFetch(tPrevColor, cell, 0).rgb, sum / 9.0, blend), 1.0);
-    outStroke = vec4(mix(texelFetch(tPrevStroke, cell, 0).xyz, tensor, blend), 1.0);
+    // Ease only small changes (grass swaying in place). A big change is something real arriving, and
+    // easing it would smear it, so it switches at once.
+    vec3 prev = texelFetch(tPrevColor, cell, 0).rgb;
+    float b = mix(blend, 1.0, smoothstep(snapLo, snapHi, length(sum / 9.0 - prev)));
+    outColor = vec4(mix(prev, sum / 9.0, b), 1.0);
+    outStroke = vec4(mix(texelFetch(tPrevStroke, cell, 0).xyz, tensor, b), 1.0);
   }
 `;
 
@@ -143,7 +151,14 @@ export function createAsciiPass() {
     glslVersion: THREE.GLSL3,
     vertexShader,
     fragmentShader: cellShader,
-    uniforms: { tColor: { value: null }, tPrevColor: { value: null }, tPrevStroke: { value: null }, blend: { value: 1 } },
+    uniforms: {
+      tColor: { value: null },
+      tPrevColor: { value: null },
+      tPrevStroke: { value: null },
+      blend: { value: 1 },
+      snapLo: { value: SETTINGS.snapLo },
+      snapHi: { value: SETTINGS.snapHi },
+    },
   });
   const draw = new THREE.ShaderMaterial({
     glslVersion: THREE.GLSL3,
@@ -179,14 +194,16 @@ export function createAsciiPass() {
       u.cellPx.value.set(Math.round(grid.cellW * grid.dpr), Math.round(grid.cellH * grid.dpr));
       u.canvasH.value = canvasH;
     },
-    render(renderer: THREE.WebGLRenderer, frame: { color: THREE.Texture }) {
+    /** `frame.cameraSpeed` is in world units per second; while the camera moves, cells follow faster. */
+    render(renderer: THREE.WebGLRenderer, frame: { color: THREE.Texture; cameraSpeed: number }) {
       const now = performance.now();
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       cell.uniforms.tColor.value = frame.color;
       cell.uniforms.tPrevColor.value = prev.textures[0];
       cell.uniforms.tPrevStroke.value = prev.textures[1];
-      cell.uniforms.blend.value = fresh ? 1 : 1 - Math.exp(-dt * SETTINGS.ease);
+      const rate = SETTINGS.ease + SETTINGS.easeMoving * frame.cameraSpeed;
+      cell.uniforms.blend.value = fresh ? 1 : 1 - Math.exp(-dt * rate);
       fresh = false;
       renderer.setRenderTarget(next);
       renderer.render(cellScene, camera);

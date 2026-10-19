@@ -446,6 +446,7 @@ export function createScene(canvas: HTMLCanvasElement) {
   // The camera looks a little ahead (north) of the player, eases after them, and stops at the map edges.
   const focus = new THREE.Vector3(0, 0, -7);
   const focusTarget = new THREE.Vector3();
+  const lastFocus = new THREE.Vector3();
   const projected = new THREE.Vector3();
   let lastNow = 0;
 
@@ -506,12 +507,14 @@ export function createScene(canvas: HTMLCanvasElement) {
 
       if (up > 0) focusTarget.set(clamp(pose.x, -26, 26), 0, clamp(pose.z - 6, -10, 30));
       else focusTarget.set(0, 0, -7);
+      lastFocus.copy(focus);
       focus.lerp(focusTarget, 1 - Math.exp(-dt * 3));
+      const cameraSpeed = dt > 0 ? lastFocus.distanceTo(focus) / dt : 0;
       camera.position.copy(focus).add(CAMERA_OFFSET);
       camera.lookAt(focus);
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
-      return { color: target.texture };
+      return { color: target.texture, cameraSpeed };
     },
 
     /** Where the figure's head is on the character grid, for the name tag and Zs. */

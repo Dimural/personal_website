@@ -15,8 +15,10 @@ ASCII characters on night navy, like the "Making the ASCII MMORPG of my dreams" 
    - **colour** from the scene under it (muted toward grey, brightened just enough to read);
    - **glyph** from brightness through a quiet ramp (`. ' - ~ = + * # @`), or a `/ \ | -` stroke
      where the cell holds a clear edge (a grass blade, a wall edge).
-3. **Ease every cell over time.** Cells blend toward the new frame (`SETTINGS.ease`) instead of switching,
-   so characters fade, never pop. This, plus the antialiased render, is what makes it smooth.
+3. **Ease small changes only.** A cell that wobbles a little (grass swaying in place) blends toward the
+   new frame (`SETTINGS.ease`), so it fades instead of flickering. A cell whose content really changes
+   (`snapLo`/`snapHi`), and every cell while the camera moves (`easeMoving`), switches at once. Easing
+   everything smeared the whole screen while walking ("blur… i get a headache"); never ease motion.
 4. **Text that must be read** (name tags, Zs, hints) is drawn crisp on the overlay canvas in
    small white monospace, game-style. Popups and the heading are HTML.
 
@@ -44,11 +46,13 @@ ASCII characters on night navy, like the "Making the ASCII MMORPG of my dreams" 
 | Tinted cell backgrounds | "not really like it's ASCII" |
 | Hand-typed ASCII sprites + shape-matched glyphs | "absolutely horrible… stick figure animations" |
 | Coloured glyphs with letters, fast wind, strong flicker | "not clean and smooth… too loud" |
+| Easing every cell, also while walking | "blur… looks horrible… i get a headache" |
 
 ## Knobs
 
 - Shader (`ascii.ts` `SETTINGS`): `density` (how fast brightness climbs the ramp), `ink`, `inkFloor`,
-  `muted`, `stroke` (edge clarity needed for a line), `ease` (smoothness; lower is smoother but laggier).
+  `muted`, `stroke` (edge clarity needed for a line), `ease` (smoothing of small wobbles), `easeMoving`
+  (how much faster cells follow while the camera moves), `snapLo`/`snapHi` (change size that skips easing).
 - Scene (`scene3d.ts`): lights (moon, sky fill, torches), grass count/height/colours, wind in the grass
   vertex shader, `CAMERA_OFFSET`, fog.
 - When something looks wrong, render the raw 3D target to the screen and look at that first.
