@@ -151,7 +151,7 @@ function torch(x: number, z: number) {
   post.position.y = 1.2;
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.8, 6), new THREE.MeshBasicMaterial({ color: "#ffb347" }));
   flame.position.y = 2.7;
-  const light = new THREE.PointLight("#ff9a3c", 40, 14, 1.6);
+  const light = new THREE.PointLight("#ff9a3c", 16, 12, 1.6);
   light.position.y = 2.9;
   group.add(post, flame, light);
   group.position.set(x, 0, z);
@@ -192,9 +192,10 @@ function grassField(count: number) {
         `vTip = uv.y;
         vec4 wp = modelMatrix * instanceMatrix * vec4(transformed, 1.0);
         float bend = uv.y * uv.y;
-        float gust = sin(uTime * 1.3 - wp.x * 0.18 - wp.z * 0.1);
-        wp.x += (0.35 + 0.3 * gust) * bend + 0.06 * sin(uTime * 4.0 + wp.z * 3.0) * bend;
-        wp.z += 0.08 * sin(uTime * 2.1 + wp.x) * bend;
+        // One slow, broad wave rolling across the field: calm, no per-blade jitter.
+        float gust = sin(uTime * 0.6 - wp.x * 0.12 - wp.z * 0.08);
+        wp.x += (0.22 + 0.16 * gust) * bend;
+        wp.z += 0.05 * sin(uTime * 0.5 + wp.x * 0.2) * bend;
         vec2 away = wp.xz - uPush.xz;
         float near = smoothstep(1.8, 0.0, length(away));
         wp.xz += normalize(away + 1e-4) * near * bend * 0.9;
@@ -289,8 +290,8 @@ function pond() {
       .replace("#include <common>", "#include <common>\nuniform float uTime;\nvarying vec3 vWorld;")
       .replace(
         "#include <dithering_fragment>",
-        `float ripple = sin(vWorld.z * 3.0 + sin(vWorld.x * 0.7 + uTime) * 1.5 - uTime * 1.2);
-        gl_FragColor.rgb += vec3(0.35, 0.45, 0.6) * smoothstep(0.82, 1.0, ripple) * 0.6;
+        `float ripple = sin(vWorld.z * 2.0 + sin(vWorld.x * 0.5 + uTime * 0.4) * 1.2 - uTime * 0.5);
+        gl_FragColor.rgb += vec3(0.35, 0.45, 0.6) * smoothstep(0.7, 1.0, ripple) * 0.3;
         #include <dithering_fragment>`,
       );
   };
@@ -340,7 +341,7 @@ function fireflies(count: number) {
   const update = (t: number) => {
     const p = geo.attributes.position;
     for (let i = 0; i < count; i++) {
-      p.setXYZ(i, base[i * 3] + Math.sin(t * 0.5 + i) * 1.2, base[i * 3 + 1] + Math.sin(t * 1.1 + i * 1.7) * 0.4, base[i * 3 + 2] + Math.cos(t * 0.4 + i * 0.7) * 1.2);
+      p.setXYZ(i, base[i * 3] + Math.sin(t * 0.2 + i) * 1.2, base[i * 3 + 1] + Math.sin(t * 0.4 + i * 1.7) * 0.3, base[i * 3 + 2] + Math.cos(t * 0.15 + i * 0.7) * 1.2);
     }
     p.needsUpdate = true;
   };
@@ -352,7 +353,8 @@ export function createScene(canvas: HTMLCanvasElement) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  const target = new THREE.WebGLRenderTarget(1, 1, { depthTexture: new THREE.DepthTexture(1, 1) });
+  // Multisampled, so thin blades are smooth coverage instead of pixels popping on and off as they sway.
+  const target = new THREE.WebGLRenderTarget(1, 1, { samples: 4 });
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(NIGHT);
@@ -425,9 +427,9 @@ export function createScene(canvas: HTMLCanvasElement) {
       water.uniforms.uTime.value = t;
       flies.update(t);
       torches.forEach((torch, i) => {
-        const flicker = 0.8 + 0.2 * Math.sin(t * 13 + i * 5) * Math.sin(t * 7.3 + i);
-        torch.light.intensity = 40 * flicker;
-        torch.flame.scale.y = 0.8 + 0.4 * flicker;
+        const flicker = 0.92 + 0.08 * Math.sin(t * 2.3 + i * 5) * Math.sin(t * 1.3 + i); // a soft glow, not a strobe
+        torch.light.intensity = 16 * flicker;
+        torch.flame.scale.y = flicker;
       });
 
       // Lying along the log, then rolling up to stand beside it.
@@ -438,9 +440,9 @@ export function createScene(canvas: HTMLCanvasElement) {
       grass.uniforms.uPush.value.copy(sleeper.group.position);
 
       butterflies.forEach((b, i) => {
-        b.group.position.set(6 * Math.sin(t * (0.4 + i * 0.1) + b.phase), 2.2 + Math.sin(t * 1.3 + b.phase), 4 * Math.sin(t * 0.7 + b.phase * 1.7));
+        b.group.position.set(6 * Math.sin(t * (0.2 + i * 0.05) + b.phase), 2.2 + 0.6 * Math.sin(t * 0.7 + b.phase), 4 * Math.sin(t * 0.35 + b.phase * 1.7));
         b.group.rotation.y = t * 0.5 + b.phase;
-        const flap = Math.sin(t * 14 + b.phase) * 0.9;
+        const flap = Math.sin(t * 7 + b.phase) * 0.8;
         b.left.rotation.y = flap;
         b.right.rotation.y = Math.PI - flap;
       });
@@ -449,7 +451,7 @@ export function createScene(canvas: HTMLCanvasElement) {
       camera.lookAt(focus);
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
-      return { color: target.texture, depth: target.depthTexture!, near: NEAR, far: FAR };
+      return { color: target.texture };
     },
 
     /** Where the figure's head is on the character grid, for the name tag and Zs. */
