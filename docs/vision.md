@@ -18,27 +18,18 @@ The site is a tiny ASCII world. Everything is drawn with text characters.
 
 ## Look
 
-A real 3D open world rendered as ASCII, in light mode. The owner's reference was a dark version of
-this (pale green characters on navy, a 3D game scene converted to characters); this site is its
-light-mode counterpart. Procedural 2D ASCII art was tried and rejected as "poorly done": the world
-must be an actual lit 3D scene so it has real shapes, shadows and depth.
+**[look.md](look.md) is the rule for how everything is drawn. Read it before touching anything visual.**
+In short: a calm, smooth dusk game scene; a detailed real 3D world converted to small, muted, coloured
+ASCII characters on night navy. Approved by the owner on 2026-10-18; keep this vibe.
 
-- **Dense, shaded masses.** Trees and other solid things are filled with characters picked by how dark
-  each spot is: light `. : ; - =` on lit faces, heavy `% # $ & Q @ 8 N` in shadow, mixed so masses are
-  textured. Strong edges draw as `/ \ | -` strokes.
-- **Pure characters.** No filled cell backgrounds: objects stay readable because they're always drawn
-  in heavy glyphs in their own colour, against sparse ground.
-- **Quiet open ground.** Between masses: mostly white, with sparse scatter (`. o Q`) and soft grass patches.
-- **Line work for structure.** Paths, water and built things use `/ \ - = ~ |`.
-- **A name label** floats over the player once awake ("dimural").
+The map: a ruined castle wall with a dark gate and torches across the north, a wide grass meadow in
+front of it, a pond, groves and forest around the edges. The figure sleeps on a log in the meadow.
 
 ## Rules that hold everywhere
 
-- **Light mode.** Background `#fff`. Characters in dark, muted tones. Shades of a colour are fine and
-  encouraged where they show depth or motion (greens for foliage, slate blue for water, browns for wood).
-  Avoid bright or saturated colour except the company logos, which use their real brand colours.
-- **All ASCII.** World art is made of characters drawn on a monospace grid. Popup windows and the
-  heading are normal HTML text, so they're readable, selectable, and screen-reader friendly.
+- **Follow look.md.** Calm, never loud; no letters in the world; navy page; muted colour; eased cells.
+- **All ASCII.** The world is only characters on a monospace grid, converted from the 3D scene. Popup
+  windows and the heading are normal HTML text, so they're readable, selectable and screen-reader friendly.
 - **Always some motion.** No frame of the world should be completely still, except under
   `prefers-reduced-motion`, where ambient animation stops.
 - **Small world.** A handful of places, all reachable quickly. Not a game you can get lost in.

@@ -8,7 +8,7 @@ export const SUPERSAMPLE = 3; // render pixels per character cell, per axis (asc
 const CAMERA_OFFSET = new THREE.Vector3(0, 24, 24);
 const NEAR = 5;
 const FAR = 140;
-const WAKE_SECONDS = 0.9;
+export const WAKE_SECONDS = 0.9; // the stand-up; walking starts after it
 const NIGHT = "#0a0d18"; // background and fog; ascii.ts uses the same navy as paper
 
 function rng(seed: number) {
@@ -26,14 +26,32 @@ const smoothstep = (a: number, b: number, x: number) => {
   return t * t * (3 - 2 * t);
 };
 
+const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
+
+/** Where the walking figure is and how it moves; player.ts owns it, render() poses the mesh from it. */
+export type Pose = { x: number; z: number; heading: number; stride: number; moving: number };
+
 const mat = (color: string, map: THREE.Texture | null = null) =>
   new THREE.MeshStandardMaterial({ color, map, roughness: 1 });
 
-// Layout: castle wall across the north, pond to the south-east, forest around, clearing in the middle.
+// Layout: castle wall across the north, a wide meadow in front of it with the log at the origin, a pond
+// to the south-east, small groves, forest all around. The walkable map is the meadow (MAP).
 const WALL_Z = -16;
 const POND = { x: 13, z: 12, r: 8 };
-const inClearing = (x: number, z: number) => Math.hypot(x * 0.8, z) < 5;
 const inPond = (x: number, z: number, pad = 0) => Math.hypot((x - POND.x) * 0.75, z - POND.z) < POND.r + pad;
+export const MAP = { minX: -44, maxX: 44, minZ: WALL_Z + 1.4, maxZ: 38 };
+
+/** Open spots kept free for milestones 3-4: one per job (by the castle) and per project (in the meadow). */
+export const SPOTS = {
+  experience: [new THREE.Vector3(-26, 0, -6), new THREE.Vector3(0, 0, -8), new THREE.Vector3(26, 0, -6)],
+  projects: [new THREE.Vector3(-30, 0, 26), new THREE.Vector3(0, 0, 32), new THREE.Vector3(32, 0, 30)],
+};
+
+/** Things you can't walk through, as circles on the ground. Filled in as the scene is built. */
+const COLLIDERS: { x: number; z: number; r: number }[] = [];
+
+/** Groves inside the meadow: [x, z, trees]. Kept clear of SPOTS. */
+const GROVES = [[-20, 14, 5], [36, 12, 4], [-38, -2, 4], [-9, 22, 3]];
 
 /** Canvas-painted texture: stones in mortar, lighter tops, so walls turn into dense varied glyphs. */
 function stoneTexture() {
@@ -133,12 +151,14 @@ function castle() {
   for (const x of [-4.2, 4.2, -21, 21]) {
     const h = x === -21 ? 8.5 : 10.5; // the west tower is broken
     add(3.4, h, 3.4, x, h / 2, 0.3);
+    COLLIDERS.push({ x, z: WALL_Z + 0.3, r: 2.4 });
     for (const [dx, dz] of [[-1.2, -1.2], [1.2, -1.2], [-1.2, 1.2], [1.2, 1.2]]) add(1, 1.2, 1, x + dx, h + 0.6, 0.3 + dz);
   }
   // Fallen blocks in the grass.
   for (let i = 0; i < 9; i++) {
     const b = add(0.8 + random(), 0.6 + random() * 0.6, 0.8 + random(), (random() - 0.5) * 40, 0.3, 2.5 + random() * 3);
     b.rotation.y = random() * 3;
+    COLLIDERS.push({ x: b.position.x, z: WALL_Z + b.position.z, r: 0.9 });
   }
   group.position.z = WALL_Z;
   return group;
@@ -155,6 +175,7 @@ function torch(x: number, z: number) {
   light.position.y = 2.9;
   group.add(post, flame, light);
   group.position.set(x, 0, z);
+  COLLIDERS.push({ x, z, r: 0.4 });
   return { group, light, flame };
 }
 
@@ -215,8 +236,8 @@ function grassField(count: number) {
   const shades = ["#5a9e45", "#6cb04e", "#7fc25a", "#4b8c3c", "#93d066"].map((c) => new THREE.Color(c));
   let i = 0;
   while (i < count) {
-    const x = (random() - 0.5) * 90;
-    const z = WALL_Z + 1.5 + random() * 46;
+    const x = (random() - 0.5) * 96;
+    const z = WALL_Z + 1.5 + random() * 58;
     if (inPond(x, z, 0.5) || (Math.abs(x) < 2.6 && Math.abs(z) < 0.9)) continue; // not under the log
     const h = 0.35 + random() * 0.5;
     m.compose(new THREE.Vector3(x, 0, z), q.setFromAxisAngle(up, random() * Math.PI), new THREE.Vector3(1, h, 1));
@@ -232,13 +253,20 @@ function trees() {
   const crowns: THREE.Matrix4[] = [];
   const trunks: THREE.Matrix4[] = [];
   const q = new THREE.Quaternion();
+  const spots: [number, number][] = [];
   let tries = 0;
-  while (crowns.length < 140 && tries++ < 5000) {
-    const x = (random() - 0.5) * 120;
-    const z = (random() - 0.5) * 100;
-    // Forest everywhere except the field in front of the castle and the pond.
-    const field = Math.abs(x) < 24 && z > WALL_Z - 1 && z < 24;
-    if (field || inPond(x, z, 2)) continue;
+  while (spots.length < 170 && tries++ < 8000) {
+    const x = (random() - 0.5) * 150;
+    const z = WALL_Z - 20 + random() * 85;
+    // Forest everywhere except the meadow in front of the castle.
+    const meadow = Math.abs(x) < 47 && z > WALL_Z - 1 && z < 41;
+    if (!meadow) spots.push([x, z]);
+  }
+  for (const [gx, gz, n] of GROVES) {
+    for (let i = 0; i < n; i++) spots.push([gx + (random() - 0.5) * 8, gz + (random() - 0.5) * 6]);
+  }
+  for (const [x, z] of spots) {
+    COLLIDERS.push({ x, z, r: 0.7 });
     const h = 2 + random() * 2;
     const r = 2.4 + random() * 1.6;
     trunks.push(new THREE.Matrix4().compose(new THREE.Vector3(x, h / 2, z), q, new THREE.Vector3(1, h, 1)));
@@ -309,11 +337,20 @@ function person() {
     group.add(m);
     return m;
   };
-  add(new THREE.CapsuleGeometry(0.2, 0.9, 2, 6), "#3a4250", 0.65, -0.22);
-  add(new THREE.CapsuleGeometry(0.2, 0.9, 2, 6), "#3a4250", 0.65, 0.22);
+  // Legs hang from hip pivots so they can swing when walking.
+  const legs = [-0.22, 0.22].map((x) => {
+    const hip = new THREE.Group();
+    hip.position.set(x, 1.1, 0);
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.9, 2, 6), mat("#3a4250"));
+    leg.position.y = -0.45;
+    leg.castShadow = true;
+    hip.add(leg);
+    group.add(hip);
+    return hip;
+  });
   const body = add(new THREE.CapsuleGeometry(0.45, 0.8, 2, 8), "#9a5a3c", 1.75);
   const head = add(new THREE.IcosahedronGeometry(0.4, 1), "#d9b28c", 2.75);
-  return { group, body, head };
+  return { group, body, head, legs };
 }
 
 function butterfly(color: string) {
@@ -334,7 +371,7 @@ function butterfly(color: string) {
 /** Fireflies: tiny bright points drifting over the grass (the white specks in the reference). */
 function fireflies(count: number) {
   const base = new Float32Array(count * 3);
-  for (let i = 0; i < count; i++) base.set([(random() - 0.5) * 50, 0.6 + random() * 2, WALL_Z + 2 + random() * 34], i * 3);
+  for (let i = 0; i < count; i++) base.set([(random() - 0.5) * 86, 0.6 + random() * 2, WALL_Z + 2 + random() * 54], i * 3);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(base.slice(), 3));
   const points = new THREE.Points(geo, new THREE.PointsMaterial({ color: "#b8b48e", size: 1.5, sizeAttenuation: false }));
@@ -373,14 +410,14 @@ export function createScene(canvas: HTMLCanvasElement) {
   scene.add(ground());
   const water = pond();
   scene.add(water.mesh);
-  const grass = grassField(110000);
+  const grass = grassField(150000);
   scene.add(grass.mesh);
   const forest = trees();
   scene.add(forest.trunkMesh, forest.crownMesh);
   scene.add(castle());
   const torches = [torch(-3.4, WALL_Z + 2.2), torch(3.4, WALL_Z + 2.2), torch(-14, WALL_Z + 2)];
   for (const t of torches) scene.add(t.group);
-  const flies = fireflies(70);
+  const flies = fireflies(120);
   scene.add(flies.points);
 
   const log = new THREE.Group();
@@ -395,7 +432,7 @@ export function createScene(canvas: HTMLCanvasElement) {
   }
   log.rotation.z = Math.PI / 2;
   log.position.y = 0.5;
-  scene.add(log);
+  scene.add(log); // no collider: you step over it (the first key most people press is W, straight at it)
 
   const sleeper = person();
   scene.add(sleeper.group);
@@ -406,8 +443,11 @@ export function createScene(canvas: HTMLCanvasElement) {
     scene.add(b.group);
   }
 
+  // The camera looks a little ahead (north) of the player, eases after them, and stops at the map edges.
   const focus = new THREE.Vector3(0, 0, -7);
+  const focusTarget = new THREE.Vector3();
   const projected = new THREE.Vector3();
+  let lastNow = 0;
 
   return {
     renderer,
@@ -421,8 +461,17 @@ export function createScene(canvas: HTMLCanvasElement) {
       camera.updateProjectionMatrix();
     },
 
-    /** Advance the world to time t and render it off-screen. Returns the colour and depth textures. */
-    render(now: number, t: number, wokeAt: number | null) {
+    /** True if a walker of radius r can't stand at (x, z): map edge, pond, or something solid. */
+    blocked(x: number, z: number, r: number) {
+      if (x - r < MAP.minX || x + r > MAP.maxX || z - r < MAP.minZ || z + r > MAP.maxZ) return true;
+      if (inPond(x, z, r * 0.75)) return true;
+      return COLLIDERS.some((c) => Math.hypot(x - c.x, z - c.z) < c.r + r);
+    },
+
+    /** Advance the world to time t and render it off-screen. `pose` drives the figure once it's up. */
+    render(now: number, t: number, wokeAt: number | null, pose: Pose) {
+      const dt = Math.min(0.1, now - lastNow);
+      lastNow = now;
       grass.uniforms.uTime.value = t;
       water.uniforms.uTime.value = t;
       flies.update(t);
@@ -432,11 +481,19 @@ export function createScene(canvas: HTMLCanvasElement) {
         torch.flame.scale.y = flicker;
       });
 
-      // Lying along the log, then rolling up to stand beside it.
+      // Lying along the log, then rolling up to stand beside it (where `pose` starts), then walking.
       const up = wokeAt === null ? 0 : smoothstep(0, WAKE_SECONDS, now - wokeAt);
-      sleeper.group.rotation.z = (1 - up) * (Math.PI / 2);
-      sleeper.group.position.set((1 - up) * 1.4, 1.3 * (1 - up), up * 2.2);
-      sleeper.body.scale.setScalar(1 + (1 - up) * 0.05 * Math.sin(t * 1.6)); // breathing
+      if (up < 1) {
+        sleeper.group.rotation.set(0, 0, (1 - up) * (Math.PI / 2));
+        sleeper.group.position.set((1 - up) * 1.4 + up * pose.x, 1.3 * (1 - up), up * pose.z);
+        sleeper.body.scale.setScalar(1 + (1 - up) * 0.05 * Math.sin(t * 1.6)); // breathing
+      } else {
+        const swing = Math.sin(pose.stride) * 0.6 * pose.moving;
+        sleeper.group.rotation.set(0, pose.heading, 0);
+        sleeper.group.position.set(pose.x, Math.abs(Math.sin(pose.stride)) * 0.1 * pose.moving, pose.z);
+        sleeper.legs[0].rotation.x = swing;
+        sleeper.legs[1].rotation.x = -swing;
+      }
       grass.uniforms.uPush.value.copy(sleeper.group.position);
 
       butterflies.forEach((b, i) => {
@@ -447,6 +504,9 @@ export function createScene(canvas: HTMLCanvasElement) {
         b.right.rotation.y = Math.PI - flap;
       });
 
+      if (up > 0) focusTarget.set(clamp(pose.x, -26, 26), 0, clamp(pose.z - 6, -10, 30));
+      else focusTarget.set(0, 0, -7);
+      focus.lerp(focusTarget, 1 - Math.exp(-dt * 3));
       camera.position.copy(focus).add(CAMERA_OFFSET);
       camera.lookAt(focus);
       renderer.setRenderTarget(target);
