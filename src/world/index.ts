@@ -75,8 +75,8 @@ export function startWorld(worldCanvas: HTMLCanvasElement, overlayCanvas: HTMLCa
     const blend = ascii.render(world.renderer, drawn);
     if (import.meta.env.DEV) {
       // for the e2e check
-      Object.assign(window, { __blend: blend, __grid: { cols: grid.cols, rows: grid.rows } });
-      (window as { __frame?: (canvas: HTMLCanvasElement, camera: unknown) => void }).__frame?.(worldCanvas, drawn.camera);
+      Object.assign(window, { __blend: blend, __grid: { cols: grid.cols, rows: grid.rows, cellPx: [Math.round(grid.cellW * grid.dpr), Math.round(grid.cellH * grid.dpr)] } });
+      (window as { __frame?: (canvas: HTMLCanvasElement, camera: unknown, shift: unknown) => void }).__frame?.(worldCanvas, drawn.camera, drawn.shift);
     }
     grid.clear();
     drawIntroOverlay(grid, world, t, ambient, rest, player.walked, !rest.asleep && settled() && player.atLog);

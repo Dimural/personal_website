@@ -10,6 +10,8 @@ export const SUPERSAMPLE = 3; // render pixels per character cell, per axis (asc
 const CAMERA_OFFSET = new THREE.Vector3(0, 24, 24);
 const NEAR = 5;
 const FAR = 140;
+const VIEW_HEIGHT = 24.7; // world units the screen spans top to bottom (what a 40° lens showed at the focus)
+export const MARGIN = 1; // cells rendered past each screen edge, so the grid can slide by a fraction of a cell
 export const WAKE_SECONDS = 0.9; // the stand-up (and the lie-down); walking starts after it
 export const SLEEP_RADIUS = 2.5; // how close to the log (at the origin) space puts the figure back to sleep
 const NIGHT = "#0a0d18"; // background and fog; ascii.ts uses the same navy as paper
@@ -402,7 +404,13 @@ export function createScene(canvas: HTMLCanvasElement) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(NIGHT);
   scene.fog = new THREE.Fog(NIGHT, 45, 110);
-  const camera = new THREE.PerspectiveCamera(40, 1, NEAR, FAR);
+  // Flat (orthographic) projection: the camera only slides, so near and far ground then move across the screen
+  // at the same rate, and the character grid can lock onto the world (see `render`).
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, NEAR, FAR);
+  const cell = { w: 1, h: 1, cols: 1, rows: 1 }; // one character cell in world units, and the screen's grid
+  const shift = new THREE.Vector2(); // how far the true view sits past the cell-locked one, in cells
+  const across = new THREE.Vector3();
+  const upward = new THREE.Vector3();
 
   // Dusk: cool moonlight from the upper left, a dim blue sky fill, warm torches by the gate.
   scene.add(new THREE.HemisphereLight("#8fa2d0", "#1a2018", 1.7));
@@ -461,6 +469,13 @@ export function createScene(canvas: HTMLCanvasElement) {
   const focus = new THREE.Vector3(0, 0, -11);
   const focusTarget = new THREE.Vector3();
   const projected = new THREE.Vector3();
+  /** A world point on the visible grid (cols × rows), through the margin and the slide. */
+  const toCell = (p: THREE.Vector3, cols: number, rows: number) => {
+    p.project(camera);
+    const col = ((p.x + 1) / 2) * (cell.cols + 2 * MARGIN) - MARGIN - shift.x;
+    const row = ((1 - p.y) / 2) * (cell.rows + 2 * MARGIN) - MARGIN + shift.y;
+    return { col: (col / cell.cols) * cols, row: (row / cell.rows) * rows };
+  };
   let lastNow = 0;
   let lastT = 0;
 
@@ -471,8 +486,12 @@ export function createScene(canvas: HTMLCanvasElement) {
     resize(width: number, height: number, dpr: number, cols: number, rows: number, aspect: number) {
       renderer.setPixelRatio(dpr);
       renderer.setSize(width, height, false);
-      target.setSize(cols * SUPERSAMPLE, rows * SUPERSAMPLE);
-      camera.aspect = aspect;
+      target.setSize((cols + 2 * MARGIN) * SUPERSAMPLE, (rows + 2 * MARGIN) * SUPERSAMPLE);
+      cell.h = VIEW_HEIGHT / rows;
+      cell.w = (VIEW_HEIGHT * aspect) / cols;
+      Object.assign(cell, { cols, rows });
+      const [halfW, halfH] = [((cols + 2 * MARGIN) * cell.w) / 2, ((rows + 2 * MARGIN) * cell.h) / 2];
+      Object.assign(camera, { left: -halfW, right: halfW, top: halfH, bottom: -halfH });
       camera.updateProjectionMatrix();
     },
 
@@ -525,21 +544,30 @@ export function createScene(canvas: HTMLCanvasElement) {
       focus.lerp(focusTarget, 1 - Math.exp(-dt * 3));
       camera.position.copy(focus).add(CAMERA_OFFSET);
       camera.lookAt(focus);
+      // Lock the grid onto the world: move the camera back to the nearest whole cell, and let ascii.ts slide the
+      // drawn characters by the rest. Each character then keeps seeing the same patch of world as it glides,
+      // instead of being re-chosen from a slightly different slice every frame (which made the grass boil).
+      camera.updateMatrixWorld();
+      across.setFromMatrixColumn(camera.matrixWorld, 0);
+      upward.setFromMatrixColumn(camera.matrixWorld, 1);
+      const x = camera.position.dot(across) / cell.w;
+      const y = camera.position.dot(upward) / cell.h;
+      shift.set(x - Math.round(x), y - Math.round(y));
+      camera.position.addScaledVector(across, -shift.x * cell.w).addScaledVector(upward, -shift.y * cell.h);
+      camera.updateMatrixWorld();
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
-      return { color: target.texture, camera };
+      return { color: target.texture, camera, shift };
     },
 
     /** Where the figure's head is on the character grid, for the Zs. */
     headCell(cols: number, rows: number) {
-      sleeper.head.getWorldPosition(projected).project(camera);
-      return { col: ((projected.x + 1) / 2) * cols, row: ((1 - projected.y) / 2) * rows };
+      return toCell(sleeper.head.getWorldPosition(projected), cols, rows);
     },
 
     /** Where the top of the log is on the character grid, for the "press space to sleep" hint. */
     logCell(cols: number, rows: number) {
-      projected.set(0, 1, 0).project(camera);
-      return { col: ((projected.x + 1) / 2) * cols, row: ((1 - projected.y) / 2) * rows };
+      return toCell(projected.set(0, 1, 0), cols, rows);
     },
 
     dispose() {

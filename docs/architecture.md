@@ -43,14 +43,15 @@ Planned (add when the milestone needs it, not before):
    Space wakes; at the log (`player.atLog`, only after walking away) space lies the figure back down.
 3. `scene3d.render()` animates the world (grass wind in its vertex shader, pond glints, torch glow,
    fireflies, butterflies, birds and rabbits (`critters.update`), the figure from `rest` and the Pose: the stand-up, or the same motion reversed), eases the camera
-   (asleep: the intro framing, which keeps the sleeper below the title card), and renders into a
-   **multisampled** target of 3×3 pixels per character cell.
+   (asleep: the intro framing, which keeps the sleeper below the title card), snaps the flat (orthographic)
+   camera to whole cells and returns the leftover `shift`, and renders into a **multisampled** target of 3×3
+   pixels per character cell, with `MARGIN` extra cells past each screen edge.
 4. `ascii.ts`, pass 1 (one fragment per cell): averages the cell's 3×3 pixels (sRGB) and measures its
    stroke direction as a structure tensor, then **eases small changes toward the previous frame's values**
    (`SETTINGS.ease`, ping-pong targets) to stop flicker. The previous values are **reprojected**: read from the
    cell where the same patch of ground (y = 0) was last frame, using the camera `scene3d.render` returns, so the
    history moves with the world and walking neither smears nor shimmers. Big changes (the figure, a rabbit) switch at once.
-5. `ascii.ts`, pass 2 (every screen pixel): a `/ \ | -` stroke if the cell's stroke is clear, otherwise
+5. `ascii.ts`, pass 2 (every screen pixel), slid by `shift` in whole device pixels so characters glide with the world: a `/ \ | -` stroke if the cell's stroke is clear, otherwise
    a glyph from the quiet ramp by brightness; coloured with the cell's muted colour on navy; glyph shapes
    from an atlas drawn once per resize in the grid's font.
 6. `intro.ts` draws text on the transparent overlay canvas via `grid` (`put`, `art`, `big`). Positions
@@ -60,9 +61,10 @@ Planned (add when the milestone needs it, not before):
 
 - 3D world: Three.js units, y up, 1 ≈ a person's width. The log is at the origin; north (−z) is the
   castle (wall at z −16), the pond is at (13, 12). W walks north, D walks east (+x).
-- The camera sits at `focus + CAMERA_OFFSET` looking at `focus`; `focus` eases after the player.
-- Grid: cells, top-left origin. The rendered image spans exactly `cols × rows` cells, so a projected
-  point's NDC maps straight to cells (see `headCell`).
+- The camera sits at `focus + CAMERA_OFFSET` looking at `focus`; `focus` eases after the player, then the camera
+  snaps to the nearest whole cell (`shift` is the rest).
+- Grid: cells, top-left origin. The rendered image spans `cols + 2·MARGIN × rows + 2·MARGIN` cells; `toCell` in
+  `scene3d.ts` maps a world point to visible cells through the margin and the shift (`headCell`, `logCell`).
 
 ## Performance
 

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import { FONT, type Grid } from "./grid";
-import { SUPERSAMPLE } from "./scene3d";
+import { MARGIN, SUPERSAMPLE } from "./scene3d";
 
 // The rendered scene becomes coloured characters on a night-navy page, all on the GPU, in two passes:
 //   1. cell pass (one pixel per cell): the cell's average colour and its stroke direction, EASED toward
@@ -89,6 +89,7 @@ const drawShader = /* glsl */ `
   uniform sampler2D tCellColor, tCellStroke, tGlyphs;
   uniform vec2 grid;      // cols, rows
   uniform vec2 cellPx;    // device pixels per cell
+  uniform vec2 shift;     // the view's slide past the cell-locked render, in cells (x right, y up)
   uniform float canvasH;  // device pixels
   uniform float glyphCount;
   uniform vec3 paper;
@@ -96,9 +97,12 @@ const drawShader = /* glsl */ `
 
   void main() {
     vec2 px = vec2(gl_FragCoord.x, canvasH - gl_FragCoord.y); // from the top-left
-    vec2 cell = floor(px / cellPx);
-    if (cell.x >= grid.x || cell.y >= grid.y) { fragColor = vec4(paper, 1.0); return; }
-    ivec2 at = ivec2(cell.x, grid.y - 1.0 - cell.y);
+    if (px.x >= grid.x * cellPx.x || px.y >= grid.y * cellPx.y) { fragColor = vec4(paper, 1.0); return; }
+    // Where this pixel falls on the rendered grid (bottom-up, ${MARGIN} cell of margin), slid by the fraction.
+    // Whole device pixels, so every glyph keeps its exact shape as it glides.
+    vec2 slide = floor(shift * cellPx + 0.5);
+    vec2 r = vec2((px.x + slide.x) / cellPx.x, grid.y - (px.y - slide.y) / cellPx.y) + ${MARGIN}.0;
+    ivec2 at = ivec2(floor(r));
     vec3 c = texelFetch(tCellColor, at, 0).rgb;
     vec3 t = texelFetch(tCellStroke, at, 0).xyz;
     float lum = dot(c, vec3(0.299, 0.587, 0.114));
@@ -115,7 +119,7 @@ const drawShader = /* glsl */ `
 
     float coverage = 0.0;
     if (glyph > 0.0) {
-      vec2 local = px - cell * cellPx;
+      vec2 local = vec2(fract(r.x), 1.0 - fract(r.y)) * cellPx;
       vec2 uv = vec2((glyph * cellPx.x + local.x) / (glyphCount * cellPx.x), 1.0 - local.y / cellPx.y);
       coverage = texture(tGlyphs, uv).r;
     }
@@ -190,6 +194,7 @@ export function createAsciiPass() {
       tGlyphs: { value: null },
       grid: { value: new THREE.Vector2() },
       cellPx: { value: new THREE.Vector2() },
+      shift: { value: new THREE.Vector2() },
       canvasH: { value: 0 },
       glyphCount: { value: GLYPHS.length },
       paper: { value: new THREE.Vector3(...SETTINGS.paper) },
@@ -204,8 +209,8 @@ export function createAsciiPass() {
 
   return {
     resize(grid: Grid, canvasH: number) {
-      prev.setSize(grid.cols, grid.rows);
-      next.setSize(grid.cols, grid.rows);
+      prev.setSize(grid.cols + 2 * MARGIN, grid.rows + 2 * MARGIN);
+      next.setSize(grid.cols + 2 * MARGIN, grid.rows + 2 * MARGIN);
       fresh = true;
       const u = draw.uniforms;
       (u.tGlyphs.value as THREE.Texture | null)?.dispose();
@@ -215,7 +220,7 @@ export function createAsciiPass() {
       u.canvasH.value = canvasH;
     },
     /** `frame.camera` is the camera the scene was just rendered with; its motion reprojects the history. */
-    render(renderer: THREE.WebGLRenderer, frame: { color: THREE.Texture; camera: THREE.Camera }) {
+    render(renderer: THREE.WebGLRenderer, frame: { color: THREE.Texture; camera: THREE.Camera; shift: THREE.Vector2 }) {
       const now = performance.now();
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
@@ -230,6 +235,7 @@ export function createAsciiPass() {
       renderer.setRenderTarget(next);
       renderer.render(cellScene, camera);
 
+      draw.uniforms.shift.value.copy(frame.shift);
       draw.uniforms.tCellColor.value = next.textures[0];
       draw.uniforms.tCellStroke.value = next.textures[1];
       renderer.setRenderTarget(null);
