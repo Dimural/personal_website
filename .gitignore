@@ -35,3 +35,11 @@ shots/
 
 # exact ThreeUI source bundle, kept locally for reference
 .threeui-src/
+
+# reference screenshots and phone photos (third-party footage) — never commit
+Screenshot*.png
+Screen Shot*.png
+IMG_*.jpg
+IMG_*.png
+IMG_*.jpeg
+IMG_*.heic
