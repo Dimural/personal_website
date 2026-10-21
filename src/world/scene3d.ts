@@ -48,7 +48,7 @@ const mat = (color: string, map: THREE.Texture | null = null) =>
 const WALL_Z = -16;
 const POND = { x: 13, z: 12, r: 8 };
 const inPond = (x: number, z: number, pad = 0) => Math.hypot((x - POND.x) * 0.75, z - POND.z) < POND.r + pad;
-export const MAP = { minX: -44, maxX: 44, minZ: WALL_Z + 1.4, maxZ: 38 };
+export const MAP = { minX: -44, maxX: 44, minZ: WALL_Z + 1.4, maxZ: 47 };
 
 /** Open spots kept free for milestones 3-4: one per job (by the castle) and per project (in the meadow). */
 export const SPOTS = {
@@ -268,13 +268,15 @@ function trees() {
     const x = (random() - 0.5) * 150;
     const z = WALL_Z - 20 + random() * 85;
     // Forest everywhere except the meadow in front of the castle.
-    const meadow = Math.abs(x) < 47 && z > WALL_Z - 1 && z < 41;
+    const meadow = Math.abs(x) < 47 && z > WALL_Z - 1 && z < 50;
     if (!meadow) spots.push([x, z]);
   }
   for (const [gx, gz, n] of GROVES) {
     for (let i = 0; i < n; i++) spots.push([gx + (random() - 0.5) * 8, gz + (random() - 0.5) * 6]);
   }
-  for (const [x, z] of spots) {
+  // No tree on or just south of a logo: the camera looks north, so a tree stands up over what lies behind it.
+  const shades = (x: number, z: number) => Array.from({ length: 14 }, (_, k) => k - 4).some((k) => inClearing(x, z - k, 2));
+  for (const [x, z] of spots.filter(([x, z]) => !shades(x, z))) {
     COLLIDERS.push({ x, z, r: 0.7 });
     const h = 2 + random() * 2;
     const r = 2.4 + random() * 1.6;
