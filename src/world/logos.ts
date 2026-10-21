@@ -5,13 +5,15 @@ import * as THREE from "three";
 // lifted (dark greys become the light ink, dark brand colours are mixed toward white, keeping their hue).
 
 // `bold`: thicken strokes by this fraction of the image's width, for logos whose lines are thinner than a cell.
-type Logo = { src: string; at: [number, number]; width: number; bold?: number };
+// `light`: lift dark colours this far instead (0-1 luminance): thin dark lettering only reads as solid glyphs
+// when it's light, otherwise the ASCII picks out the letters' edges and they smear.
+type Logo = { src: string; at: [number, number]; width: number; bold?: number; light?: number };
 
 // All in the south of the meadow (z > 16): out of the title card's view, which ends near z 6 at any window
 // width, and clear of the groves and the pond. Staggered north/south so neighbours never touch.
 export const LOGOS: Logo[] = [
-  { src: "/logos/uoft.jpg", at: [-34, 30], width: 15, bold: 0.006 },
-  { src: "/logos/morphace.png", at: [-17, 34], width: 14, bold: 0.008 },
+  { src: "/logos/uoft.jpg", at: [-30, 26], width: 21, bold: 0.007, light: 0.62 },
+  { src: "/logos/morphace.png", at: [-20, 35.5], width: 17, bold: 0.01, light: 0.6 },
   { src: "/logos/finaldose.png", at: [0, 30], width: 15 },
   { src: "/logos/cibc.jpg", at: [17, 34], width: 13 },
   { src: "/logos/beau.png", at: [34, 30], width: 9 },
@@ -34,7 +36,7 @@ export function inClearing(x: number, z: number, pad = 0) {
 }
 
 /** The image with its background keyed out, dark colours lifted, cropped to what's left. */
-function keyed(img: HTMLImageElement) {
+function keyed(img: HTMLImageElement, light = LIFT) {
   const canvas = document.createElement("canvas");
   canvas.width = img.naturalWidth;
   canvas.height = img.naturalHeight;
@@ -52,9 +54,9 @@ function keyed(img: HTMLImageElement) {
     const p = i / 4;
     [x0, y0, x1, y1] = [Math.min(x0, p % canvas.width), Math.min(y0, Math.floor(p / canvas.width)), Math.max(x1, p % canvas.width), Math.max(y1, Math.floor(p / canvas.width))];
     const lum = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255;
-    if (lum >= LIFT) continue;
+    if (lum >= light) continue;
     const grey = Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]) < 40;
-    const target = FLOOR + (lum / LIFT) * (LIFT - FLOOR);
+    const target = light === LIFT ? FLOOR + (lum / LIFT) * (LIFT - FLOOR) : light;
     const toward = (target - lum) / (1 - lum); // mixing toward white keeps the hue; scaling up oversaturated it
     for (let c = 0; c < 3; c++) d[i + c] = grey ? INK[c] : d[i + c] + (255 - d[i + c]) * toward;
   }
@@ -81,7 +83,7 @@ export function createLogos(scene: THREE.Scene) {
   for (const logo of LOGOS) {
     const img = new Image();
     img.onload = () => {
-      const keyedArt = keyed(img);
+      const keyedArt = keyed(img, logo.light);
       const art = logo.bold ? bolden(keyedArt, Math.max(1, Math.round(keyedArt.width * logo.bold))) : keyedArt;
       // Stretched along the ground by √2: the camera looks down at 45°, so the logo then reads undistorted.
       const height = ((logo.width * art.height) / art.width) * Math.SQRT2;
