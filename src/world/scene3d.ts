@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import { createCritters } from "./critters";
-import { createLogos } from "./logos";
+import { createLogos, inClearing } from "./logos";
 
 // The world is a detailed 3D scene at dusk. It is never shown directly: it renders small and off-screen,
 // and ascii.ts turns each cell into a character coloured by the scene. Detail lives HERE: thousands of
@@ -247,7 +247,7 @@ function grassField(count: number) {
   while (i < count) {
     const x = (random() - 0.5) * 96;
     const z = WALL_Z + 1.5 + random() * 58;
-    if (inPond(x, z, 0.5) || (Math.abs(x) < 2.6 && Math.abs(z) < 0.9)) continue; // not under the log
+    if (inPond(x, z, 0.5) || (Math.abs(x) < 2.6 && Math.abs(z) < 0.9) || inClearing(x, z)) continue; // not under the log or behind a logo
     const h = 0.35 + random() * 0.5;
     m.compose(new THREE.Vector3(x, 0, z), q.setFromAxisAngle(up, random() * Math.PI), new THREE.Vector3(1, h, 1));
     mesh.setMatrixAt(i, m);
@@ -432,7 +432,7 @@ export function createScene(canvas: HTMLCanvasElement) {
   scene.add(castle());
   const torches = [torch(-3.4, WALL_Z + 2.2), torch(3.4, WALL_Z + 2.2), torch(-14, WALL_Z + 2)];
   for (const t of torches) scene.add(t.group);
-  const flies = fireflies(120);
+  const flies = fireflies(420);
   scene.add(flies.points);
 
   const log = new THREE.Group();
@@ -461,7 +461,12 @@ export function createScene(canvas: HTMLCanvasElement) {
   const critters = createCritters(scene, blocked);
   createLogos(scene);
 
-  const butterflies = ["#ffb03a", "#d68cff", "#7cc8ff"].map((color, i) => ({ ...butterfly(color), phase: i * 2.1 }));
+  // Each butterfly loops around its own patch of meadow.
+  const butterflies = Array.from({ length: 14 }, (_, i) => ({
+    ...butterfly(["#ffb03a", "#d68cff", "#7cc8ff", "#ff8fa8", "#f2ec8a"][i % 5]),
+    phase: i * 2.1,
+    home: i === 0 ? [0, 0] : [-38 + random() * 76, -8 + random() * 44],
+  }));
   for (const b of butterflies) {
     b.group.scale.setScalar(0.55);
     scene.add(b.group);
@@ -533,7 +538,7 @@ export function createScene(canvas: HTMLCanvasElement) {
       lastT = t;
 
       butterflies.forEach((b, i) => {
-        b.group.position.set(6 * Math.sin(t * (0.2 + i * 0.05) + b.phase), 2.2 + 0.6 * Math.sin(t * 0.7 + b.phase), 4 * Math.sin(t * 0.35 + b.phase * 1.7));
+        b.group.position.set(b.home[0] + 6 * Math.sin(t * (0.2 + (i % 3) * 0.05) + b.phase), 2.2 + 0.6 * Math.sin(t * 0.7 + b.phase), b.home[1] + 4 * Math.sin(t * 0.35 + b.phase * 1.7));
         b.group.rotation.y = t * 0.5 + b.phase;
         const flap = Math.sin(t * 7 + b.phase) * 0.8;
         b.left.rotation.y = flap;

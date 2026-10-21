@@ -68,18 +68,19 @@ type Rabbit = {
 
 /** Birds and rabbits, added to `scene`. `blocked` keeps rabbits on the walkable meadow. */
 export function createCritters(scene: THREE.Scene, blocked: (x: number, z: number, r: number) => boolean) {
-  const birds = [0, 1, 2, 3].map((i) => ({ ...bird(), offset: i * (BIRD_SPAN / 4) + i * 7 }));
+  const birds = Array.from({ length: 8 }, (_, i) => ({ ...bird(), offset: i * (BIRD_SPAN / 8) + i * 7 }));
   for (const b of birds) {
     b.group.scale.setScalar(0.8);
     scene.add(b.group);
   }
 
-  const rabbits: Rabbit[] = [
-    [-8, 6],
-    [9, -5],
-    [-16, 28],
-    [24, 24],
-  ].map(([x, z], i) => {
+  // Scattered over the open meadow: a few near the log, the rest anywhere a rabbit fits.
+  const spots = [[-8, 6], [9, -5], [-16, 28], [24, 24]];
+  for (let k = 0; spots.length < 14; k++) {
+    const [x, z] = [-40 + hash(k, 1) * 80, -10 + hash(k, 2) * 46];
+    if (!blocked(x, z, 1)) spots.push([x, z]);
+  }
+  const rabbits: Rabbit[] = spots.map(([x, z], i) => {
     const mesh = rabbitMesh();
     scene.add(mesh);
     return { x, z, heading: i * 1.7, mesh, wait: 1 + i, hops: 0, hop: 0, from: { x, z }, to: { x, z }, fleeing: false };

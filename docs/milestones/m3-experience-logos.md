@@ -29,9 +29,10 @@ Each job is a floating company logo in its real brand colours. Walking close ope
 - **Animals perched on each logo** (the goal): a little group of animals sits on and around each logo,
   partly hiding it. When the walker comes near, they all scatter (like the rabbits flee), revealing the
   logo fully, and the popup opens. Walking away lets them drift back.
-- **Logos placed so far** (`world/logos.ts`, images in `public/logos/`): UofT, an unknown crimson sprout,
-  FinalDose, CIBC (white chevron kept by keying only the border-connected background), Beau.
-  Still unknown: what the sprout belongs to, and the CIBC role/dates/details for its popup.
+- **Logos placed so far** (`world/logos.ts`, images in `public/logos/`): UofT, Morphace, FinalDose, CIBC, Beau.
+  Each floats over a cleared patch of bare earth (`inClearing`), so busy grass never crowds it; thin-stroke
+  logos are thickened (`bold`); dark colours are lifted into a range that keeps two shades distinct.
+  Still needed: the Morphace and CIBC roles/dates/details for their popups.
 
 ## Done when
 
