@@ -1,35 +1,35 @@
 import * as THREE from "three";
 
-// Company and project logos as flat 3D signs floating over the meadow, converted to ASCII like everything
+// Company and project logos laid flat in the meadow like mosaics, walkable like the grass, converted to ASCII like everything
 // else (docs/look.md). Each image's background is keyed out, and colours too dark to read on night navy are
 // lifted (dark greys become the light ink, dark brand colours are mixed toward white, keeping their hue).
 
 // `bold`: thicken strokes by this fraction of the image's width, for logos whose lines are thinner than a cell.
 type Logo = { src: string; at: [number, number]; width: number; bold?: number };
-const lift = (height: number) => 2.8 + height * 0.4; // how high a sign's centre floats
 
 // All in the south of the meadow (z > 16): out of the title card's view, which ends near z 6 at any window
-// width, and clear of the groves and the pond. Small, so they sit in the meadow rather than over it.
+// width, and clear of the groves and the pond. Staggered north/south so neighbours never touch.
 export const LOGOS: Logo[] = [
-  { src: "/logos/uoft.jpg", at: [-32, 30], width: 12, bold: 0.006 },
-  { src: "/logos/morphace.png", at: [-16, 34], width: 12, bold: 0.008 },
-  { src: "/logos/finaldose.png", at: [0, 32], width: 12 },
-  { src: "/logos/cibc.jpg", at: [16, 34], width: 11 },
-  { src: "/logos/beau.png", at: [32, 28], width: 7 },
+  { src: "/logos/uoft.jpg", at: [-34, 30], width: 15, bold: 0.006 },
+  { src: "/logos/morphace.png", at: [-17, 34], width: 14, bold: 0.008 },
+  { src: "/logos/finaldose.png", at: [0, 30], width: 15 },
+  { src: "/logos/cibc.jpg", at: [17, 34], width: 13 },
+  { src: "/logos/beau.png", at: [34, 30], width: 9 },
 ];
 
-const LIFT = 0.55; // colours darker than this (0-1 luminance) are lifted, so they read as glyphs on navy…
-const FLOOR = 0.2; // …into FLOOR..LIFT, keeping their order: two dark shades stay two shades (CIBC's chevron)
+const LIFT = 0.65; // colours darker than this (0-1 luminance) are lifted, so they read as glyphs on navy…
+const FLOOR = 0.35; // …into FLOOR..LIFT, keeping their order: two dark shades stay two shades (CIBC's chevron)
 const INK = [216, 222, 234];
 
 /**
- * Bare ground where the camera sees it behind a sign (north of it, as far as the sign floats up), so the
- * logo reads against calm earth instead of busy grass. `height` is guessed from the width: logos are ~3:1.
+ * No grass on a logo or just around it, so no blade ever covers it. The south margin is wider: the camera
+ * looks down from the south, so a blade there stands up over the logo's near edge. The logo's depth is
+ * guessed generously from its width.
  */
-export function inClearing(x: number, z: number) {
+export function inClearing(x: number, z: number, pad = 0) {
   return LOGOS.some(({ at, width }) => {
-    const h = width / 3;
-    return Math.hypot((x - at[0]) / (width / 2 + 2), (z - (at[1] - lift(h))) / (h + 2)) < 1;
+    const depth = width * 0.55; // the deepest logo (UofT, ~2.8:1, stretched by √2) is ~0.5 × its width
+    return Math.abs(x - at[0]) < width / 2 + 0.8 + pad && z > at[1] - depth / 2 - 0.6 - pad && z < at[1] + depth / 2 + 1.4 + pad;
   });
 }
 
@@ -83,18 +83,17 @@ export function createLogos(scene: THREE.Scene) {
     img.onload = () => {
       const keyedArt = keyed(img);
       const art = logo.bold ? bolden(keyedArt, Math.max(1, Math.round(keyedArt.width * logo.bold))) : keyedArt;
-      const height = (logo.width * art.height) / art.width;
+      // Stretched along the ground by √2: the camera looks down at 45°, so the logo then reads undistorted.
+      const height = ((logo.width * art.height) / art.width) * Math.SQRT2;
       const texture = new THREE.CanvasTexture(art);
       texture.colorSpace = THREE.SRGBColorSpace;
       const sign = new THREE.Mesh(
         new THREE.PlaneGeometry(logo.width, height),
         new THREE.MeshBasicMaterial({ map: texture, alphaTest: 0.5 }),
       );
-      // Tilted back to face the camera (which looks down at 45°), floating high enough that the grass in
-      // front of it (which the camera sees above its roots) never reaches the sign's bottom edge.
-      sign.rotation.x = -Math.PI / 4;
-      sign.position.set(logo.at[0], lift(height), logo.at[1]);
-      sign.castShadow = true;
+      // Flat on the ground, a hair above it: the walker and the rabbits cross it like any other ground.
+      sign.rotation.x = -Math.PI / 2;
+      sign.position.set(logo.at[0], 0.03, logo.at[1]);
       scene.add(sign);
     };
     img.src = logo.src;

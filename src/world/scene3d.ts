@@ -300,7 +300,9 @@ function ground() {
     const x = p.getX(i);
     const z = p.getZ(i);
     const bed = 1 - smoothstep(POND.r - 2, POND.r + 0.5, Math.hypot((x - POND.x) * 0.75, z - POND.z));
-    p.setY(i, -bed * 1.2 + 0.25 * Math.sin(x * 0.2) * Math.cos(z * 0.17) * smoothstep(6, 14, Math.hypot(x, z)));
+    // Gentle bumps, except flat under the logos (with a vertex's width to spare) so none pokes through one.
+    const bumps = inClearing(x, z, 2) ? 0 : 0.25 * Math.sin(x * 0.2) * Math.cos(z * 0.17) * smoothstep(6, 14, Math.hypot(x, z));
+    p.setY(i, -bed * 1.2 + bumps);
     const c = soil.clone().lerp(moss, random());
     colors.push(c.r, c.g, c.b);
   }
