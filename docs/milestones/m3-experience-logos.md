@@ -33,7 +33,8 @@ Each job is a floating company logo in its real brand colours. Walking close ope
   Each lies flat on the ground like a mosaic (walkable; stretched by √2 so it reads undistorted from the 45°
   camera), on flattened, grass-free earth (`inClearing`) so no blade or bump ever covers it; thin-stroke
   logos are thickened (`bold`); dark colours are lifted into a range that keeps two shades distinct.
-  Still needed: the Morphace and CIBC roles/dates/details for their popups.
+  UofT and Morphace are re-set in bold Georgia with open letter spacing (their own serifs were too thin for
+  the grid). Title-card icons are in `public/icons/`. Still needed: the Morphace role/dates/details, CIBC details.
 
 ## Done when
 

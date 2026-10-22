@@ -12,8 +12,8 @@ type Logo = { src: string; at: [number, number]; width: number; bold?: number; l
 // All in the south of the meadow (z > 16): out of the title card's view, which ends near z 6 at any window
 // width, and clear of the groves and the pond. Staggered north/south so neighbours never touch.
 export const LOGOS: Logo[] = [
-  { src: "/logos/uoft.png", at: [-28, 26], width: 28, bold: 0.004, light: 0.62 },
-  { src: "/logos/morphace.png", at: [-14, 41], width: 21, bold: 0.008, light: 0.6 },
+  { src: "/logos/uoft.png", at: [-28, 26], width: 28, light: 0.62 },
+  { src: "/logos/morphace.png", at: [-15, 41], width: 28, light: 0.6 },
   { src: "/logos/finaldose.png", at: [0, 30], width: 15 },
   { src: "/logos/cibc.jpg", at: [17, 34], width: 13 },
   { src: "/logos/beau.png", at: [34, 30], width: 9 },

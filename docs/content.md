@@ -7,6 +7,7 @@ The data lives in code at `src/content/` (created in milestone 3). This file is 
 
 | Company (full name) | Title | Dates | Location | Logo colours |
 |---|---|---|---|---|
+| CIBC (Canadian Imperial Bank of Commerce) | Software Engineer Intern | September 2026 – Present | Toronto, ON (TODO: confirm) | red `#C41F3E` |
 | FinalDose (YC P26) | Software Engineer Intern | June 2026 – Present | San Francisco, CA | TODO: get from owner |
 | University of Toronto | Undergraduate Research Assistant | May 2026 – Present | Toronto, ON | UofT navy `#1E3765` (verify) |
 | Beau Vision AI | Software Developer Intern | March 2025 – March 2026 | Toronto, ON | TODO: get from owner |
